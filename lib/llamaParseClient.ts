@@ -62,7 +62,14 @@ async function uploadFile(
   const formData = new FormData();
 
   // Construct a Blob from the buffer for the FormData
-  const blob = new Blob([buffer], { type: mimeType });
+  const arrayBuffer = buffer.buffer.slice(
+  buffer.byteOffset,
+  buffer.byteOffset + buffer.byteLength
+);
+
+  const blob = new Blob([arrayBuffer], { type: mimeType });
+
+
   formData.append('file', blob, fileName);
 
   // LlamaParse options — request markdown output, enable table extraction
