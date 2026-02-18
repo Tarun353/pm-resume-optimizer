@@ -3,7 +3,7 @@ import { generateResumePDF } from '@/lib/pdfGenerator';
 import { ResumeData } from '@/lib/types';
 
 export const runtime = 'nodejs';
-export const maxDuration = 60; // Vercel Hobby: max 10s, Pro: max 60s
+export const maxDuration = 60;
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
@@ -32,7 +32,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       ? body.resume.personal.name.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_')
       : 'Resume';
 
-    return new NextResponse(pdfBuffer, {
+    // Convert Buffer to Uint8Array for NextResponse
+    const uint8Array = new Uint8Array(pdfBuffer);
+
+    return new NextResponse(uint8Array, {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
