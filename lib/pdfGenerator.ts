@@ -54,8 +54,7 @@ export async function generateResumePDF(resume: ResumeData): Promise<Buffer> {
       timeout: 30000,
     });
 
-    // Wait for fonts to load (fixed TypeScript compatibility)
-    await page.evaluate(() => document.fonts.ready);
+    // networkidle0 above already waits for fonts and resources
 
     const pdfBuffer = await page.pdf({
       format: 'A4',
