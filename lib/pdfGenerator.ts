@@ -2,26 +2,32 @@ import { ResumeData } from './types';
 import { generateResumeHTML } from './htmlTemplate';
 
 export async function generateResumePDF(resume: ResumeData): Promise<Buffer> {
-  const puppeteer = await import('puppeteer');
-  
-  // Detect if we're on Vercel (serverless)
+  // Detect if we're on Vercel/serverless
   const isProduction = process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME;
   
-  let browser: Awaited<ReturnType<typeof puppeteer.default.launch>> | null = null;
+  let browser = null;
 
   try {
     if (isProduction) {
-      // Serverless environment - use @sparticuz/chromium
-      const chromium = await import('@sparticuz/chromium');
+      // Serverless environment - use puppeteer-core + chromium-min
+      const puppeteerCore = await import('puppeteer-core');
+      const chromium = await import('@sparticuz/chromium-min');
       
-      browser = await puppeteer.default.launch({
-        args: chromium.default.args,
+      browser = await puppeteerCore.default.launch({
+        args: [
+          ...chromium.default.args,
+          '--hide-scrollbars',
+          '--disable-web-security',
+        ],
         defaultViewport: chromium.default.defaultViewport,
-        executablePath: await chromium.default.executablePath(),
+        executablePath: await chromium.default.executablePath(
+          'https://github.com/Sparticuz/chromium/releases/download/v123.0.1/chromium-v123.0.1-pack.tar'
+        ),
         headless: chromium.default.headless,
       });
     } else {
-      // Local development - use system Chrome
+      // Local development - use regular puppeteer
+      const puppeteer = await import('puppeteer');
       browser = await puppeteer.default.launch({
         headless: true,
         args: [
@@ -38,7 +44,7 @@ export async function generateResumePDF(resume: ResumeData): Promise<Buffer> {
 
     const page = await browser.newPage();
 
-    // Set viewport to A4 dimensions at 96 DPI
+    // Set viewport to A4 dimensions
     await page.setViewport({ width: 794, height: 1123, deviceScaleFactor: 1 });
 
     const html = generateResumeHTML(resume);
