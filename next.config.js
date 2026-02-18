@@ -1,11 +1,16 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
-    serverComponentsExternalPackages: ['puppeteer', 'pdf-parse', 'mammoth'],
+    serverComponentsExternalPackages: ['puppeteer', 'mammoth', '@sparticuz/chromium'],
   },
   webpack: (config, { isServer }) => {
     if (isServer) {
-      config.externals = [...(config.externals || []), 'puppeteer', 'pdf-parse', 'mammoth'];
+      config.externals = [
+        ...(config.externals || []), 
+        'puppeteer', 
+        'mammoth',
+        '@sparticuz/chromium'
+      ];
     }
     return config;
   },
