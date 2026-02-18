@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "postinstall": "node -e \"try { require('puppeteer').executablePath(); } catch { require('child_process').execSync('npx puppeteer browsers install chrome', { stdio: 'inherit' }); }\"",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -14,8 +15,6 @@
     "react-dom": "^18",
     "groq-sdk": "^0.3.3",
     "puppeteer": "^22.8.0",
-    "puppeteer-core": "^22.8.0",
-    "@sparticuz/chromium-min": "^123.0.1",
     "mammoth": "^1.7.2"
   },
   "devDependencies": {
