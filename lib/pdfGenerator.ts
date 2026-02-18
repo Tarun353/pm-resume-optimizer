@@ -17,6 +17,8 @@ export async function generateResumePDF(resume: ResumeData): Promise<Buffer> {
         '--no-first-run',
         '--no-zygote',
         '--disable-gpu',
+        '--disable-web-security',
+        '--disable-features=IsolateOrigins,site-per-process',
       ],
     });
 
@@ -27,10 +29,14 @@ export async function generateResumePDF(resume: ResumeData): Promise<Buffer> {
 
     const html = generateResumeHTML(resume);
 
+    // Changed: Use 'domcontentloaded' instead of 'networkidle0' and increased timeout
     await page.setContent(html, {
-      waitUntil: 'networkidle0',
-      timeout: 30000,
+      waitUntil: 'domcontentloaded',
+      timeout: 60000, // 60 seconds instead of 30
     });
+
+    // Give fonts a moment to load (non-blocking)
+    await page.waitForTimeout(1000);
 
     const pdfBuffer = await page.pdf({
       format: 'A4',

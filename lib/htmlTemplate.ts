@@ -1,20 +1,3 @@
-/**
- * htmlTemplate.ts
- *
- * ROOT CAUSE OF MISSING SECTIONS IN PDF:
- * The previous template hardcoded exactly 6 sections in a fixed order:
- *   summary → experience → education → skills → projects
- * Any section not in that list (certifications, awards, internships, etc.)
- * was simply never rendered, even if the data existed in the model.
- *
- * FIX:
- * - Template is now driven by resume.sectionOrder — the list of section keys
- *   written by the parser in the order they appeared in the source document.
- * - Every section type has a dedicated renderer.
- * - additionalSections are rendered as generic bullet lists.
- * - No section is ever skipped unless it is genuinely empty.
- */
-
 import {
   ResumeData,
   ExperienceEntry,
@@ -186,7 +169,6 @@ function renderSkills(skills: string[]): string {
 // ─── Additional (catch-all) ───────────────────────────────────────────────────
 function renderAdditional(sec: AdditionalSection): string {
   if (!sec.items?.length && !sec.rawContent?.trim()) return '';
-  // Prefer structured items list; fall back to raw
   if (sec.items?.length) {
     return bullets(sec.items);
   }
@@ -209,27 +191,12 @@ function renderContactLine(resume: ResumeData): string {
   return parts.join('<span class="sep">·</span>');
 }
 
-// ─── Section title lookup ─────────────────────────────────────────────────────
-const SECTION_TITLES: Record<string, string> = {
-  summary:        'Professional Summary',
-  experience:     'Experience',
-  education:      'Education',
-  certifications: 'Certifications',
-  awards:         'Awards & Honors',
-  publications:   'Publications',
-  internships:    'Internships',
-  projects:       'Projects',
-  skills:         'Technical Skills',
-  softSkills:     'Core Competencies',
-};
-
 // ─── Main HTML generator ──────────────────────────────────────────────────────
 export function generateResumeHTML(resume: ResumeData): string {
   const personal = resume.personal ?? {
     name: '', email: '', phone: '', location: '', links: [],
   };
 
-  // Build sections in the order they appeared in the original resume
   const sectionOrder = resume.sectionOrder?.length
     ? resume.sectionOrder
     : ['summary', 'experience', 'internships', 'education', 'certifications',
@@ -307,7 +274,6 @@ export function generateResumeHTML(resume: ResumeData): string {
     }
   }
 
-  // Render any additionalSections NOT already in sectionOrder (safety net)
   for (const addl of resume.additionalSections ?? []) {
     const addlKey = `additional:${addl.heading.trim()}`;
     if (!sectionOrder.includes(addlKey)) {
@@ -323,11 +289,11 @@ export function generateResumeHTML(resume: ResumeData): string {
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>${safe(personal.name || 'Resume')}</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+  /* CHANGED: Removed Google Fonts, use system fonts for speed */
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
   html{font-size:11.5px}
   body{
-    font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
     font-size:1rem;line-height:1.5;color:#1e293b;background:#fff;
     -webkit-print-color-adjust:exact;print-color-adjust:exact
   }
