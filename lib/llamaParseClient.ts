@@ -61,16 +61,14 @@ async function uploadFile(
 ): Promise<string> {
   const formData = new FormData();
 
-  // Construct a Blob from the buffer for the FormData
-  const arrayBuffer = buffer.buffer.slice(
-  buffer.byteOffset,
-  buffer.byteOffset + buffer.byteLength
-);
+  
+  // Convert Buffer to Uint8Array (fixes Vercel Blob typing issue)
+  const uint8Array = new Uint8Array(buffer);
 
-  const blob = new Blob([arrayBuffer], { type: mimeType });
-
+  const blob = new Blob([uint8Array], { type: mimeType });
 
   formData.append('file', blob, fileName);
+
 
   // LlamaParse options — request markdown output, enable table extraction
   formData.append('result_type', 'markdown');
