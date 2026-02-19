@@ -29,14 +29,14 @@ export async function generateResumePDF(resume: ResumeData): Promise<Buffer> {
 
     const html = generateResumeHTML(resume);
 
-    // Changed: Use 'domcontentloaded' instead of 'networkidle0' and increased timeout
+    // Use 'domcontentloaded' instead of 'networkidle0' for speed
     await page.setContent(html, {
       waitUntil: 'domcontentloaded',
-      timeout: 60000, // 60 seconds instead of 30
+      timeout: 60000,
     });
 
-    // Give fonts a moment to load (non-blocking)
-    await page.waitForTimeout(1000);
+    // Give page a moment to settle (using standard Promise instead of deprecated waitForTimeout)
+    await new Promise(resolve => setTimeout(resolve, 500));
 
     const pdfBuffer = await page.pdf({
       format: 'A4',
