@@ -31,6 +31,25 @@ function SpinnerIcon() {
   );
 }
 
+function CloseIcon() {
+  return (
+    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+    </svg>
+  );
+}
+
+function EyeIcon() {
+  return (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+    </svg>
+  );
+}
+
 // ─── Career Stage Options ─────────────────────────────────────────────────────
 const CAREER_STAGES: Array<{
   value: CareerStage;
@@ -136,6 +155,113 @@ function ResumeSectionSummary({ resume }: { resume: ResumeData }) {
   );
 }
 
+// ─── PREVIEW MODAL ────────────────────────────────────────────────────────────
+interface PreviewModalProps {
+  resume: ResumeData;
+  onClose: () => void;
+  onDownload: () => void;
+  isDownloading: boolean;
+}
+
+function PreviewModal({ resume, onClose, onDownload, isDownloading }: PreviewModalProps) {
+  const [previewHTML, setPreviewHTML] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Generate preview HTML
+  useCallback(() => {
+    const generatePreview = async () => {
+      try {
+        // Call the template generator (imported from htmlTemplate)
+        const response = await fetch('/api/preview', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ resume }),
+        });
+        
+        if (response.ok) {
+          const html = await response.text();
+          setPreviewHTML(html);
+        }
+      } catch (err) {
+        console.error('Preview generation failed:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    generatePreview();
+  }, [resume])();
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] flex flex-col">
+        
+        {/* Modal Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl flex items-center justify-center">
+              <EyeIcon />
+            </div>
+            <div>
+              <h2 className="font-bold text-slate-900 text-lg">Resume Preview</h2>
+              <p className="text-xs text-slate-500">Review before downloading</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+            <CloseIcon />
+          </button>
+        </div>
+
+        {/* Preview Content */}
+        <div className="flex-1 overflow-auto bg-slate-100 p-6">
+          {isLoading ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
+                <p className="text-slate-600">Generating preview...</p>
+              </div>
+            </div>
+          ) : (
+            <div className="max-w-4xl mx-auto bg-white shadow-lg">
+              <iframe
+                srcDoc={previewHTML}
+                className="w-full h-[600px] border-0"
+                title="Resume Preview"
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Modal Footer */}
+        <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-between bg-slate-50">
+          <p className="text-xs text-slate-500">
+            Professional single-column template · ATS-friendly · Fits 1-2 pages
+          </p>
+          <div className="flex gap-3">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 rounded-lg transition-colors">
+              Close
+            </button>
+            <button
+              onClick={onDownload}
+              disabled={isDownloading}
+              className="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-slate-300 disabled:to-slate-400 text-white rounded-lg text-sm font-semibold transition-all shadow-lg shadow-blue-500/20 flex items-center gap-2">
+              {isDownloading ? (
+                <><SpinnerIcon /><span className="ml-1">Generating...</span></>
+              ) : (
+                <><span>⬇️</span> Download PDF</>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function HomePage() {
   const [careerStage, setCareerStage]   = useState<CareerStage>('experienced');
@@ -152,6 +278,7 @@ export default function HomePage() {
   const [error, setError]               = useState<string | null>(null);
   const [isDragOver, setIsDragOver]     = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [showPreview, setShowPreview]   = useState(false); // NEW: Preview modal state
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ── File handling ────────────────────────────────────────────────────────
@@ -179,7 +306,7 @@ export default function HomePage() {
     if (inputMode === 'upload' && uploadedFile) {
       const fd = new FormData();
       fd.append('file', uploadedFile);
-      fd.append('careerStage', careerStage); // ← Send career stage
+      fd.append('careerStage', careerStage);
       const res = await fetch('/api/parse', { method: 'POST', body: fd });
       if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? 'Parse failed'); }
       const d = await res.json();
@@ -191,7 +318,7 @@ export default function HomePage() {
     const res = await fetch('/api/parse', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, careerStage }), // ← Send career stage
+      body: JSON.stringify({ text, careerStage }),
     });
     if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? 'Parse failed'); }
     const d = await res.json();
@@ -260,6 +387,8 @@ export default function HomePage() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+      
+      setShowPreview(false); // Close preview after download
     } catch (err) {
       setError(err instanceof Error ? err.message : 'PDF download failed.');
     } finally {
@@ -276,306 +405,316 @@ export default function HomePage() {
   const fileExt = uploadedFile?.name.toLowerCase().endsWith('.pdf') ? 'pdf' : 'docx';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/20 to-indigo-50/30">
-      {/* Nav */}
-      <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200/60">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} 
-                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-            </div>
-            <div>
-              <h1 className="font-bold text-slate-900 tracking-tight text-lg">ResumeForge</h1>
-              <p className="text-xs text-slate-500">AI-Powered ATS Optimizer</p>
+    <>
+      {/* Preview Modal */}
+      {showPreview && optimizedResume && (
+        <PreviewModal
+          resume={optimizedResume}
+          onClose={() => setShowPreview(false)}
+          onDownload={handleDownloadPDF}
+          isDownloading={isDownloading}
+        />
+      )}
+
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/20 to-indigo-50/30">
+        {/* Nav */}
+        <nav className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-200/60">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} 
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <div>
+                <h1 className="font-bold text-slate-900 tracking-tight text-lg">ResumeForge</h1>
+                <p className="text-xs text-slate-500">AI-Powered ATS Optimizer</p>
+              </div>
             </div>
           </div>
-        </div>
-      </nav>
+        </nav>
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-10 pb-12">
-        {/* Hero */}
-        <div className="text-center mb-10">
-          <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-3 tracking-tight">
-            Beat the ATS.{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
-              Land the Interview.
-            </span>
-          </h1>
-          <p className="text-slate-500 max-w-lg mx-auto">
-            AI rewrites your summary and bullets with JD-matched keywords, power verbs,
-            and measurable impact — while preserving every section of your resume.
-          </p>
-        </div>
-
-        {/* ── CAREER STAGE SELECTOR (NEW) ── */}
-        <div className="max-w-3xl mx-auto mb-8">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-lg">👤</span>
-              <h2 className="font-semibold text-slate-900 text-sm">Select Your Career Stage</h2>
-            </div>
-            <p className="text-xs text-slate-500 mb-4">
-              This determines the professional section order in your final resume
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-10 pb-12">
+          {/* Hero */}
+          <div className="text-center mb-10">
+            <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-3 tracking-tight">
+              Beat the ATS.{' '}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
+                Land the Interview.
+              </span>
+            </h1>
+            <p className="text-slate-500 max-w-lg mx-auto">
+              AI rewrites your summary and bullets with JD-matched keywords, power verbs,
+              and measurable impact — while preserving every section of your resume.
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {CAREER_STAGES.map(stage => (
-                <button
-                  key={stage.value}
-                  onClick={() => setCareerStage(stage.value)}
-                  className={`relative p-4 rounded-xl border-2 text-left transition-all ${
-                    careerStage === stage.value
-                      ? 'border-blue-500 bg-blue-50 shadow-sm'
-                      : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
-                  }`}>
-                  <div className="text-2xl mb-2">{stage.icon}</div>
-                  <p className="font-semibold text-sm text-slate-900 mb-1">{stage.label}</p>
-                  <p className="text-xs text-slate-500">{stage.description}</p>
-                  {careerStage === stage.value && (
-                    <div className="absolute top-2 right-2">
-                      <CheckIcon className="w-4 h-4 text-blue-600" />
-                    </div>
-                  )}
-                </button>
-              ))}
-            </div>
           </div>
-        </div>
 
-        {/* Two-column layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-
-          {/* ── LEFT: Inputs ── */}
-          <div className="space-y-4">
-
-            {/* Resume input */}
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-              <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
-                <div>
-                  <h2 className="font-semibold text-slate-900 text-sm">Your Resume</h2>
-                  <p className="text-xs text-slate-400 mt-0.5">All sections preserved</p>
-                </div>
-                <div className="flex bg-slate-100 rounded-lg p-0.5">
-                  <button
-                    onClick={() => { setInputMode('paste'); setUploadedFile(null); }}
-                    className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
-                      inputMode === 'paste' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'
-                    }`}>
-                    Paste Text
-                  </button>
-                  <button
-                    onClick={() => { setInputMode('upload'); setResumeText(''); }}
-                    className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
-                      inputMode === 'upload' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'
-                    }`}>
-                    Upload File
-                  </button>
-                </div>
+          {/* ── CAREER STAGE SELECTOR ── */}
+          <div className="max-w-3xl mx-auto mb-8">
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-lg">👤</span>
+                <h2 className="font-semibold text-slate-900 text-sm">Select Your Career Stage</h2>
               </div>
-
-              <div className="p-4">
-                {inputMode === 'paste' ? (
-                  <textarea
-                    value={resumeText}
-                    onChange={e => setResumeText(e.target.value)}
-                    placeholder={`Paste your full resume here...\n\nTip: Include all sections:\n• Summary\n• Experience\n• Education\n• Skills\n• Certifications\n• Awards\n• Projects\n• etc.`}
-                    className="w-full h-56 text-sm text-slate-700 placeholder-slate-300 bg-slate-50 border border-slate-200 rounded-xl p-3 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all font-mono"
-                  />
-                ) : (
-                  <div>
-                    <div
-                      onDrop={handleDrop}
-                      onDragOver={e => { e.preventDefault(); setIsDragOver(true); }}
-                      onDragLeave={() => setIsDragOver(false)}
-                      onClick={() => fileInputRef.current?.click()}
-                      className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
-                        isDragOver ? 'border-blue-400 bg-blue-50'
-                        : uploadedFile ? 'border-green-300 bg-green-50'
-                        : 'border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-slate-100'
-                      }`}>
-                      {uploadedFile ? (
-                        <div className="flex items-center justify-center gap-3">
-                          <div className={`flex items-center justify-center w-10 h-10 rounded-lg font-bold text-xs uppercase ${
-                            fileExt === 'pdf' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
-                            {fileExt}
-                          </div>
-                          <div className="text-left">
-                            <p className="text-sm font-medium text-slate-900 truncate max-w-48">{uploadedFile.name}</p>
-                            <p className="text-xs text-slate-400">{(uploadedFile.size / 1024).toFixed(0)} KB · Click to replace</p>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="text-slate-400">
-                          <div className="flex justify-center mb-2"><UploadIcon /></div>
-                          <p className="text-sm font-medium text-slate-600">Drop your resume here</p>
-                          <p className="text-xs text-slate-400 mt-1">PDF or DOCX · Up to 10MB</p>
-                        </div>
-                      )}
-                    </div>
-                    <input ref={fileInputRef} type="file" accept=".pdf,.docx"
-                      onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
-                      className="hidden" />
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Job description */}
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-              <div className="px-5 py-3.5 border-b border-slate-100">
-                <h2 className="font-semibold text-slate-900 text-sm">Job Description</h2>
-                <p className="text-xs text-slate-400 mt-0.5">Keywords extracted automatically</p>
-              </div>
-              <div className="p-4">
-                <textarea
-                  value={jobDescription}
-                  onChange={e => setJobDescription(e.target.value)}
-                  placeholder="Paste the full job description here — the more detail, the better the keyword matching..."
-                  className="w-full h-44 text-sm text-slate-700 placeholder-slate-300 bg-slate-50 border border-slate-200 rounded-xl p-3 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all"
-                />
-                <div className="flex items-center justify-between mt-1.5">
-                  <p className="text-xs text-slate-400">{jobDescription.length} chars</p>
-                  {jobDescription.length >= 20 && (
-                    <span className="text-xs text-green-600 flex items-center gap-1 font-medium">
-                      <CheckIcon /> Ready for analysis
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Optimize button */}
-            <button
-              onClick={handleOptimize}
-              disabled={!canOptimize}
-              className={`w-full py-4 rounded-2xl text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${
-                canOptimize
-                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/20'
-                  : 'bg-slate-100 text-slate-400 cursor-not-allowed'
-              }`}>
-              {isLoading ? (
-                <><SpinnerIcon /><span className="ml-1">{loadingStep || 'Working...'}</span></>
-              ) : (
-                <><span>✨</span> Optimize My Resume</>
-              )}
-            </button>
-
-            {/* Hint */}
-            {!canOptimize && !isLoading && (
-              <p className="text-xs text-center text-slate-400">
-                {inputMode === 'paste' && resumeText.trim().length <= 10
-                  ? '① Add your resume text'
-                  : inputMode === 'upload' && !uploadedFile
-                  ? '① Upload a resume file'
-                  : '② Add a job description (20+ chars)'}
+              <p className="text-xs text-slate-500 mb-4">
+                This determines the professional section order in your final resume
               </p>
-            )}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {CAREER_STAGES.map(stage => (
+                  <button
+                    key={stage.value}
+                    onClick={() => setCareerStage(stage.value)}
+                    className={`relative p-4 rounded-xl border-2 text-left transition-all ${
+                      careerStage === stage.value
+                        ? 'border-blue-500 bg-blue-50 shadow-sm'
+                        : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+                    }`}>
+                    <div className="text-2xl mb-2">{stage.icon}</div>
+                    <p className="font-semibold text-sm text-slate-900 mb-1">{stage.label}</p>
+                    <p className="text-xs text-slate-500">{stage.description}</p>
+                    {careerStage === stage.value && (
+                      <div className="absolute top-2 right-2">
+                        <CheckIcon className="w-4 h-4 text-blue-600" />
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
-          {/* ── RIGHT: Results ── */}
-          <div className="space-y-4">
+          {/* Two-column layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
 
-            {/* Empty state */}
-            {!parsedResume && !isLoading && (
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center">
-                <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <span className="text-3xl">📄</span>
+            {/* ── LEFT: Inputs ── */}
+            <div className="space-y-4">
+
+              {/* Resume input */}
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
+                  <div>
+                    <h2 className="font-semibold text-slate-900 text-sm">Your Resume</h2>
+                    <p className="text-xs text-slate-400 mt-0.5">All sections preserved</p>
+                  </div>
+                  <div className="flex bg-slate-100 rounded-lg p-0.5">
+                    <button
+                      onClick={() => { setInputMode('paste'); setUploadedFile(null); }}
+                      className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
+                        inputMode === 'paste' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'
+                      }`}>
+                      Paste Text
+                    </button>
+                    <button
+                      onClick={() => { setInputMode('upload'); setResumeText(''); }}
+                      className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
+                        inputMode === 'upload' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'
+                      }`}>
+                      Upload File
+                    </button>
+                  </div>
                 </div>
-                <h3 className="font-semibold text-slate-900 mb-2">Your Optimized Resume Appears Here</h3>
-                <p className="text-sm text-slate-400 max-w-xs mx-auto mb-6">
-                  Sections ordered professionally based on your career stage. All content preserved.
-                </p>
-                <div className="grid grid-cols-2 gap-2.5 text-left">
-                  {[
-                    { icon: '📋', title: 'Pro Order', desc: `${CAREER_STAGES.find(s => s.value === careerStage)?.icon} ${CAREER_STAGES.find(s => s.value === careerStage)?.label}` },
-                    { icon: '🎯', title: 'JD Match', desc: 'Keywords extracted' },
-                    { icon: '💪', title: 'Power Verbs', desc: 'Weak verbs replaced' },
-                    { icon: '🛡️', title: 'ATS-Safe', desc: 'All sections kept' },
-                  ].map(f => (
-                    <div key={f.title} className="bg-slate-50 rounded-xl p-3">
-                      <div className="text-lg mb-1">{f.icon}</div>
-                      <p className="text-xs font-semibold text-slate-700">{f.title}</p>
-                      <p className="text-xs text-slate-400">{f.desc}</p>
+
+                <div className="p-4">
+                  {inputMode === 'paste' ? (
+                    <textarea
+                      value={resumeText}
+                      onChange={e => setResumeText(e.target.value)}
+                      placeholder={`Paste your full resume here...\n\nTip: Include all sections:\n• Summary\n• Experience\n• Education\n• Skills\n• Certifications\n• Awards\n• Projects\n• etc.`}
+                      className="w-full h-56 text-sm text-slate-700 placeholder-slate-300 bg-slate-50 border border-slate-200 rounded-xl p-3 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all font-mono"
+                    />
+                  ) : (
+                    <div>
+                      <div
+                        onDrop={handleDrop}
+                        onDragOver={e => { e.preventDefault(); setIsDragOver(true); }}
+                        onDragLeave={() => setIsDragOver(false)}
+                        onClick={() => fileInputRef.current?.click()}
+                        className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
+                          isDragOver ? 'border-blue-400 bg-blue-50'
+                          : uploadedFile ? 'border-green-300 bg-green-50'
+                          : 'border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-slate-100'
+                        }`}>
+                        {uploadedFile ? (
+                          <div className="flex items-center justify-center gap-3">
+                            <div className={`flex items-center justify-center w-10 h-10 rounded-lg font-bold text-xs uppercase ${
+                              fileExt === 'pdf' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
+                              {fileExt}
+                            </div>
+                            <div className="text-left">
+                              <p className="text-sm font-medium text-slate-900 truncate max-w-48">{uploadedFile.name}</p>
+                              <p className="text-xs text-slate-400">{(uploadedFile.size / 1024).toFixed(0)} KB · Click to replace</p>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-slate-400">
+                            <div className="flex justify-center mb-2"><UploadIcon /></div>
+                            <p className="text-sm font-medium text-slate-600">Drop your resume here</p>
+                            <p className="text-xs text-slate-400 mt-1">PDF or DOCX · Up to 10MB</p>
+                          </div>
+                        )}
+                      </div>
+                      <input ref={fileInputRef} type="file" accept=".pdf,.docx"
+                        onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
+                        className="hidden" />
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
-            )}
 
-            {/* Loading */}
-            {isLoading && (
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center">
-                <div className="flex justify-center mb-4">
-                  <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+              {/* Job description */}
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="px-5 py-3.5 border-b border-slate-100">
+                  <h2 className="font-semibold text-slate-900 text-sm">Job Description</h2>
+                  <p className="text-xs text-slate-400 mt-0.5">Keywords extracted automatically</p>
                 </div>
-                <p className="font-semibold text-slate-900 mb-1">AI is optimizing...</p>
-                <p className="text-sm text-slate-400">{loadingStep}</p>
-                <div className="mt-4 space-y-1">
-                  {['LlamaParse extracting layout...', 'Groq structuring sections...', 'Optimizing for ATS...'].map((step, i) => (
-                    <div key={step} className="flex items-center gap-2 text-xs text-slate-400 justify-center">
-                      <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse" style={{ animationDelay: `${i * 200}ms` }}></div>
-                      {step}
-                    </div>
-                  ))}
+                <div className="p-4">
+                  <textarea
+                    value={jobDescription}
+                    onChange={e => setJobDescription(e.target.value)}
+                    placeholder="Paste the full job description here — the more detail, the better the keyword matching..."
+                    className="w-full h-44 text-sm text-slate-700 placeholder-slate-300 bg-slate-50 border border-slate-200 rounded-xl p-3 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all"
+                  />
+                  <div className="flex items-center justify-between mt-1.5">
+                    <p className="text-xs text-slate-400">{jobDescription.length} chars</p>
+                    {jobDescription.length >= 20 && (
+                      <span className="text-xs text-green-600 flex items-center gap-1 font-medium">
+                        <CheckIcon /> Ready for analysis
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
-            )}
 
-            {/* Error */}
-            {error && (
-              <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-                <p className="text-sm font-semibold text-red-800">⚠️ Error</p>
-                <p className="text-sm text-red-600 mt-1">{error}</p>
-              </div>
-            )}
+              {/* Optimize button */}
+              <button
+                onClick={handleOptimize}
+                disabled={!canOptimize}
+                className={`w-full py-4 rounded-2xl text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${
+                  canOptimize
+                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/20'
+                    : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                }`}>
+                {isLoading ? (
+                  <><SpinnerIcon /><span className="ml-1">{loadingStep || 'Working...'}</span></>
+                ) : (
+                  <><span>✨</span> Optimize My Resume</>
+                )}
+              </button>
 
-            {/* Parsed (before optimization) */}
-            {parsedResume && !optimizedResume && !isLoading && (
-              <ResumeSectionSummary resume={parsedResume} />
-            )}
-
-            {/* Optimized results */}
-            {optimizedResume && !isLoading && (
-              <>
-                <KeywordBadges keywords={keywords} />
-                <ChangesList changes={changes} />
-                <ResumeSectionSummary resume={optimizedResume} />
-
-                {/* Download */}
-                <button
-                  onClick={handleDownloadPDF}
-                  disabled={isDownloading}
-                  className="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 disabled:from-slate-200 disabled:to-slate-300 disabled:text-slate-400 text-white rounded-2xl text-sm font-semibold transition-all duration-200 shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2">
-                  {isDownloading
-                    ? <><SpinnerIcon /><span className="ml-1">Generating PDF...</span></>
-                    : <><span>⬇️</span> Download ATS-Optimized PDF</>}
-                </button>
-
+              {/* Hint */}
+              {!canOptimize && !isLoading && (
                 <p className="text-xs text-center text-slate-400">
-                  Professional A4 PDF · Sections in {CAREER_STAGES.find(s => s.value === careerStage)?.label} order · ATS-friendly
+                  {inputMode === 'paste' && resumeText.trim().length <= 10
+                    ? '① Add your resume text'
+                    : inputMode === 'upload' && !uploadedFile
+                    ? '① Upload a resume file'
+                    : '② Add a job description (20+ chars)'}
                 </p>
+              )}
+            </div>
 
-                {/* Re-optimize hint */}
-                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-700">
-                  <strong>Tip:</strong> Not satisfied? Edit the job description or change your career stage, then click Optimize again.
+            {/* ── RIGHT: Results ── */}
+            <div className="space-y-4">
+
+              {/* Empty state */}
+              {!parsedResume && !isLoading && (
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center">
+                  <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <span className="text-3xl">📄</span>
+                  </div>
+                  <h3 className="font-semibold text-slate-900 mb-2">Your Optimized Resume Appears Here</h3>
+                  <p className="text-sm text-slate-400 max-w-xs mx-auto mb-6">
+                    Professional template · Preview before download · All content preserved
+                  </p>
+                  <div className="grid grid-cols-2 gap-2.5 text-left">
+                    {[
+                      { icon: '👁️', title: 'Live Preview', desc: 'See before download' },
+                      { icon: '🎯', title: 'JD Match', desc: 'Keywords extracted' },
+                      { icon: '💪', title: 'Power Verbs', desc: 'Weak verbs replaced' },
+                      { icon: '🛡️', title: 'ATS-Safe', desc: 'Single-column layout' },
+                    ].map(f => (
+                      <div key={f.title} className="bg-slate-50 rounded-xl p-3">
+                        <div className="text-lg mb-1">{f.icon}</div>
+                        <p className="text-xs font-semibold text-slate-700">{f.title}</p>
+                        <p className="text-xs text-slate-400">{f.desc}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </>
-            )}
-          </div>
-        </div>
+              )}
 
-        {/* Footer */}
-        <div className="mt-12 pt-6 border-t border-slate-200 text-center space-y-1">
-          <p className="text-xs text-slate-400">
-            ResumeForge · Next.js 14 · Groq AI · LlamaParse · Puppeteer PDF
-          </p>
-          <p className="text-xs text-slate-300">
-            Resume data is processed server-side only and never stored.
-          </p>
+              {/* Loading */}
+              {isLoading && (
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center">
+                  <div className="flex justify-center mb-4">
+                    <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+                  </div>
+                  <p className="font-semibold text-slate-900 mb-1">AI is optimizing...</p>
+                  <p className="text-sm text-slate-400">{loadingStep}</p>
+                  <div className="mt-4 space-y-1">
+                    {['LlamaParse extracting layout...', 'Groq structuring sections...', 'Optimizing for ATS...'].map((step, i) => (
+                      <div key={step} className="flex items-center gap-2 text-xs text-slate-400 justify-center">
+                        <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse" style={{ animationDelay: `${i * 200}ms` }}></div>
+                        {step}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Error */}
+              {error && (
+                <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+                  <p className="text-sm font-semibold text-red-800">⚠️ Error</p>
+                  <p className="text-sm text-red-600 mt-1">{error}</p>
+                </div>
+              )}
+
+              {/* Parsed (before optimization) */}
+              {parsedResume && !optimizedResume && !isLoading && (
+                <ResumeSectionSummary resume={parsedResume} />
+              )}
+
+              {/* Optimized results */}
+              {optimizedResume && !isLoading && (
+                <>
+                  <KeywordBadges keywords={keywords} />
+                  <ChangesList changes={changes} />
+                  <ResumeSectionSummary resume={optimizedResume} />
+
+                  {/* Preview & Download Button */}
+                  <button
+                    onClick={() => setShowPreview(true)}
+                    className="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-2xl text-sm font-semibold transition-all duration-200 shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2">
+                    <EyeIcon />
+                    Preview & Download Resume
+                  </button>
+
+                  <p className="text-xs text-center text-slate-400">
+                    Click to preview your professional resume before downloading
+                  </p>
+
+                  {/* Re-optimize hint */}
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-700">
+                    <strong>Tip:</strong> Not satisfied? Edit the job description or change your career stage, then click Optimize again.
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="mt-12 pt-6 border-t border-slate-200 text-center space-y-1">
+            <p className="text-xs text-slate-400">
+              ResumeForge · Next.js 14 · Groq AI · LlamaParse · Puppeteer PDF
+            </p>
+            <p className="text-xs text-slate-300">
+              Resume data is processed server-side only and never stored.
+            </p>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

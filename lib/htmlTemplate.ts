@@ -1,3 +1,14 @@
+/**
+ * htmlTemplate.ts - PROFESSIONAL SINGLE-COLUMN TEMPLATE
+ * 
+ * Design inspired by top resume builders (Zety, Resume.io, Novoresume)
+ * - Clean single column (ATS-safe)
+ * - Professional typography
+ * - Proper spacing and hierarchy
+ * - Blue accent color for headers
+ * - Clean, modern, recruiter-friendly
+ */
+
 import {
   ResumeData,
   ExperienceEntry,
@@ -29,14 +40,14 @@ function safe(s: string | undefined | null): string {
 function section(title: string, body: string): string {
   if (!body.trim()) return '';
   return `
-<section class="rs">
-  <h2 class="sh">${esc(title)}</h2>
-  <div class="sd"></div>
+<section class="section">
+  <h2 class="section-title">${esc(title)}</h2>
+  <div class="section-divider"></div>
   ${body}
 </section>`;
 }
 
-// ─── Date range helper ────────────────────────────────────────────────────────
+// ─── Date range ───────────────────────────────────────────────────────────────
 function dateRange(start?: string, end?: string): string {
   if (!start && !end) return '';
   if (start && end) return `${esc(start)} – ${esc(end)}`;
@@ -46,36 +57,36 @@ function dateRange(start?: string, end?: string): string {
 // ─── Bullet list ──────────────────────────────────────────────────────────────
 function bullets(items: string[]): string {
   if (!items || items.length === 0) return '';
-  return `<ul class="bl">${items.filter(b => b?.trim()).map(b => `<li>${esc(b)}</li>`).join('')}</ul>`;
+  return `<ul class="bullet-list">${items.filter(b => b?.trim()).map(b => `<li>${esc(b)}</li>`).join('')}</ul>`;
 }
 
 // ─── Experience ───────────────────────────────────────────────────────────────
 function renderExperience(entries: ExperienceEntry[]): string {
   if (!entries?.length) return '';
   return entries.map(e => `
-  <div class="ent">
-    <div class="eh">
-      <div class="el">
-        <span class="et">${safe(e.title)}</span>
-        ${e.company ? `<span class="ec">${safe(e.company)}${e.location ? ` · ${safe(e.location)}` : ''}</span>` : ''}
+  <div class="entry">
+    <div class="entry-header">
+      <div class="entry-left">
+        <div class="entry-title">${safe(e.title)}</div>
+        <div class="entry-subtitle">${safe(e.company)}${e.location ? ` · ${safe(e.location)}` : ''}</div>
       </div>
-      ${dateRange(e.startDate, e.endDate) ? `<span class="ed">${dateRange(e.startDate, e.endDate)}</span>` : ''}
+      <div class="entry-date">${dateRange(e.startDate, e.endDate)}</div>
     </div>
     ${bullets(e.bullets)}
   </div>`).join('');
 }
 
-// ─── Internships (same layout as experience) ──────────────────────────────────
+// ─── Internships ──────────────────────────────────────────────────────────────
 function renderInternships(entries: InternshipEntry[]): string {
   if (!entries?.length) return '';
   return entries.map(e => `
-  <div class="ent">
-    <div class="eh">
-      <div class="el">
-        <span class="et">${safe(e.title)}</span>
-        ${e.company ? `<span class="ec">${safe(e.company)}${e.location ? ` · ${safe(e.location)}` : ''}</span>` : ''}
+  <div class="entry">
+    <div class="entry-header">
+      <div class="entry-left">
+        <div class="entry-title">${safe(e.title)}</div>
+        <div class="entry-subtitle">${safe(e.company)}${e.location ? ` · ${safe(e.location)}` : ''}</div>
       </div>
-      ${dateRange(e.startDate, e.endDate) ? `<span class="ed">${dateRange(e.startDate, e.endDate)}</span>` : ''}
+      <div class="entry-date">${dateRange(e.startDate, e.endDate)}</div>
     </div>
     ${bullets(e.bullets)}
   </div>`).join('');
@@ -85,15 +96,15 @@ function renderInternships(entries: InternshipEntry[]): string {
 function renderEducation(entries: EducationEntry[]): string {
   if (!entries?.length) return '';
   return entries.map(e => `
-  <div class="ent">
-    <div class="eh">
-      <div class="el">
-        <span class="et">${safe(e.degree)}</span>
-        ${e.institution ? `<span class="ec">${safe(e.institution)}${e.location ? ` · ${safe(e.location)}` : ''}</span>` : ''}
-        ${e.gpa ? `<span class="egpa">GPA: ${safe(e.gpa)}</span>` : ''}
-        ${e.notes ? `<span class="enotes">${safe(e.notes)}</span>` : ''}
+  <div class="entry">
+    <div class="entry-header">
+      <div class="entry-left">
+        <div class="entry-title">${safe(e.degree)}</div>
+        <div class="entry-subtitle">${safe(e.institution)}${e.location ? ` · ${safe(e.location)}` : ''}</div>
+        ${e.gpa ? `<div class="entry-note">GPA: ${safe(e.gpa)}</div>` : ''}
+        ${e.notes ? `<div class="entry-note">${safe(e.notes)}</div>` : ''}
       </div>
-      ${dateRange(e.startDate, e.endDate) ? `<span class="ed">${dateRange(e.startDate, e.endDate)}</span>` : ''}
+      <div class="entry-date">${dateRange(e.startDate, e.endDate)}</div>
     </div>
   </div>`).join('');
 }
@@ -101,26 +112,30 @@ function renderEducation(entries: EducationEntry[]): string {
 // ─── Certifications ───────────────────────────────────────────────────────────
 function renderCertifications(entries: CertificationEntry[]): string {
   if (!entries?.length) return '';
-  return `<div class="cert-grid">${entries.map(c => `
-  <div class="cert-item">
-    <span class="cert-name">${safe(c.name)}</span>
-    ${c.issuer ? `<span class="cert-issuer">${safe(c.issuer)}</span>` : ''}
-    ${c.date ? `<span class="cert-date">${safe(c.date)}</span>` : ''}
-  </div>`).join('')}</div>`;
+  return entries.map(c => `
+  <div class="entry entry-compact">
+    <div class="entry-header">
+      <div class="entry-left">
+        <div class="entry-title">${safe(c.name)}</div>
+        ${c.issuer ? `<div class="entry-subtitle">${safe(c.issuer)}</div>` : ''}
+      </div>
+      ${c.date ? `<div class="entry-date">${safe(c.date)}</div>` : ''}
+    </div>
+  </div>`).join('');
 }
 
 // ─── Awards ───────────────────────────────────────────────────────────────────
 function renderAwards(entries: AwardEntry[]): string {
   if (!entries?.length) return '';
   return entries.map(a => `
-  <div class="ent ent-compact">
-    <div class="eh">
-      <div class="el">
-        <span class="et">${safe(a.title)}</span>
-        ${a.issuer ? `<span class="ec">${safe(a.issuer)}</span>` : ''}
-        ${a.description ? `<span class="enotes">${safe(a.description)}</span>` : ''}
+  <div class="entry entry-compact">
+    <div class="entry-header">
+      <div class="entry-left">
+        <div class="entry-title">${safe(a.title)}</div>
+        ${a.issuer ? `<div class="entry-subtitle">${safe(a.issuer)}</div>` : ''}
+        ${a.description ? `<div class="entry-note">${safe(a.description)}</div>` : ''}
       </div>
-      ${a.date ? `<span class="ed">${safe(a.date)}</span>` : ''}
+      ${a.date ? `<div class="entry-date">${safe(a.date)}</div>` : ''}
     </div>
   </div>`).join('');
 }
@@ -129,15 +144,15 @@ function renderAwards(entries: AwardEntry[]): string {
 function renderPublications(entries: PublicationEntry[]): string {
   if (!entries?.length) return '';
   return entries.map(p => `
-  <div class="ent ent-compact">
-    <div class="eh">
-      <div class="el">
-        <span class="et">${safe(p.title)}</span>
-        ${p.publisher ? `<span class="ec">${safe(p.publisher)}</span>` : ''}
-        ${p.description ? `<span class="enotes">${safe(p.description)}</span>` : ''}
-        ${p.link ? `<a class="elink" href="${safe(p.link)}">${safe(p.link)}</a>` : ''}
+  <div class="entry entry-compact">
+    <div class="entry-header">
+      <div class="entry-left">
+        <div class="entry-title">${safe(p.title)}</div>
+        ${p.publisher ? `<div class="entry-subtitle">${safe(p.publisher)}</div>` : ''}
+        ${p.description ? `<div class="entry-note">${safe(p.description)}</div>` : ''}
+        ${p.link ? `<div class="entry-link">${safe(p.link)}</div>` : ''}
       </div>
-      ${p.date ? `<span class="ed">${safe(p.date)}</span>` : ''}
+      ${p.date ? `<div class="entry-date">${safe(p.date)}</div>` : ''}
     </div>
   </div>`).join('');
 }
@@ -146,16 +161,16 @@ function renderPublications(entries: PublicationEntry[]): string {
 function renderProjects(entries: ProjectEntry[]): string {
   if (!entries?.length) return '';
   return entries.map(p => `
-  <div class="ent">
-    <div class="eh">
-      <div class="el">
-        <span class="et">${safe(p.name)}</span>
-        ${p.link ? `<a class="elink" href="${safe(p.link)}">${safe(p.link)}</a>` : ''}
-        ${p.technologies?.length ? `<span class="etech">${p.technologies.map(t => safe(t)).join(' · ')}</span>` : ''}
+  <div class="entry">
+    <div class="entry-header">
+      <div class="entry-left">
+        <div class="entry-title">${safe(p.name)}</div>
+        ${p.link ? `<div class="entry-link">${safe(p.link)}</div>` : ''}
+        ${p.technologies?.length ? `<div class="entry-tech">${p.technologies.map(t => safe(t)).join(' · ')}</div>` : ''}
       </div>
-      ${dateRange(p.startDate, p.endDate) ? `<span class="ed">${dateRange(p.startDate, p.endDate)}</span>` : ''}
+      ${dateRange(p.startDate, p.endDate) ? `<div class="entry-date">${dateRange(p.startDate, p.endDate)}</div>` : ''}
     </div>
-    ${p.description ? `<p class="edesc">${safe(p.description)}</p>` : ''}
+    ${p.description ? `<div class="entry-desc">${safe(p.description)}</div>` : ''}
     ${bullets(p.bullets)}
   </div>`).join('');
 }
@@ -163,32 +178,32 @@ function renderProjects(entries: ProjectEntry[]): string {
 // ─── Skills ───────────────────────────────────────────────────────────────────
 function renderSkills(skills: string[]): string {
   if (!skills?.length) return '';
-  return `<div class="skills-wrap">${skills.map(s => `<span class="skill-tag">${safe(s)}</span>`).join('')}</div>`;
+  return `<div class="skills-grid">${skills.map(s => `<span class="skill-tag">${safe(s)}</span>`).join('')}</div>`;
 }
 
-// ─── Additional (catch-all) ───────────────────────────────────────────────────
+// ─── Additional sections ──────────────────────────────────────────────────────
 function renderAdditional(sec: AdditionalSection): string {
   if (!sec.items?.length && !sec.rawContent?.trim()) return '';
   if (sec.items?.length) {
     return bullets(sec.items);
   }
-  return `<p class="edesc">${safe(sec.rawContent)}</p>`;
+  return `<div class="entry-desc">${safe(sec.rawContent)}</div>`;
 }
 
 // ─── Contact line ─────────────────────────────────────────────────────────────
 function renderContactLine(resume: ResumeData): string {
   const p = resume.personal;
   const parts: string[] = [];
-  if (p.email) parts.push(`<a class="cl" href="mailto:${safe(p.email)}">${safe(p.email)}</a>`);
+  if (p.email) parts.push(`<a href="mailto:${safe(p.email)}" class="contact-link">${safe(p.email)}</a>`);
   if (p.phone) parts.push(`<span>${safe(p.phone)}</span>`);
   if (p.location) parts.push(`<span>${safe(p.location)}</span>`);
   if (p.links?.length) {
-    p.links.slice(0, 3).forEach(l => {
-      const display = l.replace(/^https?:\/\/(www\.)?/, '');
-      parts.push(`<a class="cl" href="${safe(l)}">${safe(display)}</a>`);
+    p.links.slice(0, 2).forEach(l => {
+      const display = l.replace(/^https?:\/\/(www\.)?/, '').substring(0, 30);
+      parts.push(`<a href="${safe(l)}" class="contact-link">${safe(display)}</a>`);
     });
   }
-  return parts.join('<span class="sep">·</span>');
+  return parts.join('<span class="contact-sep">|</span>');
 }
 
 // ─── Main HTML generator ──────────────────────────────────────────────────────
@@ -221,12 +236,12 @@ export function generateResumeHTML(resume: ResumeData): string {
       case 'summary':
         if (resume.summary?.trim()) {
           renderedSections.push(section('Professional Summary',
-            `<p class="sumtext">${safe(resume.summary)}</p>`));
+            `<div class="summary-text">${safe(resume.summary)}</div>`));
         }
         break;
       case 'experience': {
         const body = renderExperience(resume.experience ?? []);
-        if (body) renderedSections.push(section('Experience', body));
+        if (body) renderedSections.push(section('Work Experience', body));
         break;
       }
       case 'internships': {
@@ -289,89 +304,247 @@ export function generateResumeHTML(resume: ResumeData): string {
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>${safe(personal.name || 'Resume')}</title>
 <style>
-  /* CHANGED: Removed Google Fonts, use system fonts for speed */
-  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-  html{font-size:11.5px}
-  body{
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
-    font-size:1rem;line-height:1.5;color:#1e293b;background:#fff;
-    -webkit-print-color-adjust:exact;print-color-adjust:exact
+  /* PROFESSIONAL SINGLE-COLUMN TEMPLATE */
+  
+  /* Reset & Base */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 11pt;
+    line-height: 1.6;
+    color: #2d3748;
+    background: #ffffff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
-  a{color:#2563eb;text-decoration:none}
-  .page{
-    width:210mm;min-height:297mm;
-    margin:0 auto;padding:11mm 13mm 11mm 13mm;
-    background:#fff
+  
+  a { color: #2563eb; text-decoration: none; }
+  
+  /* Page Container */
+  .page {
+    max-width: 8.5in;
+    margin: 0 auto;
+    padding: 0.75in 0.6in;
+    background: #ffffff;
   }
-
+  
   /* Header */
-  .rh{margin-bottom:10px;padding-bottom:8px;border-bottom:2.5px solid #2563eb}
-  .rn{font-size:2rem;font-weight:700;letter-spacing:-.025em;color:#0f172a;line-height:1.1;margin-bottom:4px}
-  .rc{display:flex;flex-wrap:wrap;align-items:center;gap:3px 0;font-size:.88rem;color:#64748b}
-  .cl{color:#2563eb}
-  .sep{color:#cbd5e1;margin:0 5px}
-
+  .header {
+    text-align: center;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid #e2e8f0;
+  }
+  
+  .name {
+    font-size: 28pt;
+    font-weight: 700;
+    color: #1a202c;
+    margin-bottom: 8px;
+    letter-spacing: -0.5px;
+  }
+  
+  .contact-line {
+    font-size: 9.5pt;
+    color: #64748b;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px 0;
+  }
+  
+  .contact-link {
+    color: #2563eb;
+    font-weight: 500;
+  }
+  
+  .contact-sep {
+    color: #cbd5e1;
+    margin: 0 8px;
+  }
+  
   /* Sections */
-  .rs{margin-top:10px;page-break-inside:avoid}
-  .sh{
-    font-size:.82rem;font-weight:700;letter-spacing:.09em;
-    text-transform:uppercase;color:#2563eb;margin-bottom:3px
+  .section {
+    margin-bottom: 18px;
+    page-break-inside: avoid;
   }
-  .sd{height:1px;background:#e2e8f0;margin-bottom:6px}
-
+  
+  .section-title {
+    font-size: 12pt;
+    font-weight: 700;
+    color: #2563eb;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 6px;
+  }
+  
+  .section-divider {
+    height: 1.5px;
+    background: linear-gradient(to right, #2563eb, #cbd5e1);
+    margin-bottom: 12px;
+  }
+  
   /* Entries */
-  .ent{margin-bottom:8px;page-break-inside:avoid}
-  .ent:last-child{margin-bottom:0}
-  .ent-compact{margin-bottom:5px}
-  .eh{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:2px}
-  .el{display:flex;flex-direction:column;gap:1px;flex:1;min-width:0}
-  .et{font-weight:600;font-size:.95rem;color:#0f172a}
-  .ec{font-size:.87rem;color:#475569;font-style:italic}
-  .egpa{font-size:.83rem;color:#64748b}
-  .enotes{font-size:.83rem;color:#64748b}
-  .ed{font-size:.83rem;color:#64748b;white-space:nowrap;flex-shrink:0;padding-top:1px}
-  .etech{font-size:.8rem;color:#2563eb;font-weight:500;margin:2px 0}
-  .edesc{font-size:.88rem;color:#475569;line-height:1.5;margin:2px 0}
-  .elink{font-size:.8rem;color:#2563eb}
-  .sumtext{font-size:.93rem;line-height:1.65;color:#334155}
-
-  /* Bullets */
-  .bl{margin:0;padding-left:13px;list-style:disc}
-  .bl li{font-size:.9rem;line-height:1.55;color:#334155;margin-bottom:2px;padding-left:1px}
-  .bl li:last-child{margin-bottom:0}
-
-  /* Certifications grid */
-  .cert-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:4px 12px}
-  .cert-item{display:flex;flex-direction:column}
-  .cert-name{font-size:.9rem;font-weight:500;color:#0f172a}
-  .cert-issuer{font-size:.82rem;color:#64748b;font-style:italic}
-  .cert-date{font-size:.78rem;color:#94a3b8}
-
-  /* Skills */
-  .skills-wrap{display:flex;flex-wrap:wrap;gap:4px}
-  .skill-tag{
-    background:#eff6ff;border:1px solid #bfdbfe;
-    color:#1d4ed8;font-size:.8rem;font-weight:500;
-    padding:2px 7px;border-radius:3px;white-space:nowrap
+  .entry {
+    margin-bottom: 14px;
+    page-break-inside: avoid;
   }
-
-  /* Print */
-  @page{size:A4;margin:0}
-  @media print{
-    .page{width:100%;padding:10mm 12mm;margin:0}
-    body{font-size:11px}
-    .rs{page-break-inside:avoid}
-    .ent{page-break-inside:avoid}
+  
+  .entry-compact {
+    margin-bottom: 10px;
+  }
+  
+  .entry:last-child {
+    margin-bottom: 0;
+  }
+  
+  .entry-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 6px;
+  }
+  
+  .entry-left {
+    flex: 1;
+    min-width: 0;
+  }
+  
+  .entry-title {
+    font-size: 11pt;
+    font-weight: 700;
+    color: #1a202c;
+    line-height: 1.3;
+  }
+  
+  .entry-subtitle {
+    font-size: 10pt;
+    color: #475569;
+    font-style: italic;
+    margin-top: 2px;
+  }
+  
+  .entry-note {
+    font-size: 9.5pt;
+    color: #64748b;
+    margin-top: 2px;
+  }
+  
+  .entry-date {
+    font-size: 9.5pt;
+    color: #64748b;
+    white-space: nowrap;
+    flex-shrink: 0;
+    font-weight: 500;
+  }
+  
+  .entry-tech {
+    font-size: 9pt;
+    color: #2563eb;
+    margin-top: 4px;
+    font-weight: 500;
+  }
+  
+  .entry-link {
+    font-size: 9pt;
+    color: #2563eb;
+    margin-top: 2px;
+  }
+  
+  .entry-desc {
+    font-size: 10pt;
+    color: #475569;
+    line-height: 1.6;
+    margin-top: 4px;
+    margin-bottom: 6px;
+  }
+  
+  /* Summary */
+  .summary-text {
+    font-size: 10.5pt;
+    line-height: 1.7;
+    color: #334155;
+    text-align: justify;
+  }
+  
+  /* Bullets */
+  .bullet-list {
+    margin: 0;
+    padding-left: 18px;
+    list-style: disc;
+  }
+  
+  .bullet-list li {
+    font-size: 10pt;
+    line-height: 1.6;
+    color: #334155;
+    margin-bottom: 4px;
+    padding-left: 4px;
+  }
+  
+  .bullet-list li:last-child {
+    margin-bottom: 0;
+  }
+  
+  /* Skills */
+  .skills-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  
+  .skill-tag {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: #1e40af;
+    font-size: 9.5pt;
+    font-weight: 500;
+    padding: 3px 10px;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+  
+  /* Print Styles */
+  @page {
+    size: Letter;
+    margin: 0;
+  }
+  
+  @media print {
+    body {
+      font-size: 10.5pt;
+    }
+    
+    .page {
+      padding: 0.5in;
+      max-width: 100%;
+    }
+    
+    .section {
+      page-break-inside: avoid;
+    }
+    
+    .entry {
+      page-break-inside: avoid;
+    }
+    
+    a {
+      color: #1e40af;
+      text-decoration: none;
+    }
   }
 </style>
 </head>
 <body>
 <div class="page">
-  <header class="rh">
-    <h1 class="rn">${safe(personal.name || 'Your Name')}</h1>
-    <div class="rc">${renderContactLine(resume)}</div>
+  <header class="header">
+    <h1 class="name">${safe(personal.name || 'Your Name')}</h1>
+    <div class="contact-line">${renderContactLine(resume)}</div>
   </header>
-  ${renderedSections.join('\n')}
+  ${renderedSections.join('\n  ')}
 </div>
 </body>
 </html>`;
