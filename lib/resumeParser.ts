@@ -1,13 +1,111 @@
 /**
- * resumeParser.ts
+ * resumeParser.ts - FIXED PROFESSIONAL ORDER
  *
- * PIPELINE:
- *  LlamaParse → clean Markdown → Groq structurer → ResumeData JSON
+ * Uses industry-standard section ordering based on career stage.
+ * No LLM-based ordering - professional, reliable, ATS-optimized.
  */
 
-import { ResumeData, PersonalInfo } from './types';
+import { ResumeData, PersonalInfo, CareerStage } from './types';
 import { groqChatCompletion } from './groqClient';
 import { parseWithLlamaParse } from './llamaParseClient';
+
+// ─── Professional Section Orders ──────────────────────────────────────────────
+
+const PROFESSIONAL_ORDERS: Record<CareerStage, string[]> = {
+  // Experienced: Experience first (most important)
+  experienced: [
+    'summary',
+    'experience',
+    'skills',
+    'education',
+    'certifications',
+    'projects',
+    'awards',
+    'publications',
+    'softSkills',
+  ],
+  
+  // Fresher: Education first, then internships/projects
+  fresher: [
+    'summary',
+    'education',
+    'internships',
+    'projects',
+    'skills',
+    'certifications',
+    'awards',
+    'publications',
+    'softSkills',
+  ],
+  
+  // Career Change: Skills first to show transferable abilities
+  'career-change': [
+    'summary',
+    'skills',
+    'experience',
+    'education',
+    'projects',
+    'certifications',
+    'awards',
+    'publications',
+    'softSkills',
+  ],
+};
+
+function buildProfessionalOrder(
+  resume: Partial<ResumeData>,
+  careerStage: CareerStage
+): string[] {
+  const baseOrder = PROFESSIONAL_ORDERS[careerStage];
+  const finalOrder: string[] = [];
+
+  // Add sections in professional order (only if they exist)
+  for (const key of baseOrder) {
+    const hasContent = checkSectionHasContent(resume, key);
+    if (hasContent) {
+      finalOrder.push(key);
+    }
+  }
+
+  // Add any additional sections at the end
+  for (const addl of resume.additionalSections ?? []) {
+    if (addl.heading) {
+      finalOrder.push(`additional:${addl.heading}`);
+    }
+  }
+
+  console.log(`[buildProfessionalOrder] Career stage: ${careerStage}`);
+  console.log(`[buildProfessionalOrder] Final order:`, finalOrder);
+
+  return finalOrder;
+}
+
+function checkSectionHasContent(resume: Partial<ResumeData>, key: string): boolean {
+  switch (key) {
+    case 'summary':
+      return !!resume.summary && resume.summary.trim().length > 0;
+    case 'experience':
+      return Array.isArray(resume.experience) && resume.experience.length > 0;
+    case 'internships':
+      return Array.isArray(resume.internships) && resume.internships.length > 0;
+    case 'education':
+      return Array.isArray(resume.education) && resume.education.length > 0;
+    case 'certifications':
+      return Array.isArray(resume.certifications) && resume.certifications.length > 0;
+    case 'awards':
+      return Array.isArray(resume.awards) && resume.awards.length > 0;
+    case 'publications':
+      return Array.isArray(resume.publications) && resume.publications.length > 0;
+    case 'projects':
+      return Array.isArray(resume.projects) && resume.projects.length > 0;
+    case 'skills':
+      return Array.isArray(resume.skills) && resume.skills.length > 0;
+    case 'softSkills':
+      return Array.isArray(resume.softSkills) && resume.softSkills.length > 0;
+    default:
+      return false;
+  }
+}
 
 // ─── Safe JSON parser ─────────────────────────────────────────────────────────
 
@@ -45,205 +143,196 @@ export function safeParseJSON<T>(raw: string, fallback: T): T {
   return fallback;
 }
 
-// ─── Groq structuring prompt ──────────────────────────────────────────────────
+// ─── Groq structuring prompt (simpler - no section order needed) ──────────────
 
 const STRUCTURE_SYSTEM = `You are a precise resume data extractor.
-You will receive resume text (usually Markdown with ## headings).
-Extract ALL fields into the JSON format below.
+Extract ALL fields into JSON.
 
-CRITICAL RULES:
-- Extract EVERY section in the EXACT ORDER it appears in the resume
-- sectionOrder is MANDATORY and MUST list sections in their original document order
-- If a section doesn't match a known type, use "additional:EXACT_HEADING_TEXT"
-- Never skip sections, never reorder sections
-- If a field is absent use "" for strings and [] for arrays
-- Preserve original wording during extraction
-- Each bullet point must be a separate string in bullets[]
+CRITICAL ANTI-DUPLICATION RULES:
+1. If a section is labeled "Internships" or "Internship Experience", put entries ONLY in internships[]
+2. If a section is labeled "Work Experience" or "Experience", put entries ONLY in experience[]
+3. NEVER put the same job entry in both experience[] and internships[]
+4. If a job title contains "Intern", it goes in internships[] NOT experience[]
+5. Each entry appears in EXACTLY ONE array
 
-SECTION KEY NAMES (use these exact strings):
-- "summary" → for Summary, Professional Summary, Profile, Objective, About, Overview
-- "experience" → for Experience, Work Experience, Professional Experience, Employment
-- "internships" → for Internships, Internship Experience
-- "education" → for Education, Academic Background
-- "certifications" → for Certifications, Licenses
-- "awards" → for Awards, Honors, Achievements
-- "publications" → for Publications, Research, Papers
-- "projects" → for Projects, Personal Projects
-- "skills" → for Skills, Technical Skills, Technologies
-- "softSkills" → for Soft Skills, Core Competencies, Professional Skills
-- "additional:Career Highlights" → for Career Highlights (example of custom section)
-- "additional:Volunteer" → for Volunteer, Volunteering
-- "additional:Languages" → for Languages, Languages Spoken
-- etc. (any heading not listed above uses "additional:HEADING_NAME")
+SECTION KEY MAPPING:
+- Summary/Profile/Objective → "summary"
+- Work Experience/Employment → "experience"
+- Internships → "internships"
+- Education → "education"
+- Certifications/Licenses → "certifications"
+- Awards/Honors → "awards"
+- Publications/Research → "publications"
+- Projects → "projects"
+- Skills/Technical Skills → "skills"
+- Soft Skills/Core Competencies → "softSkills"
+- Anything else → "additional:EXACT_HEADING"
 
-EXAMPLE sectionOrder:
-If the resume has sections in this order:
-  1. Summary
-  2. Career Highlights
-  3. Experience
-  4. Education
-  5. Skills
+Return ONLY valid JSON. No markdown. No explanation.
 
-Then sectionOrder MUST be:
-["summary", "additional:Career Highlights", "experience", "education", "skills"]
-
-Return ONLY valid JSON. No markdown fences. No explanation.
-
-EXACT OUTPUT SHAPE:
+OUTPUT SCHEMA:
 {
   "personal": { "name": "", "email": "", "phone": "", "location": "", "links": [] },
   "summary": "",
-  "experience": [{
-    "title": "", "company": "", "location": "", "startDate": "", "endDate": "", "bullets": []
-  }],
-  "education": [{
-    "degree": "", "institution": "", "location": "", "startDate": "", "endDate": "", "gpa": "", "notes": ""
-  }],
+  "experience": [{ "title": "", "company": "", "location": "", "startDate": "", "endDate": "", "bullets": [] }],
+  "education": [{ "degree": "", "institution": "", "location": "", "startDate": "", "endDate": "", "gpa": "", "notes": "" }],
   "certifications": [{ "name": "", "issuer": "", "date": "", "credentialId": "" }],
   "awards": [{ "title": "", "issuer": "", "date": "", "description": "" }],
   "publications": [{ "title": "", "publisher": "", "date": "", "description": "", "link": "" }],
-  "internships": [{
-    "title": "", "company": "", "location": "", "startDate": "", "endDate": "", "bullets": []
-  }],
-  "projects": [{
-    "name": "", "description": "", "technologies": [], "bullets": [], "link": "", "startDate": "", "endDate": ""
-  }],
+  "internships": [{ "title": "", "company": "", "location": "", "startDate": "", "endDate": "", "bullets": [] }],
+  "projects": [{ "name": "", "description": "", "technologies": [], "bullets": [], "link": "", "startDate": "", "endDate": "" }],
   "skills": [],
   "softSkills": [],
-  "additionalSections": [{ "heading": "", "rawContent": "", "items": [] }],
-  "sectionOrder": []
+  "additionalSections": [{ "heading": "", "rawContent": "", "items": [] }]
 }`;
 
-// ─── Defensive shape enforcer ─────────────────────────────────────────────────
+// ─── Deduplication ────────────────────────────────────────────────────────────
 
-function ensureResumeShape(raw: Partial<ResumeData>): ResumeData {
+function deduplicateEntries(resume: Partial<ResumeData>): Partial<ResumeData> {
+  const exp = resume.experience ?? [];
+  const int = resume.internships ?? [];
+
+  if (exp.length === 0 || int.length === 0) return resume;
+
+  const duplicates = new Set<number>();
+  
+  for (let i = 0; i < int.length; i++) {
+    const intern = int[i];
+    if (!intern) continue;
+    
+    for (let j = 0; j < exp.length; j++) {
+      const job = exp[j];
+      if (!job) continue;
+      
+      const titleMatch = intern.title?.toLowerCase().trim() === job.title?.toLowerCase().trim();
+      const companyMatch = intern.company?.toLowerCase().trim() === job.company?.toLowerCase().trim();
+      
+      if (titleMatch && companyMatch) {
+        duplicates.add(j);
+        console.log(`[Deduplicate] Removed duplicate: "${job.title}" at "${job.company}"`);
+      }
+    }
+  }
+
+  const cleanedExperience = exp.filter((_, idx) => !duplicates.has(idx));
+
+  return {
+    ...resume,
+    experience: cleanedExperience,
+    internships: int,
+  };
+}
+
+// ─── Shape enforcer with career stage ─────────────────────────────────────────
+
+function ensureResumeShape(raw: Partial<ResumeData>, careerStage: CareerStage): ResumeData {
   const defaultPersonal: PersonalInfo = {
     name: '', email: '', phone: '', location: '', links: [],
   };
 
+  const deduplicated = deduplicateEntries(raw);
+
   const resume: ResumeData = {
     personal: {
       ...defaultPersonal,
-      ...(typeof raw.personal === 'object' && raw.personal ? raw.personal : {}),
-      links: Array.isArray(raw.personal?.links) ? raw.personal.links : [],
+      ...(typeof deduplicated.personal === 'object' && deduplicated.personal ? deduplicated.personal : {}),
+      links: Array.isArray(deduplicated.personal?.links) ? deduplicated.personal.links : [],
     },
-    summary:  typeof raw.summary === 'string' ? raw.summary : '',
+    summary:  typeof deduplicated.summary === 'string' ? deduplicated.summary : '',
 
-    experience: Array.isArray(raw.experience) ? raw.experience.map(e => ({
+    experience: Array.isArray(deduplicated.experience) ? deduplicated.experience.map(e => ({
       title: e.title ?? '', company: e.company ?? '', location: e.location ?? '',
       startDate: e.startDate ?? '', endDate: e.endDate ?? '',
       bullets: Array.isArray(e.bullets) ? e.bullets.filter(b => typeof b === 'string' && b.trim()) : [],
     })) : [],
 
-    education: Array.isArray(raw.education) ? raw.education.map(e => ({
+    education: Array.isArray(deduplicated.education) ? deduplicated.education.map(e => ({
       degree: e.degree ?? '', institution: e.institution ?? '', location: e.location ?? '',
       startDate: e.startDate ?? '', endDate: e.endDate ?? '',
       gpa: e.gpa ?? '', notes: e.notes ?? '',
     })) : [],
 
-    certifications: Array.isArray(raw.certifications) ? raw.certifications.map(c => ({
+    certifications: Array.isArray(deduplicated.certifications) ? deduplicated.certifications.map(c => ({
       name: c.name ?? '', issuer: c.issuer ?? '', date: c.date ?? '', credentialId: c.credentialId ?? '',
     })) : [],
 
-    awards: Array.isArray(raw.awards) ? raw.awards.map(a => ({
+    awards: Array.isArray(deduplicated.awards) ? deduplicated.awards.map(a => ({
       title: a.title ?? '', issuer: a.issuer ?? '', date: a.date ?? '', description: a.description ?? '',
     })) : [],
 
-    publications: Array.isArray(raw.publications) ? raw.publications.map(p => ({
+    publications: Array.isArray(deduplicated.publications) ? deduplicated.publications.map(p => ({
       title: p.title ?? '', publisher: p.publisher ?? '', date: p.date ?? '',
       description: p.description ?? '', link: p.link ?? '',
     })) : [],
 
-    internships: Array.isArray(raw.internships) ? raw.internships.map(e => ({
+    internships: Array.isArray(deduplicated.internships) ? deduplicated.internships.map(e => ({
       title: e.title ?? '', company: e.company ?? '', location: e.location ?? '',
       startDate: e.startDate ?? '', endDate: e.endDate ?? '',
       bullets: Array.isArray(e.bullets) ? e.bullets.filter(b => typeof b === 'string' && b.trim()) : [],
     })) : [],
 
-    projects: Array.isArray(raw.projects) ? raw.projects.map(p => ({
+    projects: Array.isArray(deduplicated.projects) ? deduplicated.projects.map(p => ({
       name: p.name ?? '', description: p.description ?? '',
       technologies: Array.isArray(p.technologies) ? p.technologies : [],
       bullets: Array.isArray(p.bullets) ? p.bullets.filter(b => typeof b === 'string' && b.trim()) : [],
       link: p.link ?? '', startDate: p.startDate ?? '', endDate: p.endDate ?? '',
     })) : [],
 
-    skills:     Array.isArray(raw.skills)     ? raw.skills.filter(s => typeof s === 'string' && s.trim())     : [],
-    softSkills: Array.isArray(raw.softSkills) ? raw.softSkills.filter(s => typeof s === 'string' && s.trim()) : [],
+    skills:     Array.isArray(deduplicated.skills)     ? deduplicated.skills.filter(s => typeof s === 'string' && s.trim())     : [],
+    softSkills: Array.isArray(deduplicated.softSkills) ? deduplicated.softSkills.filter(s => typeof s === 'string' && s.trim()) : [],
 
-    additionalSections: Array.isArray(raw.additionalSections) ? raw.additionalSections.map(s => ({
+    additionalSections: Array.isArray(deduplicated.additionalSections) ? deduplicated.additionalSections.map(s => ({
       heading:    s.heading    ?? '',
       rawContent: s.rawContent ?? '',
       items: Array.isArray(s.items) ? s.items.filter(i => typeof i === 'string' && i.trim()) : [],
     })) : [],
 
-    sectionOrder: Array.isArray(raw.sectionOrder) && raw.sectionOrder.length > 0
-      ? raw.sectionOrder
-      : buildDefaultOrder(raw),
+    // Use professional order based on career stage
+    sectionOrder: buildProfessionalOrder(deduplicated, careerStage),
   };
 
-  console.log('[ensureResumeShape] sectionOrder:', resume.sectionOrder);
+  console.log('[ensureResumeShape] Experience:', resume.experience.length);
+  console.log('[ensureResumeShape] Internships:', resume.internships.length);
+
   return resume;
 }
 
-function buildDefaultOrder(raw: Partial<ResumeData>): string[] {
-  console.warn('[buildDefaultOrder] Using fallback section order — LLM did not provide sectionOrder');
-  const order: string[] = [];
-  if (raw.summary) order.push('summary');
-  if (Array.isArray(raw.experience)      && raw.experience.length)      order.push('experience');
-  if (Array.isArray(raw.internships)     && raw.internships.length)     order.push('internships');
-  if (Array.isArray(raw.education)       && raw.education.length)       order.push('education');
-  if (Array.isArray(raw.certifications)  && raw.certifications.length)  order.push('certifications');
-  if (Array.isArray(raw.awards)          && raw.awards.length)          order.push('awards');
-  if (Array.isArray(raw.publications)    && raw.publications.length)    order.push('publications');
-  if (Array.isArray(raw.projects)        && raw.projects.length)        order.push('projects');
-  if (Array.isArray(raw.skills)          && raw.skills.length)          order.push('skills');
-  if (Array.isArray(raw.softSkills)      && raw.softSkills.length)      order.push('softSkills');
-  for (const s of raw.additionalSections ?? []) {
-    if (s.heading) order.push(`additional:${s.heading}`);
-  }
-  return order;
-}
+// ─── LLM structurer ───────────────────────────────────────────────────────────
 
-// ─── LLM structurer: Markdown → ResumeData ───────────────────────────────────
-
-async function structureWithGroq(markdown: string): Promise<ResumeData> {
+async function structureWithGroq(markdown: string, careerStage: CareerStage): Promise<ResumeData> {
   const truncated = markdown.length > 14000
-    ? markdown.substring(0, 12000) + '\n\n[...content truncated...]\n\n' + markdown.substring(markdown.length - 1500)
+    ? markdown.substring(0, 12000) + '\n\n[...truncated...]\n\n' + markdown.substring(markdown.length - 1500)
     : markdown;
 
-  const userMessage = `Extract all resume data into JSON. PAY CLOSE ATTENTION TO SECTION ORDER.\n\nResume text:\n\n${truncated}`;
+  const userMessage = `Extract resume data. No duplicates.\n\nResume:\n\n${truncated}`;
 
   let raw = '';
   try {
     raw = await groqChatCompletion(STRUCTURE_SYSTEM, userMessage, 6000, 0.1);
   } catch (err) {
-    console.error('[structureWithGroq] Groq call failed:', err);
+    console.error('[structureWithGroq] Groq failed:', err);
     throw err;
   }
 
   const parsed = safeParseJSON<Partial<ResumeData>>(raw, {});
-  return ensureResumeShape(parsed);
+  return ensureResumeShape(parsed, careerStage);
 }
 
-// ─── Public: parse text (pasted input) ───────────────────────────────────────
+// ─── Public API ───────────────────────────────────────────────────────────────
 
-export async function parseResumeText(rawText: string): Promise<ResumeData> {
-  return structureWithGroq(rawText);
+export async function parseResumeText(rawText: string, careerStage: CareerStage): Promise<ResumeData> {
+  return structureWithGroq(rawText, careerStage);
 }
-
-// ─── Public: parse PDF via LlamaParse ────────────────────────────────────────
 
 export async function extractTextFromPDF(buffer: Buffer, fileName = 'resume.pdf'): Promise<string> {
   return parseWithLlamaParse(buffer, fileName);
 }
 
-// ─── Public: parse DOCX ───────────────────────────────────────────────────────
-
 export async function extractTextFromDOCX(buffer: Buffer, fileName = 'resume.docx'): Promise<string> {
   try {
     return await parseWithLlamaParse(buffer, fileName);
   } catch (err) {
-    console.warn('[extractTextFromDOCX] LlamaParse failed, falling back to mammoth:', err);
+    console.warn('[extractTextFromDOCX] LlamaParse failed, using mammoth:', err);
     const mammoth = await import('mammoth');
     const result = await mammoth.extractRawText({ buffer });
     return result.value ?? '';

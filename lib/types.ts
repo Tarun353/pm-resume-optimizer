@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// Core resume data model — extended to preserve ALL sections
+// Core resume data model
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface PersonalInfo {
@@ -70,7 +70,6 @@ export interface ProjectEntry {
   endDate?: string;
 }
 
-// Catch-all for any section not explicitly modeled
 export interface AdditionalSection {
   heading: string;
   rawContent: string;
@@ -92,6 +91,12 @@ export interface ResumeData {
   additionalSections: AdditionalSection[];
   sectionOrder: string[];
 }
+
+// ─── Career Stage (NEW) ───────────────────────────────────────────────────────
+
+export type CareerStage = 'fresher' | 'experienced' | 'career-change';
+
+// ─── API types ────────────────────────────────────────────────────────────────
 
 export interface OptimizeRequest {
   resume: ResumeData;

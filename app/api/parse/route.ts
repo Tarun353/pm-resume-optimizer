@@ -4,21 +4,28 @@ import {
   extractTextFromPDF,
   extractTextFromDOCX,
 } from '@/lib/resumeParser';
-import { ParseResponse } from '@/lib/types';
+import { ParseResponse, CareerStage } from '@/lib/types';
 
 export const runtime = 'nodejs';
-export const maxDuration = 120; // LlamaParse can take up to ~60s for large files
+export const maxDuration = 120;
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const contentType = request.headers.get('content-type') ?? '';
     let rawText = '';
+    let careerStage: CareerStage = 'experienced'; // default
     let resume;
 
     if (contentType.includes('multipart/form-data')) {
       const formData = await request.formData();
       const file = formData.get('file') as File | null;
       const textInput = formData.get('text') as string | null;
+      const stageInput = formData.get('careerStage') as string | null;
+
+      // Get career stage from form data
+      if (stageInput && ['fresher', 'experienced', 'career-change'].includes(stageInput)) {
+        careerStage = stageInput as CareerStage;
+      }
 
       if (file) {
         const arrayBuffer = await file.arrayBuffer();
@@ -28,7 +35,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
         if (ext === 'pdf') {
           try {
-            // LlamaParse → clean Markdown
             rawText = await extractTextFromPDF(buffer, fileName);
           } catch (err) {
             console.error('[parse] PDF extraction error:', err);
@@ -37,7 +43,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           }
         } else if (ext === 'docx') {
           try {
-            // LlamaParse → clean Markdown (mammoth fallback)
             rawText = await extractTextFromDOCX(buffer, fileName);
           } catch (err) {
             console.error('[parse] DOCX extraction error:', err);
@@ -58,6 +63,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     } else if (contentType.includes('application/json')) {
       const body = await request.json();
       rawText = body.text ?? '';
+      
+      // Get career stage from JSON body
+      if (body.careerStage && ['fresher', 'experienced', 'career-change'].includes(body.careerStage)) {
+        careerStage = body.careerStage as CareerStage;
+      }
     } else {
       return NextResponse.json({ error: 'Unsupported content type.' }, { status: 415 });
     }
@@ -66,8 +76,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: 'Resume text is too short or empty.' }, { status: 400 });
     }
 
-    // Groq LLM: Markdown → structured ResumeData JSON
-    resume = await parseResumeText(rawText);
+    // Parse with career stage parameter
+    resume = await parseResumeText(rawText, careerStage);
 
     const response: ParseResponse = { resume, rawText };
     return NextResponse.json(response);

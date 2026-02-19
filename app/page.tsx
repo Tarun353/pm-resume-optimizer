@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef } from 'react';
-import { ResumeData, InputMode } from '@/lib/types';
+import { ResumeData, InputMode, CareerStage } from '@/lib/types';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 function UploadIcon() {
@@ -30,6 +30,33 @@ function SpinnerIcon() {
     </svg>
   );
 }
+
+// ─── Career Stage Options ─────────────────────────────────────────────────────
+const CAREER_STAGES: Array<{
+  value: CareerStage;
+  label: string;
+  description: string;
+  icon: string;
+}> = [
+  {
+    value: 'fresher',
+    label: 'Fresh Graduate',
+    description: '<1 year experience · Education first',
+    icon: '🎓',
+  },
+  {
+    value: 'experienced',
+    label: 'Experienced Professional',
+    description: '2+ years experience · Experience first',
+    icon: '💼',
+  },
+  {
+    value: 'career-change',
+    label: 'Career Transition',
+    description: 'Switching industries · Skills first',
+    icon: '🔄',
+  },
+];
 
 // ─── Section summary chip ──────────────────────────────────────────────────────
 function SectionChip({ label, count, present }: { label: string; count?: number; present: boolean }) {
@@ -111,6 +138,7 @@ function ResumeSectionSummary({ resume }: { resume: ResumeData }) {
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function HomePage() {
+  const [careerStage, setCareerStage]   = useState<CareerStage>('experienced');
   const [inputMode, setInputMode]       = useState<InputMode>('paste');
   const [resumeText, setResumeText]     = useState('');
   const [jobDescription, setJobDescription] = useState('');
@@ -151,6 +179,7 @@ export default function HomePage() {
     if (inputMode === 'upload' && uploadedFile) {
       const fd = new FormData();
       fd.append('file', uploadedFile);
+      fd.append('careerStage', careerStage); // ← Send career stage
       const res = await fetch('/api/parse', { method: 'POST', body: fd });
       if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? 'Parse failed'); }
       const d = await res.json();
@@ -162,7 +191,7 @@ export default function HomePage() {
     const res = await fetch('/api/parse', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({ text, careerStage }), // ← Send career stage
     });
     if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? 'Parse failed'); }
     const d = await res.json();
@@ -279,6 +308,40 @@ export default function HomePage() {
             AI rewrites your summary and bullets with JD-matched keywords, power verbs,
             and measurable impact — while preserving every section of your resume.
           </p>
+        </div>
+
+        {/* ── CAREER STAGE SELECTOR (NEW) ── */}
+        <div className="max-w-3xl mx-auto mb-8">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-lg">👤</span>
+              <h2 className="font-semibold text-slate-900 text-sm">Select Your Career Stage</h2>
+            </div>
+            <p className="text-xs text-slate-500 mb-4">
+              This determines the professional section order in your final resume
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {CAREER_STAGES.map(stage => (
+                <button
+                  key={stage.value}
+                  onClick={() => setCareerStage(stage.value)}
+                  className={`relative p-4 rounded-xl border-2 text-left transition-all ${
+                    careerStage === stage.value
+                      ? 'border-blue-500 bg-blue-50 shadow-sm'
+                      : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+                  }`}>
+                  <div className="text-2xl mb-2">{stage.icon}</div>
+                  <p className="font-semibold text-sm text-slate-900 mb-1">{stage.label}</p>
+                  <p className="text-xs text-slate-500">{stage.description}</p>
+                  {careerStage === stage.value && (
+                    <div className="absolute top-2 right-2">
+                      <CheckIcon className="w-4 h-4 text-blue-600" />
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* Two-column layout */}
@@ -422,14 +485,14 @@ export default function HomePage() {
                 </div>
                 <h3 className="font-semibold text-slate-900 mb-2">Your Optimized Resume Appears Here</h3>
                 <p className="text-sm text-slate-400 max-w-xs mx-auto mb-6">
-                  All sections — including Certifications, Awards, Publications, and custom sections — are preserved exactly.
+                  Sections ordered professionally based on your career stage. All content preserved.
                 </p>
                 <div className="grid grid-cols-2 gap-2.5 text-left">
                   {[
-                    { icon: '🎯', title: 'JD Keywords', desc: 'Auto-extracted & injected' },
+                    { icon: '📋', title: 'Pro Order', desc: `${CAREER_STAGES.find(s => s.value === careerStage)?.icon} ${CAREER_STAGES.find(s => s.value === careerStage)?.label}` },
+                    { icon: '🎯', title: 'JD Match', desc: 'Keywords extracted' },
                     { icon: '💪', title: 'Power Verbs', desc: 'Weak verbs replaced' },
-                    { icon: '📊', title: 'Metrics Added', desc: 'Quantified impact' },
-                    { icon: '🛡️', title: 'ATS-Safe', desc: 'All sections preserved' },
+                    { icon: '🛡️', title: 'ATS-Safe', desc: 'All sections kept' },
                   ].map(f => (
                     <div key={f.title} className="bg-slate-50 rounded-xl p-3">
                       <div className="text-lg mb-1">{f.icon}</div>
@@ -491,12 +554,12 @@ export default function HomePage() {
                 </button>
 
                 <p className="text-xs text-center text-slate-400">
-                  Professional A4 PDF · All sections included · ATS-friendly · No watermarks
+                  Professional A4 PDF · Sections in {CAREER_STAGES.find(s => s.value === careerStage)?.label} order · ATS-friendly
                 </p>
 
                 {/* Re-optimize hint */}
                 <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-700">
-                  <strong>Tip:</strong> Not satisfied? You can edit the job description to target different keywords, then click Optimize again.
+                  <strong>Tip:</strong> Not satisfied? Edit the job description or change your career stage, then click Optimize again.
                 </div>
               </>
             )}
