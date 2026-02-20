@@ -1,210 +1,162 @@
 /**
- * resumeOptimizer.ts — Natural, credible ATS optimization
+ * resumeOptimizer.ts - FIXED VERSION
+ * 
+ * CRITICAL: This optimizer ONLY modifies:
+ * - summary (rewritten)
+ * - experience[].bullets (rewritten)
+ * - internships[].bullets (rewritten)
+ * 
+ * EVERYTHING ELSE is preserved EXACTLY as-is:
+ * - personal, education, certifications, awards, publications, 
+ *   projects, skills, softSkills, additionalSections, sectionOrder
+ * 
+ * NO SECTIONS ARE EVER REMOVED.
  */
 
-import { ResumeData, ExperienceEntry, InternshipEntry } from './types';
+import { ResumeData } from './types';
 import { groqChatCompletion } from './groqClient';
-import { safeParseJSON } from './resumeParser';
 
-// ─── JD keyword extraction ────────────────────────────────────────────────────
-
-const STOP_WORDS = new Set([
-  'the','and','for','with','that','have','this','will','your','from',
-  'they','been','were','which','their','there','about','into','more',
-  'also','when','than','what','some','such','make','take','over','after',
-  'work','must','using','team','role','able','other','well','years',
-  'experience','skills','position','requirements','responsibilities',
-  'preferred','required','plus','bonus','strong','good','great','excellent',
-  'job','company','our','you','are','was','not','but','all','can','may',
-  'use','its','any','has','had','him','his','her','she','they','who',
-  'get','one','two','per','via','etc','a','an','in','of','to','is',
-  'at','on','or','be','we','as','if','it','by','do','so','up','no',
-  'me','my','us','am','go','hi','ok','he','vs'
-]);
+// ─── Extract keywords from job description ────────────────────────────────────
 
 export function extractJDKeywords(jd: string): string[] {
   const techPattern = /\b(react|angular|vue|next\.?js|node\.?js|python|java(?:script)?|typescript|c\+\+|c#|ruby|go|rust|swift|kotlin|php|scala|r\b|matlab|sql|nosql|postgresql|mysql|mongodb|redis|elasticsearch|kafka|rabbitmq|aws|gcp|azure|docker|kubernetes|k8s|terraform|ansible|jenkins|github|gitlab|ci\/cd|devops|agile|scrum|kanban|jira|confluence|rest|graphql|grpc|microservices|api|ml|ai|llm|nlp|deep.?learning|machine.?learning|data.?science|analytics|tableau|power.?bi|excel|salesforce|sap|linux|unix|bash|git|html|css|figma|sketch|ux|ui|spark|hadoop|airflow|dbt|snowflake|databricks)\b/gi;
-  const techFound = [...new Set((jd.match(techPattern) ?? []).map(t => t.toLowerCase()))];
+  const techFound = Array.from(new Set((jd.match(techPattern) ?? []).map(t => t.toLowerCase())));
 
   const tokens = jd
     .toLowerCase()
-    .replace(/[^\w\s]/g, ' ')
-    .split(/\s+/)
-    .filter(t => t.length > 3 && !STOP_WORDS.has(t));
+    .split(/\W+/)
+    .filter(w => w.length > 3);
 
   const freq: Record<string, number> = {};
-  for (const t of tokens) freq[t] = (freq[t] ?? 0) + 1;
-
-  const freqWords = Object.entries(freq)
-    .filter(([_, n]) => n >= 2)
-    .sort(([, a], [, b]) => b - a)
-    .map(([w]) => w)
-    .slice(0, 20);
-
-  const phrases: Record<string, number> = {};
-  const words = jd.toLowerCase().split(/\s+/);
-  for (let i = 0; i < words.length - 1; i++) {
-    const bi = `${words[i]} ${words[i+1]}`;
-    if (bi.length > 6 && !STOP_WORDS.has(words[i]!) && !STOP_WORDS.has(words[i+1]!)) {
-      phrases[bi] = (phrases[bi] ?? 0) + 1;
-    }
+  for (const t of tokens) {
+    freq[t] = (freq[t] ?? 0) + 1;
   }
-  const keyPhrases = Object.entries(phrases)
-    .filter(([_, n]) => n >= 2)
-    .sort(([, a], [, b]) => b - a)
-    .map(([p]) => p)
-    .slice(0, 10);
 
-  return [...new Set([...techFound, ...freqWords, ...keyPhrases])].slice(0, 35);
+  const sorted = Object.entries(freq)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 20)
+    .map(([word]) => word);
+
+  const combined = [...new Set([...techFound, ...sorted])];
+  return combined.slice(0, 15);
 }
 
-// ─── CALL 1: Rewrite summary ──────────────────────────────────────────────────
+// ─── Optimize summary ──────────────────────────────────────────────────────────
 
-const SUMMARY_SYSTEM = `You are an elite resume writer specializing in ATS optimization.
-Rewrite the professional summary to be compelling, keyword-rich, and targeted to the job.
+const SUMMARY_SYSTEM = `You are a professional resume writer specializing in ATS optimization.
 
-RULES:
+Your task: Rewrite the professional summary to match the job description while maintaining authenticity.
+
+Requirements:
 - 3–4 sentences maximum
-- Open with a strong professional identity statement
-- Include years of experience if mentioned in original
 - Naturally weave in 2–3 important keywords from the job description
 - Sound like a real person, not a robot
-- NEVER fabricate experience, titles, or credentials
-- Return ONLY a JSON object: {"summary": "your rewritten text here", "changes": ["change 1", "change 2"]}
-- No markdown, no preamble`;
+- Highlight relevant skills and experience
+- Use power verbs (led, drove, architected, implemented, optimized)
+- Be specific but concise
+- Match the tone of the job description (technical, creative, managerial, etc.)
 
-async function rewriteSummary(
-  original: string,
-  jd: string,
-  keywords: string[],
-  context: string
-): Promise<{ summary: string; changes: string[] }> {
-  const prompt = `JOB DESCRIPTION:
-${jd.substring(0, 1500)}
+DO NOT:
+- Use clichés ("results-driven", "team player", "passionate", "detail-oriented")
+- Over-stuff keywords
+- Make claims not supported by the experience
+- Sound generic or templated`;
 
-KEY KEYWORDS (weave 2-3 naturally): ${keywords.slice(0, 12).join(', ')}
+async function optimizeSummary(summary: string, jd: string, keywords: string[]): Promise<string> {
+  if (!summary || summary.trim().length < 10) return summary;
 
-CANDIDATE CONTEXT:
-${context}
+  const keywordList = keywords.slice(0, 5).join(', ');
+  const userMsg = `Rewrite this professional summary to match the job description below. Naturally include these keywords where appropriate: ${keywordList}
 
-ORIGINAL SUMMARY:
-${original || '(none — write a compelling 3-sentence summary from context)'}
+Original Summary:
+${summary}
 
-Rewrite this summary to target the job. Sound natural and credible. Return JSON only.`;
+Job Description:
+${jd}
 
-  const raw = await groqChatCompletion(SUMMARY_SYSTEM, prompt, 1000, 0.5);
-  const parsed = safeParseJSON<{ summary: string; changes: string[] }>(raw, {
-    summary: original,
-    changes: [],
-  });
-  return {
-    summary: typeof parsed.summary === 'string' && parsed.summary.length > 20
-      ? parsed.summary
-      : original,
-    changes: Array.isArray(parsed.changes) ? parsed.changes : [],
-  };
+Rewrite the summary (3-4 sentences, professional, authentic):`;
+
+  try {
+    const rewritten = await groqChatCompletion(SUMMARY_SYSTEM, userMsg, 300, 0.5);
+    return rewritten.trim() || summary;
+  } catch (err) {
+    console.error('[optimizeSummary] Error:', err);
+    return summary;
+  }
 }
 
-// ─── CALL 2: Rewrite bullets ──────────────────────────────────────────────────
+// ─── Optimize bullets ──────────────────────────────────────────────────────────
 
-const BULLETS_SYSTEM = `You are a professional resume writer specializing in ATS-friendly content.
-Rewrite experience bullets to be more impactful while maintaining credibility.
-
-TRANSFORMATION RULES:
-1. START with a strong past-tense action verb (Led, Built, Designed, Implemented, Developed, Managed, Delivered, Improved, Streamlined, Coordinated, Analyzed)
-2. REPLACE weak openers: "worked on", "helped with", "responsible for", "assisted in", "involved in", "participated in", "handled", "dealt with"
-3. ADD METRICS ONLY IF CLEARLY IMPLIED: if the original bullet mentions "increased sales" but no number, you can add [X%]. But if it just says "built a feature", don't fabricate metrics.
-4. INJECT 1-2 KEYWORDS per bullet from the job description (naturally, not forced)
-5. KEEP IT CREDIBLE: don't exaggerate. Sound like a professional wrote it, not a sales pitch.
-6. MAINTAIN LENGTH: each bullet should be 1-2 lines, not a paragraph
+const BULLETS_SYSTEM = `You are an expert resume writer. Your goal: strengthen bullet points for ATS and human readers.
 
 CONSERVATIVE EXAMPLES (notice the restraint):
 
-WEAK: "Worked on the backend API"
-BETTER: "Developed REST API endpoints for user authentication using Node.js and PostgreSQL"
-(Notice: no fake metrics, just clearer technical detail)
+Before: "Worked on backend services"
+After: "Developed REST APIs for user authentication, reducing login time"
 
-WEAK: "Helped team with deployment"
-BETTER: "Streamlined CI/CD pipeline using Docker and Jenkins, reducing deployment time"
-(Notice: "reducing deployment time" implies improvement without fake [40%])
+Before: "Managed a team"  
+After: "Led cross-functional team of 5 engineers through Agile sprints"
 
-WEAK: "Managed social media"
-BETTER: "Managed LinkedIn and Twitter accounts, creating content that increased follower engagement"
-(Notice: "increased engagement" is natural, not "[X%] engagement boost")
+Before: "Improved deployment process"
+After: "Automated deployment pipeline using Jenkins and Docker"
 
-ONLY ADD [X%] or [N+] IF:
-- The original bullet explicitly mentions a measurable outcome (sales, users, time saved, etc.)
-- You are 80% confident the person achieved a quantifiable result
+Rules:
+1. Start with power verbs: Led, Architected, Implemented, Optimized, Drove, Built, Designed, Launched
+2. Add specific context: technologies, scale, outcomes
+3. ONLY ADD [X%] or [N+] IF: The original bullet explicitly mentions a measurable outcome AND you are 80% confident
+4. KEEP IT CREDIBLE: don't exaggerate. Sound like a professional wrote it, not a sales pitch.
+5. MAINTAIN LENGTH: each bullet should be 1-2 lines, not a paragraph
+6. Inject 1-2 job description keywords per bullet where natural
 
-Return ONLY valid JSON (no markdown):
-{
-  "entries": [
-    { "index": 0, "type": "experience", "bullets": ["bullet 1", "bullet 2"] }
-  ],
-  "changes": ["specific improvement 1", "improvement 2"],
-  "keywordsInjected": ["keyword1", "keyword2"]
-}`;
-
-interface BulletEntry {
-  index: number;
-  type: 'experience' | 'internship';
-  title: string;
-  company: string;
-  bullets: string[];
-}
+DO NOT:
+- Add fake metrics ([40%], [5x], etc.) unless clearly implied
+- Make the bullet 3+ lines long
+- Sound robotic with excessive [X%] everywhere
+- Use buzzwords without substance`;
 
 async function rewriteBullets(
-  entries: BulletEntry[],
+  bullets: string[],
   jd: string,
   keywords: string[]
-): Promise<{
-  entries: Array<{ index: number; type: string; bullets: string[] }>;
-  changes: string[];
-  keywordsInjected: string[];
-}> {
-  if (entries.length === 0 || entries.every(e => e.bullets.length === 0)) {
-    return { entries: [], changes: [], keywordsInjected: [] };
+): Promise<string[]> {
+  if (!bullets || bullets.length === 0) return bullets;
+
+  const keywordList = keywords.slice(0, 8).join(', ');
+  const bulletsText = bullets.map((b, i) => `${i + 1}. ${b}`).join('\n');
+
+  const userMsg = `Rewrite these bullet points conservatively. Don't over-optimize. Sound like a real professional.
+
+Relevant keywords to naturally include (1-2 per bullet): ${keywordList}
+
+Original Bullets:
+${bulletsText}
+
+Job Description Context:
+${jd.substring(0, 800)}
+
+Return ONLY the rewritten bullets, one per line, numbered:`;
+
+  try {
+    const result = await groqChatCompletion(BULLETS_SYSTEM, userMsg, 800, 0.35);
+    
+    const lines = result
+      .split('\n')
+      .map(line => line.replace(/^\d+\.\s*/, '').trim())
+      .filter(line => line.length > 10);
+
+    if (lines.length !== bullets.length) {
+      console.warn('[rewriteBullets] Count mismatch, using original');
+      return bullets;
+    }
+
+    return lines;
+  } catch (err) {
+    console.error('[rewriteBullets] Error:', err);
+    return bullets;
   }
-
-  const prompt = `JOB DESCRIPTION:
-${jd.substring(0, 1500)}
-
-KEYWORDS (use 1-2 per bullet where natural): ${keywords.join(', ')}
-
-ENTRIES TO REWRITE:
-${JSON.stringify(entries, null, 2)}
-
-Rewrite bullets conservatively. Don't over-optimize. Sound like a real professional.
-Return the same number of bullets per entry. Return JSON only.`;
-
-  const raw = await groqChatCompletion(BULLETS_SYSTEM, prompt, 6000, 0.35);
-  const fallback = {
-    entries: entries.map(e => ({ index: e.index, type: e.type, bullets: e.bullets })),
-    changes: [],
-    keywordsInjected: [],
-  };
-
-  const parsed = safeParseJSON<typeof fallback>(raw, fallback);
-
-  return {
-    entries: Array.isArray(parsed.entries) ? parsed.entries : fallback.entries,
-    changes: Array.isArray(parsed.changes) ? parsed.changes.filter(c => typeof c === 'string') : [],
-    keywordsInjected: Array.isArray(parsed.keywordsInjected)
-      ? parsed.keywordsInjected.filter(k => typeof k === 'string')
-      : [],
-  };
 }
 
-// ─── Merge optimized data ─────────────────────────────────────────────────────
-
-function applyBullets(original: string[], optimized: string[] | undefined): string[] {
-  if (!Array.isArray(optimized) || optimized.length === 0) return original;
-  const valid = optimized.filter(b => typeof b === 'string' && b.trim().length > 5);
-  if (valid.length === 0) return original;
-  return valid;
-}
-
-// ─── Main exported function ───────────────────────────────────────────────────
+// ─── Main optimizer ────────────────────────────────────────────────────────────
 
 export async function optimizeResume(
   resume: ResumeData,
@@ -214,84 +166,114 @@ export async function optimizeResume(
   changes: string[];
   keywordsInjected: string[];
 }> {
+  console.log('[optimizeResume] Starting optimization...');
+  console.log('[optimizeResume] Input sections:', {
+    personal: !!resume.personal,
+    summary: !!resume.summary,
+    experience: resume.experience?.length ?? 0,
+    education: resume.education?.length ?? 0,
+    skills: resume.skills?.length ?? 0,
+    certifications: resume.certifications?.length ?? 0,
+    awards: resume.awards?.length ?? 0,
+    publications: resume.publications?.length ?? 0,
+    internships: resume.internships?.length ?? 0,
+    projects: resume.projects?.length ?? 0,
+    softSkills: resume.softSkills?.length ?? 0,
+    additionalSections: resume.additionalSections?.length ?? 0,
+    sectionOrder: resume.sectionOrder?.length ?? 0,
+  });
+
   const keywords = extractJDKeywords(jobDescription);
+  const changes: string[] = [];
 
-  const context = [
-    resume.experience.slice(0, 3).map(e => `${e.title} at ${e.company}`).join(', '),
-    resume.skills.slice(0, 15).join(', '),
-  ].filter(Boolean).join('\n');
+  // CRITICAL: Make a COMPLETE deep copy of the entire resume
+  // This ensures NO data is lost
+  const optimizedResume: ResumeData = JSON.parse(JSON.stringify(resume));
 
-  // ── Call 1: Rewrite summary ────────────────────────────────────────────────
-  let newSummary = resume.summary;
-  let summaryChanges: string[] = [];
   try {
-    const result = await rewriteSummary(resume.summary, jobDescription, keywords, context);
-    newSummary = result.summary;
-    summaryChanges = result.changes;
-  } catch (err) {
-    console.error('[optimizeResume] Summary rewrite failed:', err);
-  }
+    // 1. Optimize summary (if exists)
+    if (resume.summary && resume.summary.trim().length > 10) {
+      console.log('[optimizeResume] Optimizing summary...');
+      const newSummary = await optimizeSummary(resume.summary, jobDescription, keywords);
+      if (newSummary !== resume.summary) {
+        optimizedResume.summary = newSummary;
+        changes.push('Rewrote professional summary with JD-matched keywords and power verbs');
+      }
+    }
 
-  // ── Call 2: Rewrite bullets ────────────────────────────────────────────────
-  const bulletEntries: BulletEntry[] = [
-    ...resume.experience.map((e, i) => ({
-      index: i, type: 'experience' as const, title: e.title, company: e.company, bullets: e.bullets,
-    })),
-    ...resume.internships.map((e, i) => ({
-      index: i, type: 'internship' as const, title: e.title, company: e.company, bullets: e.bullets,
-    })),
-  ].filter(e => e.bullets.length > 0);
-
-  let bulletChanges: string[] = [];
-  let keywordsInjected: string[] = [];
-  const newExperienceBullets: Record<number, string[]> = {};
-  const newInternshipBullets: Record<number, string[]> = {};
-
-  if (bulletEntries.length > 0) {
-    try {
-      const result = await rewriteBullets(bulletEntries, jobDescription, keywords);
-      bulletChanges = result.changes;
-      keywordsInjected = result.keywordsInjected;
-
-      for (const entry of result.entries) {
-        if (entry.type === 'experience') {
-          newExperienceBullets[entry.index] = applyBullets(
-            resume.experience[entry.index]?.bullets ?? [], entry.bullets
-          );
-        } else if (entry.type === 'internship') {
-          newInternshipBullets[entry.index] = applyBullets(
-            resume.internships[entry.index]?.bullets ?? [], entry.bullets
-          );
+    // 2. Optimize experience bullets (if exists)
+    if (resume.experience && resume.experience.length > 0) {
+      console.log('[optimizeResume] Optimizing experience bullets...');
+      for (let i = 0; i < resume.experience.length; i++) {
+        const exp = resume.experience[i];
+        if (exp && exp.bullets && exp.bullets.length > 0) {
+          const newBullets = await rewriteBullets(exp.bullets, jobDescription, keywords);
+          optimizedResume.experience[i]!.bullets = newBullets;
+          changes.push(`Enhanced ${exp.bullets.length} bullet(s) for ${exp.title} at ${exp.company}`);
         }
       }
-    } catch (err) {
-      console.error('[optimizeResume] Bullet rewrite failed:', err);
     }
+
+    // 3. Optimize internship bullets (if exists)
+    if (resume.internships && resume.internships.length > 0) {
+      console.log('[optimizeResume] Optimizing internship bullets...');
+      for (let i = 0; i < resume.internships.length; i++) {
+        const int = resume.internships[i];
+        if (int && int.bullets && int.bullets.length > 0) {
+          const newBullets = await rewriteBullets(int.bullets, jobDescription, keywords);
+          optimizedResume.internships[i]!.bullets = newBullets;
+          changes.push(`Enhanced ${int.bullets.length} bullet(s) for ${int.title} at ${int.company}`);
+        }
+      }
+    }
+
+    // VERIFICATION: Log what's in the optimized resume
+    console.log('[optimizeResume] Output sections:', {
+      personal: !!optimizedResume.personal,
+      summary: !!optimizedResume.summary,
+      experience: optimizedResume.experience?.length ?? 0,
+      education: optimizedResume.education?.length ?? 0,
+      skills: optimizedResume.skills?.length ?? 0,
+      certifications: optimizedResume.certifications?.length ?? 0,
+      awards: optimizedResume.awards?.length ?? 0,
+      publications: optimizedResume.publications?.length ?? 0,
+      internships: optimizedResume.internships?.length ?? 0,
+      projects: optimizedResume.projects?.length ?? 0,
+      softSkills: optimizedResume.softSkills?.length ?? 0,
+      additionalSections: optimizedResume.additionalSections?.length ?? 0,
+      sectionOrder: optimizedResume.sectionOrder?.length ?? 0,
+    });
+
+    // CRITICAL CHECK: Verify no sections were lost
+    const inputSections = Object.keys(resume).filter(k => {
+      const val = resume[k as keyof ResumeData];
+      return Array.isArray(val) ? val.length > 0 : !!val;
+    });
+
+    const outputSections = Object.keys(optimizedResume).filter(k => {
+      const val = optimizedResume[k as keyof ResumeData];
+      return Array.isArray(val) ? val.length > 0 : !!val;
+    });
+
+    if (outputSections.length < inputSections.length) {
+      console.error('[optimizeResume] CRITICAL: Sections were lost!');
+      console.error('[optimizeResume] Input had:', inputSections);
+      console.error('[optimizeResume] Output has:', outputSections);
+      console.error('[optimizeResume] Missing:', inputSections.filter(s => !outputSections.includes(s)));
+    }
+
+    return {
+      optimizedResume,
+      changes,
+      keywordsInjected: keywords,
+    };
+  } catch (error) {
+    console.error('[optimizeResume] Fatal error:', error);
+    // On error, return original resume unchanged
+    return {
+      optimizedResume: resume,
+      changes: ['Optimization failed - returning original resume'],
+      keywordsInjected: keywords,
+    };
   }
-
-  // ── Merge (only summary + bullets touched) ────────────────────────────────
-  const optimizedResume: ResumeData = {
-    ...resume,
-    summary: newSummary,
-    experience: resume.experience.map((e, i): ExperienceEntry => ({
-      ...e,
-      bullets: newExperienceBullets[i] ?? e.bullets,
-    })),
-    internships: resume.internships.map((e, i): InternshipEntry => ({
-      ...e,
-      bullets: newInternshipBullets[i] ?? e.bullets,
-    })),
-  };
-
-  const allChanges = [...summaryChanges, ...bulletChanges];
-  if (allChanges.length === 0) {
-    allChanges.push('Strengthened action verbs throughout experience section');
-    allChanges.push('Injected relevant keywords from job description');
-  }
-
-  return {
-    optimizedResume,
-    changes: allChanges,
-    keywordsInjected: keywordsInjected.length > 0 ? keywordsInjected : keywords.slice(0, 10),
-  };
 }
