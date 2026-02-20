@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef } from 'react';
-import { ResumeData, InputMode, CareerStage, ExperienceEntry, InternshipEntry } from '@/lib/types';
+import { ResumeData, InputMode, CareerStage } from '@/lib/types';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 function UploadIcon() {
@@ -76,6 +76,31 @@ function EditIcon() {
   );
 }
 
+function GripIcon() {
+  return (
+    <svg className="w-5 h-5 text-slate-400" fill="currentColor" viewBox="0 0 20 20">
+      <path d="M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-8a2 2 0 1 0-.001-4.001A2 2 0 0 0 13 6zm0 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z" />
+    </svg>
+  );
+}
+
+function LockIcon() {
+  return (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+    </svg>
+  );
+}
+
+function MenuIcon() {
+  return (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+    </svg>
+  );
+}
+
 // ─── Career Stage Options ─────────────────────────────────────────────────────
 const CAREER_STAGES: Array<{
   value: CareerStage;
@@ -102,6 +127,20 @@ const CAREER_STAGES: Array<{
     icon: '🔄',
   },
 ];
+
+// ─── Section Names Mapping ────────────────────────────────────────────────────
+const SECTION_NAMES: Record<string, string> = {
+  summary: '📝 Professional Summary',
+  experience: '💼 Work Experience',
+  internships: '🎓 Internships',
+  education: '🎓 Education',
+  certifications: '🏆 Certifications',
+  awards: '🥇 Awards & Honors',
+  publications: '📚 Publications',
+  projects: '🚀 Projects',
+  skills: '⚙️ Technical Skills',
+  softSkills: '💡 Core Competencies',
+};
 
 // ─── Section summary chip ──────────────────────────────────────────────────────
 function SectionChip({ label, count, present }: { label: string; count?: number; present: boolean }) {
@@ -181,6 +220,95 @@ function ResumeSectionSummary({ resume }: { resume: ResumeData }) {
   );
 }
 
+// ─── SECTION REORDER COMPONENT ────────────────────────────────────────────────
+interface SectionReorderProps {
+  sectionOrder: string[];
+  onReorder: (newOrder: string[]) => void;
+}
+
+function SectionReorder({ sectionOrder, onReorder }: SectionReorderProps) {
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  const handleDragStart = (index: number) => {
+    setDraggedIndex(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    setDragOverIndex(index);
+  };
+
+  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    
+    if (draggedIndex === null || draggedIndex === dropIndex) {
+      setDraggedIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+
+    const newOrder = [...sectionOrder];
+    const [removed] = newOrder.splice(draggedIndex, 1);
+    newOrder.splice(dropIndex, 0, removed!);
+
+    onReorder(newOrder);
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const getSectionName = (key: string): string => {
+    if (key.startsWith('additional:')) {
+      const heading = key.replace('additional:', '');
+      return `📄 ${heading}`;
+    }
+    return SECTION_NAMES[key] || key;
+  };
+
+  return (
+    <div className="space-y-2">
+      {sectionOrder.map((section, index) => {
+        const isDragging = draggedIndex === index;
+        const isOver = dragOverIndex === index;
+
+        return (
+          <div
+            key={section}
+            draggable
+            onDragStart={() => handleDragStart(index)}
+            onDragOver={(e) => handleDragOver(e, index)}
+            onDrop={(e) => handleDrop(e, index)}
+            onDragEnd={handleDragEnd}
+            className={`flex items-center gap-3 p-3 rounded-lg border-2 transition-all cursor-move ${
+              isDragging
+                ? 'opacity-50 scale-95'
+                : isOver
+                ? 'border-blue-500 bg-blue-50'
+                : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm'
+            }`}>
+            <div className="cursor-grab active:cursor-grabbing">
+              <GripIcon />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-slate-900">
+                {getSectionName(section)}
+              </p>
+            </div>
+            <span className="text-xs text-slate-400 font-mono">
+              #{index + 1}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ─── EDITABLE PREVIEW MODAL ───────────────────────────────────────────────────
 interface EditablePreviewModalProps {
   resume: ResumeData;
@@ -194,6 +322,7 @@ function EditablePreviewModal({ resume, onClose, onDownload, onResumeChange, isD
   const [editedResume, setEditedResume] = useState<ResumeData>(JSON.parse(JSON.stringify(resume)));
   const [previewHTML, setPreviewHTML] = useState<string>('');
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
+  const [activeTab, setActiveTab] = useState<'edit' | 'reorder'>('edit');
 
   // Generate preview whenever editedResume changes
   const regeneratePreview = useCallback(async () => {
@@ -295,19 +424,27 @@ function EditablePreviewModal({ resume, onClose, onDownload, onResumeChange, isD
     }
   };
 
+  // Update section order
+  const updateSectionOrder = (newOrder: string[]) => {
+    const updated = { ...editedResume, sectionOrder: newOrder };
+    setEditedResume(updated);
+    onResumeChange(updated);
+    regeneratePreview();
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex bg-black/60 backdrop-blur-sm">
       
       {/* LEFT PANEL: Editor */}
-      <div className="w-1/2 bg-white overflow-auto">
-        <div className="p-6">
-          <div className="flex items-center justify-between mb-6">
+      <div className="w-1/2 bg-white overflow-auto flex flex-col">
+        <div className="p-6 border-b border-slate-200">
+          <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="font-bold text-slate-900 text-xl flex items-center gap-2">
                 <EditIcon />
                 Edit Your Resume
               </h2>
-              <p className="text-sm text-slate-500 mt-1">Click any text to edit · Changes appear instantly</p>
+              <p className="text-sm text-slate-500 mt-1">Edit content or reorder sections</p>
             </div>
             <button
               onClick={onClose}
@@ -316,104 +453,176 @@ function EditablePreviewModal({ resume, onClose, onDownload, onResumeChange, isD
             </button>
           </div>
 
-          {/* Summary Section */}
-          <div className="mb-6 pb-6 border-b border-slate-200">
-            <h3 className="text-sm font-bold text-blue-600 uppercase tracking-wide mb-3">Professional Summary</h3>
-            <textarea
-              value={editedResume.summary}
-              onChange={(e) => updateSummary(e.target.value)}
-              className="w-full min-h-[100px] p-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
-              placeholder="Enter your professional summary..."
-            />
+          {/* Tabs */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => setActiveTab('edit')}
+              className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
+                activeTab === 'edit'
+                  ? 'bg-blue-100 text-blue-700 shadow-sm'
+                  : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+              }`}>
+              <span className="flex items-center justify-center gap-2">
+                <EditIcon />
+                Edit Content
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveTab('reorder')}
+              className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
+                activeTab === 'reorder'
+                  ? 'bg-blue-100 text-blue-700 shadow-sm'
+                  : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+              }`}>
+              <span className="flex items-center justify-center gap-2">
+                <MenuIcon />
+                Reorder Sections
+              </span>
+            </button>
           </div>
+        </div>
 
-          {/* Experience Section */}
-          {editedResume.experience && editedResume.experience.length > 0 && (
-            <div className="mb-6 pb-6 border-b border-slate-200">
-              <h3 className="text-sm font-bold text-blue-600 uppercase tracking-wide mb-3">Work Experience</h3>
-              <div className="space-y-6">
-                {editedResume.experience.map((exp, expIndex) => (
-                  <div key={expIndex} className="bg-slate-50 rounded-lg p-4">
-                    <div className="font-semibold text-slate-900 mb-1">{exp.title}</div>
-                    <div className="text-sm text-slate-600 mb-3">{exp.company}</div>
-                    
-                    <div className="space-y-2">
-                      {exp.bullets.map((bullet, bulletIndex) => (
-                        <div key={bulletIndex} className="flex gap-2 items-start">
-                          <span className="text-slate-400 mt-1.5">•</span>
-                          <input
-                            type="text"
-                            value={bullet}
-                            onChange={(e) => updateExperienceBullet(expIndex, bulletIndex, e.target.value)}
-                            className="flex-1 text-sm px-2 py-1 border border-slate-200 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                          />
+        <div className="flex-1 overflow-auto p-6">
+          {/* EDIT TAB */}
+          {activeTab === 'edit' && (
+            <>
+              {/* Summary Section */}
+              <div className="mb-6 pb-6 border-b border-slate-200">
+                <h3 className="text-sm font-bold text-blue-600 uppercase tracking-wide mb-3">Professional Summary</h3>
+                <textarea
+                  value={editedResume.summary}
+                  onChange={(e) => updateSummary(e.target.value)}
+                  className="w-full min-h-[100px] p-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                  placeholder="Enter your professional summary..."
+                />
+              </div>
+
+              {/* Experience Section */}
+              {editedResume.experience && editedResume.experience.length > 0 && (
+                <div className="mb-6 pb-6 border-b border-slate-200">
+                  <h3 className="text-sm font-bold text-blue-600 uppercase tracking-wide mb-3">Work Experience</h3>
+                  <div className="space-y-6">
+                    {editedResume.experience.map((exp, expIndex) => (
+                      <div key={expIndex} className="bg-slate-50 rounded-lg p-4">
+                        <div className="font-semibold text-slate-900 mb-1">{exp.title}</div>
+                        <div className="text-sm text-slate-600 mb-3">{exp.company}</div>
+                        
+                        <div className="space-y-2">
+                          {exp.bullets.map((bullet, bulletIndex) => (
+                            <div key={bulletIndex} className="flex gap-2 items-start">
+                              <span className="text-slate-400 mt-1.5">•</span>
+                              <input
+                                type="text"
+                                value={bullet}
+                                onChange={(e) => updateExperienceBullet(expIndex, bulletIndex, e.target.value)}
+                                className="flex-1 text-sm px-2 py-1 border border-slate-200 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              />
+                              <button
+                                onClick={() => deleteExperienceBullet(expIndex, bulletIndex)}
+                                className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
+                                title="Delete bullet">
+                                <TrashIcon />
+                              </button>
+                            </div>
+                          ))}
+                          
                           <button
-                            onClick={() => deleteExperienceBullet(expIndex, bulletIndex)}
-                            className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
-                            title="Delete bullet">
-                            <TrashIcon />
+                            onClick={() => addExperienceBullet(expIndex)}
+                            className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium mt-2">
+                            <PlusIcon />
+                            Add Bullet Point
                           </button>
                         </div>
-                      ))}
-                      
-                      <button
-                        onClick={() => addExperienceBullet(expIndex)}
-                        className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium mt-2">
-                        <PlusIcon />
-                        Add Bullet Point
-                      </button>
-                    </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
+                </div>
+              )}
 
-          {/* Internships Section */}
-          {editedResume.internships && editedResume.internships.length > 0 && (
-            <div className="mb-6 pb-6 border-b border-slate-200">
-              <h3 className="text-sm font-bold text-blue-600 uppercase tracking-wide mb-3">Internships</h3>
-              <div className="space-y-6">
-                {editedResume.internships.map((int, intIndex) => (
-                  <div key={intIndex} className="bg-slate-50 rounded-lg p-4">
-                    <div className="font-semibold text-slate-900 mb-1">{int.title}</div>
-                    <div className="text-sm text-slate-600 mb-3">{int.company}</div>
-                    
-                    <div className="space-y-2">
-                      {int.bullets.map((bullet, bulletIndex) => (
-                        <div key={bulletIndex} className="flex gap-2 items-start">
-                          <span className="text-slate-400 mt-1.5">•</span>
-                          <input
-                            type="text"
-                            value={bullet}
-                            onChange={(e) => updateInternshipBullet(intIndex, bulletIndex, e.target.value)}
-                            className="flex-1 text-sm px-2 py-1 border border-slate-200 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                          />
+              {/* Internships Section */}
+              {editedResume.internships && editedResume.internships.length > 0 && (
+                <div className="mb-6 pb-6 border-b border-slate-200">
+                  <h3 className="text-sm font-bold text-blue-600 uppercase tracking-wide mb-3">Internships</h3>
+                  <div className="space-y-6">
+                    {editedResume.internships.map((int, intIndex) => (
+                      <div key={intIndex} className="bg-slate-50 rounded-lg p-4">
+                        <div className="font-semibold text-slate-900 mb-1">{int.title}</div>
+                        <div className="text-sm text-slate-600 mb-3">{int.company}</div>
+                        
+                        <div className="space-y-2">
+                          {int.bullets.map((bullet, bulletIndex) => (
+                            <div key={bulletIndex} className="flex gap-2 items-start">
+                              <span className="text-slate-400 mt-1.5">•</span>
+                              <input
+                                type="text"
+                                value={bullet}
+                                onChange={(e) => updateInternshipBullet(intIndex, bulletIndex, e.target.value)}
+                                className="flex-1 text-sm px-2 py-1 border border-slate-200 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              />
+                              <button
+                                onClick={() => deleteInternshipBullet(intIndex, bulletIndex)}
+                                className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
+                                title="Delete bullet">
+                                <TrashIcon />
+                              </button>
+                            </div>
+                          ))}
+                          
                           <button
-                            onClick={() => deleteInternshipBullet(intIndex, bulletIndex)}
-                            className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
-                            title="Delete bullet">
-                            <TrashIcon />
+                            onClick={() => addInternshipBullet(intIndex)}
+                            className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium mt-2">
+                            <PlusIcon />
+                            Add Bullet Point
                           </button>
                         </div>
-                      ))}
-                      
-                      <button
-                        onClick={() => addInternshipBullet(intIndex)}
-                        className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium mt-2">
-                        <PlusIcon />
-                        Add Bullet Point
-                      </button>
-                    </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                </div>
+              )}
+
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-700">
+                <strong>💡 Tip:</strong> Other sections (Education, Skills, Certifications, etc.) are preserved as-is. Use the "Reorder Sections" tab to change section order.
               </div>
-            </div>
+            </>
           )}
 
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-700">
-            <strong>💡 Tip:</strong> All other sections (Education, Skills, Certifications, etc.) are preserved as-is. Only Summary, Experience, and Internships can be edited.
-          </div>
+          {/* REORDER TAB */}
+          {activeTab === 'reorder' && (
+            <>
+              <div className="mb-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <LockIcon />
+                  <p className="text-sm font-semibold text-slate-900">Personal Info (Always First)</p>
+                </div>
+                <div className="p-3 bg-slate-100 border-2 border-slate-300 rounded-lg">
+                  <p className="text-sm font-medium text-slate-700">
+                    👤 {editedResume.personal?.name || 'Your Name'}
+                  </p>
+                  <p className="text-xs text-slate-500 mt-1">Contact info always appears first</p>
+                </div>
+              </div>
+
+              <div className="mb-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <GripIcon />
+                  <p className="text-sm font-semibold text-slate-900">Drag to Reorder Sections</p>
+                </div>
+                <p className="text-xs text-slate-500 mb-4">
+                  Click and drag sections to change their order in the resume. Changes appear in the preview instantly.
+                </p>
+              </div>
+
+              <SectionReorder
+                sectionOrder={editedResume.sectionOrder}
+                onReorder={updateSectionOrder}
+              />
+
+              <div className="mt-6 bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-700">
+                <strong>💡 Pro Tip:</strong> Place your strongest sections (Experience for professionals, Education for fresh graduates) near the top for maximum impact.
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -424,7 +633,7 @@ function EditablePreviewModal({ resume, onClose, onDownload, onResumeChange, isD
             <EyeIcon />
             <h2 className="font-bold text-slate-900 text-lg">Live Preview</h2>
           </div>
-          <p className="text-xs text-slate-500">Updates automatically as you edit</p>
+          <p className="text-xs text-slate-500">Updates automatically as you edit or reorder</p>
         </div>
 
         <div className="flex-1 overflow-auto p-6">
@@ -662,8 +871,7 @@ export default function HomePage() {
               </span>
             </h1>
             <p className="text-slate-500 max-w-lg mx-auto">
-              AI rewrites your summary and bullets with JD-matched keywords, power verbs,
-              and measurable impact — with inline editing before download.
+              AI optimization · Inline editing · Section reordering · Professional preview
             </p>
           </div>
 
@@ -837,18 +1045,18 @@ export default function HomePage() {
               {!parsedResume && !isLoading && (
                 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center">
                   <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <span className="text-3xl">✏️</span>
+                    <span className="text-3xl">🎨</span>
                   </div>
-                  <h3 className="font-semibold text-slate-900 mb-2">Edit & Preview Before Download</h3>
+                  <h3 className="font-semibold text-slate-900 mb-2">Full Control Over Your Resume</h3>
                   <p className="text-sm text-slate-400 max-w-xs mx-auto mb-6">
-                    Professional template · Inline editing · Live preview · Perfect resume guaranteed
+                    Edit content · Reorder sections · Live preview · Professional output guaranteed
                   </p>
                   <div className="grid grid-cols-2 gap-2.5 text-left">
                     {[
-                      { icon: '✏️', title: 'Click to Edit', desc: 'Any bullet point' },
-                      { icon: '👁️', title: 'Live Preview', desc: 'Updates instantly' },
-                      { icon: '➕', title: 'Add/Delete', desc: 'Bullets on demand' },
-                      { icon: '🎯', title: 'JD Match', desc: 'Keywords injected' },
+                      { icon: '✏️', title: 'Edit Bullets', desc: 'Click to modify' },
+                      { icon: '🔄', title: 'Drag Sections', desc: 'Reorder easily' },
+                      { icon: '👁️', title: 'Live Preview', desc: 'See instantly' },
+                      { icon: '🎯', title: 'ATS-Safe', desc: 'Professional' },
                     ].map(f => (
                       <div key={f.title} className="bg-slate-50 rounded-xl p-3">
                         <div className="text-lg mb-1">{f.icon}</div>
@@ -891,15 +1099,15 @@ export default function HomePage() {
                     onClick={() => setShowPreview(true)}
                     className="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-2xl text-sm font-semibold transition-all duration-200 shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2">
                     <EditIcon />
-                    Edit & Preview Resume
+                    Edit, Reorder & Preview
                   </button>
 
                   <p className="text-xs text-center text-slate-400">
-                    Click to edit bullets, add points, and preview before downloading
+                    Click to edit bullets, reorder sections, and preview before downloading
                   </p>
 
                   <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-700">
-                    <strong>Tip:</strong> Not satisfied? Edit the job description or change your career stage, then click Optimize again.
+                    <strong>Tip:</strong> Not satisfied? Edit the job description or career stage, then click Optimize again.
                   </div>
                 </>
               )}
