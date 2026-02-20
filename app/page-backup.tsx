@@ -101,6 +101,117 @@ function MenuIcon() {
   );
 }
 
+// ─── AI Rewrite Button ────────────────────────────────────────────────────────
+function AIButton({
+  text,
+  onRewrite,
+  sectionType,
+}: {
+  text: string;
+  onRewrite: (newText: string) => void;
+  sectionType: string;
+}) {
+  const [showModal, setShowModal] = useState(false);
+  const [instruction, setInstruction] = useState('');
+  const [isRewriting, setIsRewriting] = useState(false);
+
+  const handleRewrite = async () => {
+    if (!instruction.trim()) return;
+    setIsRewriting(true);
+    try {
+      const res = await fetch('/api/ai-rewrite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text,
+          instruction,
+          context: { sectionType },
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        onRewrite(data.rewritten);
+        setShowModal(false);
+        setInstruction('');
+      }
+    } catch (err) {
+      console.error('AI rewrite failed:', err);
+    } finally {
+      setIsRewriting(false);
+    }
+  };
+
+  return (
+    <>
+      <button
+        onClick={() => setShowModal(true)}
+        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+        title="Rewrite with AI">
+        ✨
+      </button>
+
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="bg-white rounded-xl p-6 max-w-lg w-full mx-4">
+            <h3 className="font-bold text-lg mb-4">✨ AI Rewrite</h3>
+
+            <div className="mb-4">
+              <label className="text-sm font-medium text-slate-700 block mb-2">Original:</label>
+              <div className="p-3 bg-slate-50 rounded text-sm text-slate-600">
+                {text.substring(0, 200)}{text.length > 200 && '...'}
+              </div>
+            </div>
+
+            <div className="mb-4">
+              <label className="text-sm font-medium text-slate-700 block mb-2">
+                What changes do you want?
+              </label>
+              <textarea
+                value={instruction}
+                onChange={e => setInstruction(e.target.value)}
+                placeholder="e.g., Make it more senior, add metrics, align with PM role..."
+                className="w-full h-24 p-3 border border-slate-300 rounded-lg text-sm resize-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div className="flex gap-2 mb-4 flex-wrap">
+              <button
+                onClick={() => setInstruction('Make it more senior level')}
+                className="px-3 py-1 text-xs bg-slate-100 hover:bg-slate-200 rounded">
+                More Senior
+              </button>
+              <button
+                onClick={() => setInstruction('Add specific metrics and impact')}
+                className="px-3 py-1 text-xs bg-slate-100 hover:bg-slate-200 rounded">
+                Add Metrics
+              </button>
+              <button
+                onClick={() => setInstruction('Make it more product management focused')}
+                className="px-3 py-1 text-xs bg-slate-100 hover:bg-slate-200 rounded">
+                PM Focused
+              </button>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setShowModal(false); setInstruction(''); }}
+                className="flex-1 py-2 border border-slate-300 rounded-lg text-sm font-medium hover:bg-slate-50">
+                Cancel
+              </button>
+              <button
+                onClick={handleRewrite}
+                disabled={isRewriting || !instruction.trim()}
+                className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white rounded-lg text-sm font-medium">
+                {isRewriting ? 'Rewriting...' : '✨ Rewrite'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 // ─── Career Stage Options ─────────────────────────────────────────────────────
 const CAREER_STAGES: Array<{
   value: CareerStage;
@@ -241,7 +352,7 @@ function SectionReorder({ sectionOrder, onReorder }: SectionReorderProps) {
 
   const handleDrop = (e: React.DragEvent, dropIndex: number) => {
     e.preventDefault();
-    
+
     if (draggedIndex === null || draggedIndex === dropIndex) {
       setDraggedIndex(null);
       setDragOverIndex(null);
@@ -333,7 +444,7 @@ function EditablePreviewModal({ resume, onClose, onDownload, onResumeChange, isD
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ resume: editedResume }),
       });
-      
+
       if (response.ok) {
         const html = await response.text();
         setPreviewHTML(html);
@@ -434,7 +545,7 @@ function EditablePreviewModal({ resume, onClose, onDownload, onResumeChange, isD
 
   return (
     <div className="fixed inset-0 z-50 flex bg-black/60 backdrop-blur-sm">
-      
+
       {/* LEFT PANEL: Editor */}
       <div className="w-1/2 bg-white overflow-auto flex flex-col">
         <div className="p-6 border-b border-slate-200">
@@ -495,6 +606,14 @@ function EditablePreviewModal({ resume, onClose, onDownload, onResumeChange, isD
                   className="w-full min-h-[100px] p-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
                   placeholder="Enter your professional summary..."
                 />
+                {/* ✨ AI Button for Summary */}
+                <div className="flex justify-end mt-1">
+                  <AIButton
+                    text={editedResume.summary}
+                    onRewrite={(newText) => updateSummary(newText)}
+                    sectionType="summary"
+                  />
+                </div>
               </div>
 
               {/* Experience Section */}
@@ -506,7 +625,7 @@ function EditablePreviewModal({ resume, onClose, onDownload, onResumeChange, isD
                       <div key={expIndex} className="bg-slate-50 rounded-lg p-4">
                         <div className="font-semibold text-slate-900 mb-1">{exp.title}</div>
                         <div className="text-sm text-slate-600 mb-3">{exp.company}</div>
-                        
+
                         <div className="space-y-2">
                           {exp.bullets.map((bullet, bulletIndex) => (
                             <div key={bulletIndex} className="flex gap-2 items-start">
@@ -517,6 +636,12 @@ function EditablePreviewModal({ resume, onClose, onDownload, onResumeChange, isD
                                 onChange={(e) => updateExperienceBullet(expIndex, bulletIndex, e.target.value)}
                                 className="flex-1 text-sm px-2 py-1 border border-slate-200 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                               />
+                              {/* ✨ AI Button for Experience Bullet */}
+                              <AIButton
+                                text={bullet}
+                                onRewrite={(newText) => updateExperienceBullet(expIndex, bulletIndex, newText)}
+                                sectionType="bullet"
+                              />
                               <button
                                 onClick={() => deleteExperienceBullet(expIndex, bulletIndex)}
                                 className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
@@ -525,7 +650,7 @@ function EditablePreviewModal({ resume, onClose, onDownload, onResumeChange, isD
                               </button>
                             </div>
                           ))}
-                          
+
                           <button
                             onClick={() => addExperienceBullet(expIndex)}
                             className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium mt-2">
@@ -548,7 +673,7 @@ function EditablePreviewModal({ resume, onClose, onDownload, onResumeChange, isD
                       <div key={intIndex} className="bg-slate-50 rounded-lg p-4">
                         <div className="font-semibold text-slate-900 mb-1">{int.title}</div>
                         <div className="text-sm text-slate-600 mb-3">{int.company}</div>
-                        
+
                         <div className="space-y-2">
                           {int.bullets.map((bullet, bulletIndex) => (
                             <div key={bulletIndex} className="flex gap-2 items-start">
@@ -559,6 +684,12 @@ function EditablePreviewModal({ resume, onClose, onDownload, onResumeChange, isD
                                 onChange={(e) => updateInternshipBullet(intIndex, bulletIndex, e.target.value)}
                                 className="flex-1 text-sm px-2 py-1 border border-slate-200 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                               />
+                              {/* ✨ AI Button for Internship Bullet */}
+                              <AIButton
+                                text={bullet}
+                                onRewrite={(newText) => updateInternshipBullet(intIndex, bulletIndex, newText)}
+                                sectionType="bullet"
+                              />
                               <button
                                 onClick={() => deleteInternshipBullet(intIndex, bulletIndex)}
                                 className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
@@ -567,7 +698,7 @@ function EditablePreviewModal({ resume, onClose, onDownload, onResumeChange, isD
                               </button>
                             </div>
                           ))}
-                          
+
                           <button
                             onClick={() => addInternshipBullet(intIndex)}
                             className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium mt-2">
@@ -582,7 +713,7 @@ function EditablePreviewModal({ resume, onClose, onDownload, onResumeChange, isD
               )}
 
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-700">
-                <strong>💡 Tip:</strong> Other sections (Education, Skills, Certifications, etc.) are preserved as-is. Use the "Reorder Sections" tab to change section order.
+                <strong>💡 Tip:</strong> Click ✨ next to any bullet or summary to rewrite it with AI. Other sections (Education, Skills, Certifications, etc.) are preserved as-is.
               </div>
             </>
           )}
@@ -812,7 +943,7 @@ export default function HomePage() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      
+
       setShowPreview(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'PDF download failed.');
@@ -849,7 +980,7 @@ export default function HomePage() {
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
                 <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} 
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
                     d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
               </div>
