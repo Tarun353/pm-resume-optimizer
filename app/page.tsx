@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef } from 'react';
-import { ResumeData, InputMode, CareerStage } from '@/lib/types';
+import { ResumeData, InputMode, CareerStage, ExperienceEntry, InternshipEntry } from '@/lib/types';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 function UploadIcon() {
@@ -46,6 +46,32 @@ function EyeIcon() {
         d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
         d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+    </svg>
+  );
+}
+
+function PlusIcon() {
+  return (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+    </svg>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+    </svg>
+  );
+}
+
+function EditIcon() {
+  return (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
     </svg>
   );
 }
@@ -155,94 +181,279 @@ function ResumeSectionSummary({ resume }: { resume: ResumeData }) {
   );
 }
 
-// ─── PREVIEW MODAL ────────────────────────────────────────────────────────────
-interface PreviewModalProps {
+// ─── EDITABLE PREVIEW MODAL ───────────────────────────────────────────────────
+interface EditablePreviewModalProps {
   resume: ResumeData;
   onClose: () => void;
   onDownload: () => void;
+  onResumeChange: (newResume: ResumeData) => void;
   isDownloading: boolean;
 }
 
-function PreviewModal({ resume, onClose, onDownload, isDownloading }: PreviewModalProps) {
+function EditablePreviewModal({ resume, onClose, onDownload, onResumeChange, isDownloading }: EditablePreviewModalProps) {
+  const [editedResume, setEditedResume] = useState<ResumeData>(JSON.parse(JSON.stringify(resume)));
   const [previewHTML, setPreviewHTML] = useState<string>('');
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
 
-  // Generate preview HTML
-  useCallback(() => {
-    const generatePreview = async () => {
-      try {
-        // Call the template generator (imported from htmlTemplate)
-        const response = await fetch('/api/preview', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ resume }),
-        });
-        
-        if (response.ok) {
-          const html = await response.text();
-          setPreviewHTML(html);
-        }
-      } catch (err) {
-        console.error('Preview generation failed:', err);
-      } finally {
-        setIsLoading(false);
+  // Generate preview whenever editedResume changes
+  const regeneratePreview = useCallback(async () => {
+    setIsLoadingPreview(true);
+    try {
+      const response = await fetch('/api/preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resume: editedResume }),
+      });
+      
+      if (response.ok) {
+        const html = await response.text();
+        setPreviewHTML(html);
       }
-    };
-    
-    generatePreview();
-  }, [resume])();
+    } catch (err) {
+      console.error('Preview generation failed:', err);
+    } finally {
+      setIsLoadingPreview(false);
+    }
+  }, [editedResume]);
+
+  // Initial load
+  useState(() => {
+    regeneratePreview();
+  });
+
+  // Update summary
+  const updateSummary = (newSummary: string) => {
+    const updated = { ...editedResume, summary: newSummary };
+    setEditedResume(updated);
+    onResumeChange(updated);
+    regeneratePreview();
+  };
+
+  // Update experience bullet
+  const updateExperienceBullet = (expIndex: number, bulletIndex: number, newText: string) => {
+    const updated = { ...editedResume };
+    if (updated.experience[expIndex]) {
+      updated.experience[expIndex]!.bullets[bulletIndex] = newText;
+      setEditedResume(updated);
+      onResumeChange(updated);
+      regeneratePreview();
+    }
+  };
+
+  // Add experience bullet
+  const addExperienceBullet = (expIndex: number) => {
+    const updated = { ...editedResume };
+    if (updated.experience[expIndex]) {
+      updated.experience[expIndex]!.bullets.push('New bullet point - click to edit');
+      setEditedResume(updated);
+      onResumeChange(updated);
+      regeneratePreview();
+    }
+  };
+
+  // Delete experience bullet
+  const deleteExperienceBullet = (expIndex: number, bulletIndex: number) => {
+    const updated = { ...editedResume };
+    if (updated.experience[expIndex]) {
+      updated.experience[expIndex]!.bullets = updated.experience[expIndex]!.bullets.filter((_, i) => i !== bulletIndex);
+      setEditedResume(updated);
+      onResumeChange(updated);
+      regeneratePreview();
+    }
+  };
+
+  // Update internship bullet
+  const updateInternshipBullet = (intIndex: number, bulletIndex: number, newText: string) => {
+    const updated = { ...editedResume };
+    if (updated.internships && updated.internships[intIndex]) {
+      updated.internships[intIndex]!.bullets[bulletIndex] = newText;
+      setEditedResume(updated);
+      onResumeChange(updated);
+      regeneratePreview();
+    }
+  };
+
+  // Add internship bullet
+  const addInternshipBullet = (intIndex: number) => {
+    const updated = { ...editedResume };
+    if (updated.internships && updated.internships[intIndex]) {
+      updated.internships[intIndex]!.bullets.push('New bullet point - click to edit');
+      setEditedResume(updated);
+      onResumeChange(updated);
+      regeneratePreview();
+    }
+  };
+
+  // Delete internship bullet
+  const deleteInternshipBullet = (intIndex: number, bulletIndex: number) => {
+    const updated = { ...editedResume };
+    if (updated.internships && updated.internships[intIndex]) {
+      updated.internships[intIndex]!.bullets = updated.internships[intIndex]!.bullets.filter((_, i) => i !== bulletIndex);
+      setEditedResume(updated);
+      onResumeChange(updated);
+      regeneratePreview();
+    }
+  };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] flex flex-col">
-        
-        {/* Modal Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl flex items-center justify-center">
-              <EyeIcon />
-            </div>
+    <div className="fixed inset-0 z-50 flex bg-black/60 backdrop-blur-sm">
+      
+      {/* LEFT PANEL: Editor */}
+      <div className="w-1/2 bg-white overflow-auto">
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="font-bold text-slate-900 text-lg">Resume Preview</h2>
-              <p className="text-xs text-slate-500">Review before downloading</p>
+              <h2 className="font-bold text-slate-900 text-xl flex items-center gap-2">
+                <EditIcon />
+                Edit Your Resume
+              </h2>
+              <p className="text-sm text-slate-500 mt-1">Click any text to edit · Changes appear instantly</p>
             </div>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+              <CloseIcon />
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
-            <CloseIcon />
-          </button>
+
+          {/* Summary Section */}
+          <div className="mb-6 pb-6 border-b border-slate-200">
+            <h3 className="text-sm font-bold text-blue-600 uppercase tracking-wide mb-3">Professional Summary</h3>
+            <textarea
+              value={editedResume.summary}
+              onChange={(e) => updateSummary(e.target.value)}
+              className="w-full min-h-[100px] p-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+              placeholder="Enter your professional summary..."
+            />
+          </div>
+
+          {/* Experience Section */}
+          {editedResume.experience && editedResume.experience.length > 0 && (
+            <div className="mb-6 pb-6 border-b border-slate-200">
+              <h3 className="text-sm font-bold text-blue-600 uppercase tracking-wide mb-3">Work Experience</h3>
+              <div className="space-y-6">
+                {editedResume.experience.map((exp, expIndex) => (
+                  <div key={expIndex} className="bg-slate-50 rounded-lg p-4">
+                    <div className="font-semibold text-slate-900 mb-1">{exp.title}</div>
+                    <div className="text-sm text-slate-600 mb-3">{exp.company}</div>
+                    
+                    <div className="space-y-2">
+                      {exp.bullets.map((bullet, bulletIndex) => (
+                        <div key={bulletIndex} className="flex gap-2 items-start">
+                          <span className="text-slate-400 mt-1.5">•</span>
+                          <input
+                            type="text"
+                            value={bullet}
+                            onChange={(e) => updateExperienceBullet(expIndex, bulletIndex, e.target.value)}
+                            className="flex-1 text-sm px-2 py-1 border border-slate-200 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          />
+                          <button
+                            onClick={() => deleteExperienceBullet(expIndex, bulletIndex)}
+                            className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
+                            title="Delete bullet">
+                            <TrashIcon />
+                          </button>
+                        </div>
+                      ))}
+                      
+                      <button
+                        onClick={() => addExperienceBullet(expIndex)}
+                        className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium mt-2">
+                        <PlusIcon />
+                        Add Bullet Point
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Internships Section */}
+          {editedResume.internships && editedResume.internships.length > 0 && (
+            <div className="mb-6 pb-6 border-b border-slate-200">
+              <h3 className="text-sm font-bold text-blue-600 uppercase tracking-wide mb-3">Internships</h3>
+              <div className="space-y-6">
+                {editedResume.internships.map((int, intIndex) => (
+                  <div key={intIndex} className="bg-slate-50 rounded-lg p-4">
+                    <div className="font-semibold text-slate-900 mb-1">{int.title}</div>
+                    <div className="text-sm text-slate-600 mb-3">{int.company}</div>
+                    
+                    <div className="space-y-2">
+                      {int.bullets.map((bullet, bulletIndex) => (
+                        <div key={bulletIndex} className="flex gap-2 items-start">
+                          <span className="text-slate-400 mt-1.5">•</span>
+                          <input
+                            type="text"
+                            value={bullet}
+                            onChange={(e) => updateInternshipBullet(intIndex, bulletIndex, e.target.value)}
+                            className="flex-1 text-sm px-2 py-1 border border-slate-200 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          />
+                          <button
+                            onClick={() => deleteInternshipBullet(intIndex, bulletIndex)}
+                            className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
+                            title="Delete bullet">
+                            <TrashIcon />
+                          </button>
+                        </div>
+                      ))}
+                      
+                      <button
+                        onClick={() => addInternshipBullet(intIndex)}
+                        className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium mt-2">
+                        <PlusIcon />
+                        Add Bullet Point
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-700">
+            <strong>💡 Tip:</strong> All other sections (Education, Skills, Certifications, etc.) are preserved as-is. Only Summary, Experience, and Internships can be edited.
+          </div>
+        </div>
+      </div>
+
+      {/* RIGHT PANEL: Live Preview */}
+      <div className="w-1/2 bg-slate-100 flex flex-col">
+        <div className="bg-white border-b border-slate-200 px-6 py-4">
+          <div className="flex items-center gap-2 mb-1">
+            <EyeIcon />
+            <h2 className="font-bold text-slate-900 text-lg">Live Preview</h2>
+          </div>
+          <p className="text-xs text-slate-500">Updates automatically as you edit</p>
         </div>
 
-        {/* Preview Content */}
-        <div className="flex-1 overflow-auto bg-slate-100 p-6">
-          {isLoading ? (
+        <div className="flex-1 overflow-auto p-6">
+          {isLoadingPreview ? (
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
                 <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
-                <p className="text-slate-600">Generating preview...</p>
+                <p className="text-slate-600">Updating preview...</p>
               </div>
             </div>
           ) : (
-            <div className="max-w-4xl mx-auto bg-white shadow-lg">
+            <div className="max-w-4xl mx-auto bg-white shadow-xl">
               <iframe
                 srcDoc={previewHTML}
-                className="w-full h-[600px] border-0"
+                className="w-full h-[800px] border-0"
                 title="Resume Preview"
               />
             </div>
           )}
         </div>
 
-        {/* Modal Footer */}
-        <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-between bg-slate-50">
+        <div className="bg-white border-t border-slate-200 px-6 py-4 flex items-center justify-between">
           <p className="text-xs text-slate-500">
-            Professional single-column template · ATS-friendly · Fits 1-2 pages
+            Professional template · ATS-friendly · Ready to download
           </p>
           <div className="flex gap-3">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 rounded-lg transition-colors">
+              className="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">
               Close
             </button>
             <button
@@ -278,7 +489,7 @@ export default function HomePage() {
   const [error, setError]               = useState<string | null>(null);
   const [isDragOver, setIsDragOver]     = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
-  const [showPreview, setShowPreview]   = useState(false); // NEW: Preview modal state
+  const [showPreview, setShowPreview]   = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ── File handling ────────────────────────────────────────────────────────
@@ -364,6 +575,11 @@ export default function HomePage() {
     }
   };
 
+  // ── Handle resume changes from editor ─────────────────────────────────────
+  const handleResumeChange = (newResume: ResumeData) => {
+    setOptimizedResume(newResume);
+  };
+
   // ── Download PDF ──────────────────────────────────────────────────────────
   const handleDownloadPDF = async () => {
     if (!optimizedResume) return;
@@ -388,7 +604,7 @@ export default function HomePage() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
       
-      setShowPreview(false); // Close preview after download
+      setShowPreview(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'PDF download failed.');
     } finally {
@@ -406,12 +622,13 @@ export default function HomePage() {
 
   return (
     <>
-      {/* Preview Modal */}
+      {/* Editable Preview Modal */}
       {showPreview && optimizedResume && (
-        <PreviewModal
+        <EditablePreviewModal
           resume={optimizedResume}
           onClose={() => setShowPreview(false)}
           onDownload={handleDownloadPDF}
+          onResumeChange={handleResumeChange}
           isDownloading={isDownloading}
         />
       )}
@@ -446,7 +663,7 @@ export default function HomePage() {
             </h1>
             <p className="text-slate-500 max-w-lg mx-auto">
               AI rewrites your summary and bullets with JD-matched keywords, power verbs,
-              and measurable impact — while preserving every section of your resume.
+              and measurable impact — with inline editing before download.
             </p>
           </div>
 
@@ -602,7 +819,6 @@ export default function HomePage() {
                 )}
               </button>
 
-              {/* Hint */}
               {!canOptimize && !isLoading && (
                 <p className="text-xs text-center text-slate-400">
                   {inputMode === 'paste' && resumeText.trim().length <= 10
@@ -621,18 +837,18 @@ export default function HomePage() {
               {!parsedResume && !isLoading && (
                 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center">
                   <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <span className="text-3xl">📄</span>
+                    <span className="text-3xl">✏️</span>
                   </div>
-                  <h3 className="font-semibold text-slate-900 mb-2">Your Optimized Resume Appears Here</h3>
+                  <h3 className="font-semibold text-slate-900 mb-2">Edit & Preview Before Download</h3>
                   <p className="text-sm text-slate-400 max-w-xs mx-auto mb-6">
-                    Professional template · Preview before download · All content preserved
+                    Professional template · Inline editing · Live preview · Perfect resume guaranteed
                   </p>
                   <div className="grid grid-cols-2 gap-2.5 text-left">
                     {[
-                      { icon: '👁️', title: 'Live Preview', desc: 'See before download' },
-                      { icon: '🎯', title: 'JD Match', desc: 'Keywords extracted' },
-                      { icon: '💪', title: 'Power Verbs', desc: 'Weak verbs replaced' },
-                      { icon: '🛡️', title: 'ATS-Safe', desc: 'Single-column layout' },
+                      { icon: '✏️', title: 'Click to Edit', desc: 'Any bullet point' },
+                      { icon: '👁️', title: 'Live Preview', desc: 'Updates instantly' },
+                      { icon: '➕', title: 'Add/Delete', desc: 'Bullets on demand' },
+                      { icon: '🎯', title: 'JD Match', desc: 'Keywords injected' },
                     ].map(f => (
                       <div key={f.title} className="bg-slate-50 rounded-xl p-3">
                         <div className="text-lg mb-1">{f.icon}</div>
@@ -644,7 +860,6 @@ export default function HomePage() {
                 </div>
               )}
 
-              {/* Loading */}
               {isLoading && (
                 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center">
                   <div className="flex justify-center mb-4">
@@ -652,18 +867,9 @@ export default function HomePage() {
                   </div>
                   <p className="font-semibold text-slate-900 mb-1">AI is optimizing...</p>
                   <p className="text-sm text-slate-400">{loadingStep}</p>
-                  <div className="mt-4 space-y-1">
-                    {['LlamaParse extracting layout...', 'Groq structuring sections...', 'Optimizing for ATS...'].map((step, i) => (
-                      <div key={step} className="flex items-center gap-2 text-xs text-slate-400 justify-center">
-                        <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse" style={{ animationDelay: `${i * 200}ms` }}></div>
-                        {step}
-                      </div>
-                    ))}
-                  </div>
                 </div>
               )}
 
-              {/* Error */}
               {error && (
                 <div className="bg-red-50 border border-red-200 rounded-xl p-4">
                   <p className="text-sm font-semibold text-red-800">⚠️ Error</p>
@@ -671,31 +877,27 @@ export default function HomePage() {
                 </div>
               )}
 
-              {/* Parsed (before optimization) */}
               {parsedResume && !optimizedResume && !isLoading && (
                 <ResumeSectionSummary resume={parsedResume} />
               )}
 
-              {/* Optimized results */}
               {optimizedResume && !isLoading && (
                 <>
                   <KeywordBadges keywords={keywords} />
                   <ChangesList changes={changes} />
                   <ResumeSectionSummary resume={optimizedResume} />
 
-                  {/* Preview & Download Button */}
                   <button
                     onClick={() => setShowPreview(true)}
                     className="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-2xl text-sm font-semibold transition-all duration-200 shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2">
-                    <EyeIcon />
-                    Preview & Download Resume
+                    <EditIcon />
+                    Edit & Preview Resume
                   </button>
 
                   <p className="text-xs text-center text-slate-400">
-                    Click to preview your professional resume before downloading
+                    Click to edit bullets, add points, and preview before downloading
                   </p>
 
-                  {/* Re-optimize hint */}
                   <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-700">
                     <strong>Tip:</strong> Not satisfied? Edit the job description or change your career stage, then click Optimize again.
                   </div>
