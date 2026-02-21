@@ -253,7 +253,7 @@ function ensureResumeShape(raw: Partial<ResumeData>, careerStage: CareerStage): 
     })) : [],
 
     certifications: Array.isArray(deduplicated.certifications) ? deduplicated.certifications.map(c => ({
-      name: c.name ?? '', issuer: c.issuer ?? '', date: c.date ?? '', credentialId: c.credentialId ?? '',
+      name: c.name ?? '', issuer: c.issuer ?? '', date: c.date ?? '', credentialId: (c as any).credentialId ?? '',
     })) : [],
 
     awards: Array.isArray(deduplicated.awards) ? deduplicated.awards.map(a => ({
@@ -292,7 +292,7 @@ function ensureResumeShape(raw: Partial<ResumeData>, careerStage: CareerStage): 
   };
 
   console.log('[ensureResumeShape] Experience:', resume.experience.length);
-  console.log('[ensureResumeShape] Internships:', resume.internships.length);
+  console.log('[ensureResumeShape] Internships:', resume.internships?.length);
 
   return resume;
 }
