@@ -221,7 +221,7 @@ export async function optimizeResume(
         const int = resume.internships[i];
         if (int && int.bullets && int.bullets.length > 0) {
           const newBullets = await rewriteBullets(int.bullets, jobDescription, keywords);
-          optimizedResume.internships[i]!.bullets = newBullets;
+          if (optimizedResume.internships) optimizedResume.internships[i]!.bullets = newBullets;
           changes.push(`Enhanced ${int.bullets.length} bullet(s) for ${int.title} at ${int.company}`);
         }
       }
