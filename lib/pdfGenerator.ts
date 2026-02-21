@@ -9,6 +9,8 @@ export async function generateResumePDF(resume: ResumeData): Promise<Buffer> {
   try {
     browser = await puppeteer.default.launch({
       headless: true,
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || 
+       `${process.env.PUPPETEER_CACHE_DIR || '/opt/render/project/src/.cache/puppeteer'}/chrome/linux-127.0.6533.88/chrome-linux64/chrome`,
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
