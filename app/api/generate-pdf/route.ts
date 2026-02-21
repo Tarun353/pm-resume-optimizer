@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ResumeData } from '@/lib/types';
-import { generatePDF } from '@/lib/pdfGenerator';
+import { generateResumePDF } from '@/lib/pdfGenerator';
 import { generateResumeHTML } from '@/lib/htmlTemplate';
 import { 
   matchOriginalToOptimized, 
@@ -13,8 +13,8 @@ export const maxDuration = 60;
 
 interface GeneratePDFRequest {
   resume: ResumeData;
-  originalDocx?: string; // base64 encoded original DOCX
-  originalResume?: ResumeData; // original parsed resume (before optimization)
+  originalDocx?: string;
+  originalResume?: ResumeData;
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
@@ -35,10 +35,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       console.log('[generate-pdf] DOCX template mode - preserving format');
       
       try {
-        // Decode original DOCX from base64
         const originalBuffer = Buffer.from(body.originalDocx, 'base64');
         
-        // Build text replacement map (original text → optimized text)
         const replacements = await matchOriginalToOptimized(
           originalBuffer,
           body.originalResume,
@@ -47,27 +45,21 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         
         console.log('[generate-pdf] Found', replacements.size, 'text replacements');
         
-        // Apply replacements to DOCX (preserves ALL formatting)
         const modifiedDocx = await simpleDocxReplace(originalBuffer, replacements);
-        
-        // Convert modified DOCX to PDF
         pdfBuffer = await convertDOCXtoPDF(modifiedDocx);
         
         console.log('[generate-pdf] DOCX template PDF generated successfully');
       } catch (error) {
         console.error('[generate-pdf] DOCX template mode failed:', error);
-        
-        // Fallback to HTML template if DOCX processing fails
         console.log('[generate-pdf] Falling back to HTML template');
         const html = generateResumeHTML(body.resume);
-        pdfBuffer = await generatePDF(html);
+        pdfBuffer = await generateResumePDF(body.resume);
       }
     } 
-    // HTML Template Mode: Use our professional template
+    // HTML Template Mode
     else {
       console.log('[generate-pdf] HTML template mode');
-      const html = generateResumeHTML(body.resume);
-      pdfBuffer = await generatePDF(html);
+      pdfBuffer = await generateResumePDF(body.resume);
     }
 
     return new NextResponse(pdfBuffer, {
