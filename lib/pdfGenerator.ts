@@ -2,29 +2,40 @@ import { ResumeData } from './types';
 import { generateResumeHTML } from './htmlTemplate';
 
 export async function generateResumePDF(resume: ResumeData): Promise<Buffer> {
+  const puppeteer = await import('puppeteer');
+  
   let browser = null;
 
   try {
-    const chromium = await import('chrome-aws-lambda');
-    const puppeteer = await import('puppeteer-core');
-
     browser = await puppeteer.default.launch({
-      args: chromium.default.args,
-      executablePath: await chromium.default.executablePath,
-      headless: chromium.default.headless,
+      headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+        '--disable-gpu',
+        '--disable-web-security',
+        '--disable-features=IsolateOrigins,site-per-process',
+      ],
     });
 
     const page = await browser.newPage();
 
+    // Set viewport to A4 dimensions
     await page.setViewport({ width: 794, height: 1123, deviceScaleFactor: 1 });
 
     const html = generateResumeHTML(resume);
 
+    // Use 'domcontentloaded' instead of 'networkidle0' for speed
     await page.setContent(html, {
       waitUntil: 'domcontentloaded',
       timeout: 60000,
     });
 
+    // Give page a moment to settle (using standard Promise instead of deprecated waitForTimeout)
     await new Promise(resolve => setTimeout(resolve, 500));
 
     const pdfBuffer = await page.pdf({
@@ -43,8 +54,8 @@ export async function generateResumePDF(resume: ResumeData): Promise<Buffer> {
   } catch (error) {
     console.error('[generateResumePDF] Error:', error);
     throw new Error(
-      error instanceof Error
-        ? `PDF generation failed: ${error.message}`
+      error instanceof Error 
+        ? `PDF generation failed: ${error.message}` 
         : 'PDF generation failed'
     );
   } finally {

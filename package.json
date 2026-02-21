@@ -11,7 +11,6 @@
   "dependencies": {
     "adm-zip": "^0.5.10",
     "autoprefixer": "^10.4.24",
-    "chrome-aws-lambda": "^10.1.0",
     "docxtemplater": "^3.42.3",
     "groq-sdk": "^0.3.3",
     "libreoffice-convert": "^1.6.0",
@@ -19,7 +18,7 @@
     "next": "14.2.3",
     "pizzip": "^3.1.6",
     "postcss": "^8.5.6",
-    "puppeteer-core": "^24.37.5",
+    "puppeteer": "^24.37.5",
     "react": "^18",
     "react-dom": "^18",
     "tailwindcss": "^3.4.19",
