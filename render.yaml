@@ -11,16 +11,14 @@ services:
       apt-get install -y libreoffice
       # Install dependencies
       npm install
-      # Install Chrome for Puppeteer
-      npx puppeteer browsers install chrome
+      # Install Chrome for Puppeteer AFTER npm install
+      node node_modules/puppeteer/install.mjs
       # Build Next.js app
       npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PUPPETEER_CACHE_DIR
-        value: /opt/render/.cache/puppeteer
       - key: GROQ_API_KEY
         sync: false
       - key: LLAMA_CLOUD_API_KEY

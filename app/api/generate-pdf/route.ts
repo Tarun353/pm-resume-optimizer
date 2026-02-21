@@ -16,6 +16,7 @@ interface GeneratePDFRequest {
 async function generatePDFFromHTML(html: string): Promise<Buffer> {
   const browser = await puppeteer.launch({
     headless: true,
+    executablePath: puppeteer.executablePath(), // Use Puppeteer's built-in Chrome finder
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
