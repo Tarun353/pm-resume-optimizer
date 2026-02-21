@@ -2,24 +2,16 @@ import { ResumeData } from './types';
 import { generateResumeHTML } from './htmlTemplate';
 
 export async function generateResumePDF(resume: ResumeData): Promise<Buffer> {
-  const puppeteer = await import('puppeteer');
-  
   let browser = null;
 
   try {
+    const chromium = await import('chrome-aws-lambda');
+    const puppeteer = await import('puppeteer-core');
+
     browser = await puppeteer.default.launch({
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--no-first-run',
-        '--no-zygote',
-        '--disable-gpu',
-        '--disable-web-security',
-        '--disable-features=IsolateOrigins,site-per-process',
-      ],
+      args: chromium.default.args,
+      executablePath: await chromium.default.executablePath,
+      headless: chromium.default.headless,
     });
 
     const page = await browser.newPage();
@@ -51,8 +43,8 @@ export async function generateResumePDF(resume: ResumeData): Promise<Buffer> {
   } catch (error) {
     console.error('[generateResumePDF] Error:', error);
     throw new Error(
-      error instanceof Error 
-        ? `PDF generation failed: ${error.message}` 
+      error instanceof Error
+        ? `PDF generation failed: ${error.message}`
         : 'PDF generation failed'
     );
   } finally {
