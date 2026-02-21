@@ -8,17 +8,17 @@ services:
     buildCommand: |
       # Install LibreOffice for DOCX to PDF conversion
       apt-get update
-      apt-get install -y libreoffice
-      # Install dependencies
-      npm install
-      # Install Chrome for Puppeteer AFTER npm install
-      node node_modules/puppeteer/install.mjs
+      apt-get install -y libreoffice chromium chromium-sandbox
+      # Install Node dependencies (skip Puppeteer's Chrome download)
+      PUPPETEER_SKIP_DOWNLOAD=true npm install
       # Build Next.js app
       npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production
+      - key: PUPPETEER_EXECUTABLE_PATH
+        value: /usr/bin/chromium
       - key: GROQ_API_KEY
         sync: false
       - key: LLAMA_CLOUD_API_KEY
