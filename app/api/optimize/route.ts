@@ -1,6 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { optimizeResume } from '@/lib/resumeOptimizer';
-import { OptimizeRequest, OptimizeResponse } from '@/lib/types';
+// Types defined inline since they aren't in lib/types
+interface OptimizeRequest {
+  resume: import('@/lib/types').ResumeData;
+  jobDescription: string;
+}
+
+interface OptimizeResponse {
+  optimizedResume: import('@/lib/types').ResumeData;
+  changes: string[];
+  keywordsInjected: string[];
+}
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
