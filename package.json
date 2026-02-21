@@ -9,24 +9,27 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "adm-zip": "^0.5.10",
+    "autoprefixer": "^10.4.24",
+    "docxtemplater": "^3.42.3",
+    "groq-sdk": "^0.3.3",
+    "libreoffice-convert": "^1.6.0",
+    "mammoth": "^1.7.2",
     "next": "14.2.3",
+    "pizzip": "^3.1.6",
+    "postcss": "^8.5.6",
+    "puppeteer": "^22.8.0",
     "react": "^18",
     "react-dom": "^18",
-    "groq-sdk": "^0.3.3",
-    "puppeteer": "^22.8.0",
-    "mammoth": "^1.7.2",
-    "adm-zip": "^0.5.10",
-    "pizzip": "^3.1.6",
-    "docxtemplater": "^3.42.3",
-    "xml2js": "^0.6.2",
-    "libreoffice-convert": "^1.6.0"
+    "tailwindcss": "^4.2.0",
+    "xml2js": "^0.6.2"
   },
   "devDependencies": {
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
-    "typescript": "^5",
     "eslint": "^8",
-    "eslint-config-next": "14.2.3"
+    "eslint-config-next": "14.2.3",
+    "typescript": "^5"
   }
 }
