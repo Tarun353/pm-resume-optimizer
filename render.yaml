@@ -5,13 +5,22 @@ services:
     region: singapore
     plan: free
     branch: main
-    buildCommand: npm install && npx puppeteer browsers install chrome && npm run build
+    buildCommand: |
+      # Install LibreOffice for DOCX to PDF conversion
+      apt-get update
+      apt-get install -y libreoffice
+      # Install dependencies
+      npm install
+      # Install Chrome for Puppeteer
+      npx puppeteer browsers install chrome
+      # Build Next.js app
+      npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production
       - key: PUPPETEER_CACHE_DIR
-        value: /opt/render/.cache/puppeteer
+        value: /opt/render/project/.cache/puppeteer
       - key: GROQ_API_KEY
         sync: false
       - key: LLAMA_CLOUD_API_KEY

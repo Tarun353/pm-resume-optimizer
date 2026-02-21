@@ -1,36 +1,35 @@
 {
   "name": "ats-resume-optimizer",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "private": true,
   "scripts": {
-    "postinstall": "node -e \"try { require('puppeteer').executablePath(); } catch { require('child_process').execSync('npx puppeteer browsers install chrome', { stdio: 'inherit' }); }\"",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
   },
   "dependencies": {
-    "adm-zip": "^0.5.16",
-    "docxtemplater": "^3.68.2",
+    "adm-zip": "^0.5.10",
+    "autoprefixer": "^10.4.24",
+    "docxtemplater": "^3.42.3",
     "groq-sdk": "^0.3.3",
-    "libreoffice-convert": "^1.8.1",
+    "libreoffice-convert": "^1.6.0",
     "mammoth": "^1.7.2",
     "next": "14.2.3",
-    "pizzip": "^3.2.0",
-    "puppeteer": "^22.8.0",
+    "pizzip": "^3.1.6",
+    "postcss": "^8.5.6",
+    "puppeteer": "^24.37.5",
     "react": "^18",
     "react-dom": "^18",
+    "tailwindcss": "^3.4.19",
     "xml2js": "^0.6.2"
   },
   "devDependencies": {
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
-    "autoprefixer": "^10.0.1",
     "eslint": "^8",
     "eslint-config-next": "14.2.3",
-    "postcss": "^8",
-    "tailwindcss": "^3.4.1",
     "typescript": "^5"
   }
 }
