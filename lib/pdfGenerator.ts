@@ -9,8 +9,6 @@ export async function generateResumePDF(resume: ResumeData): Promise<Buffer> {
   try {
     browser = await puppeteer.default.launch({
       headless: true,
-      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || 
-       `${process.env.PUPPETEER_CACHE_DIR || '/opt/render/project/src/.cache/puppeteer'}/chrome/linux-127.0.6533.88/chrome-linux64/chrome`,
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
@@ -26,18 +24,15 @@ export async function generateResumePDF(resume: ResumeData): Promise<Buffer> {
 
     const page = await browser.newPage();
 
-    // Set viewport to A4 dimensions
     await page.setViewport({ width: 794, height: 1123, deviceScaleFactor: 1 });
 
     const html = generateResumeHTML(resume);
 
-    // Use 'domcontentloaded' instead of 'networkidle0' for speed
     await page.setContent(html, {
       waitUntil: 'domcontentloaded',
       timeout: 60000,
     });
 
-    // Give page a moment to settle (using standard Promise instead of deprecated waitForTimeout)
     await new Promise(resolve => setTimeout(resolve, 500));
 
     const pdfBuffer = await page.pdf({
