@@ -20,7 +20,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: PUPPETEER_CACHE_DIR
-        value: /opt/render/project/.cache/puppeteer
+        value: /opt/render/.cache/puppeteer
       - key: GROQ_API_KEY
         sync: false
       - key: LLAMA_CLOUD_API_KEY
