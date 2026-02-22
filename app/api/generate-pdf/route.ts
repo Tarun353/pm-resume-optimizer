@@ -1,20 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ResumeData } from '@/lib/types';
-import { generateResumePDF } from '@/lib/pdfGenerator';
+import puppeteer from 'puppeteer';
 import { generateResumeHTML } from '@/lib/htmlTemplate';
-import { 
-  matchOriginalToOptimized, 
-  simpleDocxReplace, 
-  convertDOCXtoPDF 
-} from '@/lib/docxProcessor';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
 interface GeneratePDFRequest {
   resume: ResumeData;
-  originalDocx?: string;
-  originalResume?: ResumeData;
+}
+
+async function generatePDF(html: string): Promise<Buffer> {
+  // Use Google Chrome on production (Render), auto-detect locally
+  const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || 
+                         (process.platform === 'linux' ? '/usr/bin/google-chrome-stable' : undefined);
+  
+  console.log('[generatePDF] Using Chrome at:', executablePath || 'auto-detect');
+  
+  const browser = await puppeteer.launch({
+    headless: true,
+    executablePath: executablePath,
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-gpu',
+    ],
+  });
+
+  const page = await browser.newPage();
+  await page.setContent(html, { waitUntil: 'networkidle0' });
+  
+  const pdfBuffer = await page.pdf({
+    format: 'A4',
+    printBackground: true,
+    margin: {
+      top: '0.5in',
+      right: '0.5in',
+      bottom: '0.5in',
+      left: '0.5in',
+    },
+  });
+
+  await browser.close();
+  return pdfBuffer as Buffer;
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
@@ -28,39 +57,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    let pdfBuffer: Buffer;
-
-    // DOCX Template Mode: Preserve original format
-    if (body.originalDocx && body.originalResume) {
-      console.log('[generate-pdf] DOCX template mode - preserving format');
-      
-      try {
-        const originalBuffer = Buffer.from(body.originalDocx, 'base64');
-        
-        const replacements = await matchOriginalToOptimized(
-          originalBuffer,
-          body.originalResume,
-          body.resume
-        );
-        
-        console.log('[generate-pdf] Found', replacements.size, 'text replacements');
-        
-        const modifiedDocx = await simpleDocxReplace(originalBuffer, replacements);
-        pdfBuffer = await convertDOCXtoPDF(modifiedDocx);
-        
-        console.log('[generate-pdf] DOCX template PDF generated successfully');
-      } catch (error) {
-        console.error('[generate-pdf] DOCX template mode failed:', error);
-        console.log('[generate-pdf] Falling back to HTML template');
-        const html = generateResumeHTML(body.resume);
-        pdfBuffer = await generateResumePDF(body.resume);
-      }
-    } 
-    // HTML Template Mode
-    else {
-      console.log('[generate-pdf] HTML template mode');
-      pdfBuffer = await generateResumePDF(body.resume);
-    }
+    console.log('[generate-pdf] Generating PDF with professional template');
+    
+    const html = generateResumeHTML(body.resume);
+    const pdfBuffer = await generatePDF(html);
 
     return new NextResponse(new Uint8Array(pdfBuffer), {
       status: 200,
