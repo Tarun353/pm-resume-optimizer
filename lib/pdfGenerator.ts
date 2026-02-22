@@ -7,17 +7,11 @@ export async function generateResumePDF(resume: ResumeData): Promise<Buffer> {
   let browser = null;
 
   try {
-    // Use environment variable for Render, auto-detect locally
-    const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
-    
     console.log('[pdfGenerator] Launching browser...');
-    if (executablePath) {
-      console.log('[pdfGenerator] Using executable path:', executablePath);
-    }
     
+    // Let Puppeteer auto-find Chrome (no executablePath)
     browser = await puppeteer.default.launch({
       headless: true,
-      executablePath: executablePath || undefined,
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
@@ -26,8 +20,6 @@ export async function generateResumePDF(resume: ResumeData): Promise<Buffer> {
         '--no-first-run',
         '--no-zygote',
         '--disable-gpu',
-        '--disable-web-security',
-        '--disable-features=IsolateOrigins,site-per-process',
       ],
     });
 
@@ -38,7 +30,6 @@ export async function generateResumePDF(resume: ResumeData): Promise<Buffer> {
 
     const html = generateResumeHTML(resume);
 
-    // Use 'domcontentloaded' instead of 'networkidle0' for speed
     await page.setContent(html, {
       waitUntil: 'domcontentloaded',
       timeout: 60000,
