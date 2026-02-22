@@ -9,19 +9,12 @@ import { ParseResponse, CareerStage } from '@/lib/types';
 export const runtime = 'nodejs';
 export const maxDuration = 120;
 
-interface ExtendedParseResponse extends ParseResponse {
-  originalDocx?: string; // base64 encoded original DOCX (for format preservation)
-  isDocxUpload?: boolean;
-}
-
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const contentType = request.headers.get('content-type') ?? '';
     let rawText = '';
     let careerStage: CareerStage = 'experienced';
     let resume;
-    let originalDocxBase64: string | undefined;
-    let isDocxUpload = false;
 
     if (contentType.includes('multipart/form-data')) {
       const formData = await request.formData();
@@ -49,15 +42,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           }
         } else if (ext === 'docx') {
           try {
-            // Extract text for parsing
+            // Just extract text from DOCX (no format preservation)
             rawText = await extractTextFromDOCX(buffer, fileName);
-            
-            // CRITICAL: Store original DOCX as base64 for format preservation
-            originalDocxBase64 = buffer.toString('base64');
-            isDocxUpload = true;
-            
-            console.log('[parse] DOCX uploaded - preserving original format');
-            console.log('[parse] Original DOCX size:', buffer.length, 'bytes');
+            console.log('[parse] DOCX text extracted successfully');
           } catch (err) {
             console.error('[parse] DOCX extraction error:', err);
             const msg = err instanceof Error ? err.message : 'DOCX extraction failed';
@@ -91,11 +78,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     resume = await parseResumeText(rawText, careerStage);
 
-    const response: ExtendedParseResponse = {
+    const response: ParseResponse = {
       resume,
       rawText,
-      originalDocx: originalDocxBase64,
-      isDocxUpload,
     };
     
     return NextResponse.json(response);

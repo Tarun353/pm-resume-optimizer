@@ -6,11 +6,11 @@ services:
     plan: free
     branch: main
     buildCommand: |
-      # Install LibreOffice for DOCX to PDF conversion
+      # Install system Chromium for Puppeteer
       apt-get update
-      apt-get install -y libreoffice chromium chromium-sandbox
-      # Install Node dependencies (skip Puppeteer's Chrome download)
-      PUPPETEER_SKIP_DOWNLOAD=true npm install
+      apt-get install -y chromium chromium-sandbox
+      # Install Node dependencies
+      npm install
       # Build Next.js app
       npm run build
     startCommand: npm start

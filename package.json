@@ -14,12 +14,7 @@
     "react-dom": "^18",
     "groq-sdk": "^0.3.3",
     "puppeteer": "^22.8.0",
-    "mammoth": "^1.7.2",
-    "adm-zip": "^0.5.10",
-    "pizzip": "^3.1.6",
-    "docxtemplater": "^3.42.3",
-    "xml2js": "^0.6.2",
-    "libreoffice-convert": "^1.6.0"
+    "mammoth": "^1.7.2"
   },
   "devDependencies": {
     "@types/node": "^20",
