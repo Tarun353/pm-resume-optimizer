@@ -11,15 +11,11 @@ interface GeneratePDFRequest {
 }
 
 async function generatePDF(html: string): Promise<Buffer> {
-  // Use Google Chrome on production (Render), auto-detect locally
-  const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || 
-                         (process.platform === 'linux' ? '/usr/bin/google-chrome-stable' : undefined);
-  
-  console.log('[generatePDF] Using Chrome at:', executablePath || 'auto-detect');
+  console.log('[generatePDF] Launching Puppeteer...');
   
   const browser = await puppeteer.launch({
     headless: true,
-    executablePath: executablePath,
+    // Let Puppeteer auto-find Chrome from cache
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
