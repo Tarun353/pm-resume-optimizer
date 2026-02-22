@@ -7,8 +7,17 @@ export async function generateResumePDF(resume: ResumeData): Promise<Buffer> {
   let browser = null;
 
   try {
+    // Use environment variable for Render, auto-detect locally
+    const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+    
+    console.log('[pdfGenerator] Launching browser...');
+    if (executablePath) {
+      console.log('[pdfGenerator] Using executable path:', executablePath);
+    }
+    
     browser = await puppeteer.default.launch({
       headless: true,
+      executablePath: executablePath || undefined,
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
@@ -35,7 +44,7 @@ export async function generateResumePDF(resume: ResumeData): Promise<Buffer> {
       timeout: 60000,
     });
 
-    // Give page a moment to settle (using standard Promise instead of deprecated waitForTimeout)
+    // Give page a moment to settle
     await new Promise(resolve => setTimeout(resolve, 500));
 
     const pdfBuffer = await page.pdf({
@@ -50,6 +59,7 @@ export async function generateResumePDF(resume: ResumeData): Promise<Buffer> {
       preferCSSPageSize: false,
     });
 
+    console.log('[pdfGenerator] PDF generated successfully, size:', pdfBuffer.length);
     return Buffer.from(pdfBuffer);
   } catch (error) {
     console.error('[generateResumePDF] Error:', error);
