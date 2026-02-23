@@ -1,6 +1,13 @@
 /**
  * htmlTemplate.ts - PROFESSIONAL SINGLE-COLUMN TEMPLATE
- * ✅ BUGS FIXED: Name spacing, PDF layout spacing
+ * ✅ FIXED: Name spacing, layout spacing, proper template literals
+ * 
+ * Design inspired by top resume builders (Zety, Resume.io, Novoresume)
+ * - Clean single column (ATS-safe)
+ * - Professional typography
+ * - Proper spacing and hierarchy
+ * - Blue accent color for headers
+ * - Clean, modern, recruiter-friendly
  */
 
 import {
@@ -26,156 +33,157 @@ function esc(s: string | undefined | null): string {
     .replace(/'/g, '&#39;');
 }
 
-// ✅ FIXED: Now trims and collapses spaces
+// ✅ FIXED: Now trims and collapses multiple spaces
 function safe(s: string | undefined | null): string {
   if (!s) return '';
-  // Trim and collapse multiple spaces
+  // Trim whitespace and collapse multiple spaces
+  // Fixes: "John  Smith" → "John Smith"
   return esc(String(s).trim().replace(/\s+/g, ' '));
 }
 
 // ─── Section wrapper ──────────────────────────────────────────────────────────
 function section(title: string, body: string): string {
   if (!body.trim()) return '';
-  return \`
+  return `
 <section class="section">
-  <h2 class="section-title">\${esc(title)}</h2>
+  <h2 class="section-title">${esc(title)}</h2>
   <div class="section-divider"></div>
-  \${body}
-</section>\`;
+  ${body}
+</section>`;
 }
 
 // ─── Date range ───────────────────────────────────────────────────────────────
 function dateRange(start?: string, end?: string): string {
   if (!start && !end) return '';
-  if (start && end) return \`\${esc(start)} – \${esc(end)}\`;
+  if (start && end) return `${esc(start)} – ${esc(end)}`;
   return esc(start || end);
 }
 
 // ─── Bullet list ──────────────────────────────────────────────────────────────
 function bullets(items: string[]): string {
   if (!items || items.length === 0) return '';
-  return \`<ul class="bullet-list">\${items.filter(b => b?.trim()).map(b => \`<li>\${esc(b)}</li>\`).join('')}</ul>\`;
+  return `<ul class="bullet-list">${items.filter(b => b?.trim()).map(b => `<li>${esc(b)}</li>`).join('')}</ul>`;
 }
 
 // ─── Experience ───────────────────────────────────────────────────────────────
 function renderExperience(entries: ExperienceEntry[]): string {
   if (!entries?.length) return '';
-  return entries.map(e => \`
+  return entries.map(e => `
   <div class="entry">
     <div class="entry-header">
       <div class="entry-left">
-        <div class="entry-title">\${safe(e.title)}</div>
-        <div class="entry-subtitle">\${safe(e.company)}\${e.location ? \` · \${safe(e.location)}\` : ''}</div>
+        <div class="entry-title">${safe(e.title)}</div>
+        <div class="entry-subtitle">${safe(e.company)}${e.location ? ` · ${safe(e.location)}` : ''}</div>
       </div>
-      <div class="entry-date">\${dateRange(e.startDate, e.endDate)}</div>
+      <div class="entry-date">${dateRange(e.startDate, e.endDate)}</div>
     </div>
-    \${bullets(e.bullets)}
-  </div>\`).join('');
+    ${bullets(e.bullets)}
+  </div>`).join('');
 }
 
 // ─── Internships ──────────────────────────────────────────────────────────────
 function renderInternships(entries: InternshipEntry[]): string {
   if (!entries?.length) return '';
-  return entries.map(e => \`
+  return entries.map(e => `
   <div class="entry">
     <div class="entry-header">
       <div class="entry-left">
-        <div class="entry-title">\${safe(e.title)}</div>
-        <div class="entry-subtitle">\${safe(e.company)}\${e.location ? \` · \${safe(e.location)}\` : ''}</div>
+        <div class="entry-title">${safe(e.title)}</div>
+        <div class="entry-subtitle">${safe(e.company)}${e.location ? ` · ${safe(e.location)}` : ''}</div>
       </div>
-      <div class="entry-date">\${dateRange(e.startDate, e.endDate)}</div>
+      <div class="entry-date">${dateRange(e.startDate, e.endDate)}</div>
     </div>
-    \${bullets(e.bullets)}
-  </div>\`).join('');
+    ${bullets(e.bullets)}
+  </div>`).join('');
 }
 
 // ─── Education ────────────────────────────────────────────────────────────────
 function renderEducation(entries: EducationEntry[]): string {
   if (!entries?.length) return '';
-  return entries.map(e => \`
+  return entries.map(e => `
   <div class="entry">
     <div class="entry-header">
       <div class="entry-left">
-        <div class="entry-title">\${safe(e.degree)}</div>
-        <div class="entry-subtitle">\${safe(e.institution)}\${e.location ? \` · \${safe(e.location)}\` : ''}</div>
-        \${e.gpa ? \`<div class="entry-note">GPA: \${safe(e.gpa)}</div>\` : ''}
-        \${e.notes ? \`<div class="entry-note">\${safe(e.notes)}</div>\` : ''}
+        <div class="entry-title">${safe(e.degree)}</div>
+        <div class="entry-subtitle">${safe(e.institution)}${e.location ? ` · ${safe(e.location)}` : ''}</div>
+        ${e.gpa ? `<div class="entry-note">GPA: ${safe(e.gpa)}</div>` : ''}
+        ${e.notes ? `<div class="entry-note">${safe(e.notes)}</div>` : ''}
       </div>
-      <div class="entry-date">\${dateRange(e.startDate, e.endDate)}</div>
+      <div class="entry-date">${dateRange(e.startDate, e.endDate)}</div>
     </div>
-  </div>\`).join('');
+  </div>`).join('');
 }
 
 // ─── Certifications ───────────────────────────────────────────────────────────
 function renderCertifications(entries: CertificationEntry[]): string {
   if (!entries?.length) return '';
-  return entries.map(c => \`
+  return entries.map(c => `
   <div class="entry entry-compact">
     <div class="entry-header">
       <div class="entry-left">
-        <div class="entry-title">\${safe(c.name)}</div>
-        \${c.issuer ? \`<div class="entry-subtitle">\${safe(c.issuer)}</div>\` : ''}
+        <div class="entry-title">${safe(c.name)}</div>
+        ${c.issuer ? `<div class="entry-subtitle">${safe(c.issuer)}</div>` : ''}
       </div>
-      \${c.date ? \`<div class="entry-date">\${safe(c.date)}</div>\` : ''}
+      ${c.date ? `<div class="entry-date">${safe(c.date)}</div>` : ''}
     </div>
-  </div>\`).join('');
+  </div>`).join('');
 }
 
 // ─── Awards ───────────────────────────────────────────────────────────────────
 function renderAwards(entries: AwardEntry[]): string {
   if (!entries?.length) return '';
-  return entries.map(a => \`
+  return entries.map(a => `
   <div class="entry entry-compact">
     <div class="entry-header">
       <div class="entry-left">
-        <div class="entry-title">\${safe(a.title)}</div>
-        \${a.issuer ? \`<div class="entry-subtitle">\${safe(a.issuer)}</div>\` : ''}
-        \${a.description ? \`<div class="entry-note">\${safe(a.description)}</div>\` : ''}
+        <div class="entry-title">${safe(a.title)}</div>
+        ${a.issuer ? `<div class="entry-subtitle">${safe(a.issuer)}</div>` : ''}
+        ${a.description ? `<div class="entry-note">${safe(a.description)}</div>` : ''}
       </div>
-      \${a.date ? \`<div class="entry-date">\${safe(a.date)}</div>\` : ''}
+      ${a.date ? `<div class="entry-date">${safe(a.date)}</div>` : ''}
     </div>
-  </div>\`).join('');
+  </div>`).join('');
 }
 
 // ─── Publications ─────────────────────────────────────────────────────────────
 function renderPublications(entries: PublicationEntry[]): string {
   if (!entries?.length) return '';
-  return entries.map(p => \`
+  return entries.map(p => `
   <div class="entry entry-compact">
     <div class="entry-header">
       <div class="entry-left">
-        <div class="entry-title">\${safe(p.title)}</div>
-        \${p.publisher ? \`<div class="entry-subtitle">\${safe(p.publisher)}</div>\` : ''}
-        \${p.description ? \`<div class="entry-note">\${safe(p.description)}</div>\` : ''}
-        \${p.link ? \`<div class="entry-link">\${safe(p.link)}</div>\` : ''}
+        <div class="entry-title">${safe(p.title)}</div>
+        ${p.publisher ? `<div class="entry-subtitle">${safe(p.publisher)}</div>` : ''}
+        ${p.description ? `<div class="entry-note">${safe(p.description)}</div>` : ''}
+        ${p.link ? `<div class="entry-link">${safe(p.link)}</div>` : ''}
       </div>
-      \${p.date ? \`<div class="entry-date">\${safe(p.date)}</div>\` : ''}
+      ${p.date ? `<div class="entry-date">${safe(p.date)}</div>` : ''}
     </div>
-  </div>\`).join('');
+  </div>`).join('');
 }
 
 // ─── Projects ─────────────────────────────────────────────────────────────────
 function renderProjects(entries: ProjectEntry[]): string {
   if (!entries?.length) return '';
-  return entries.map(p => \`
+  return entries.map(p => `
   <div class="entry">
     <div class="entry-header">
       <div class="entry-left">
-        <div class="entry-title">\${safe(p.name)}</div>
-        \${p.link ? \`<div class="entry-link">\${safe(p.link)}</div>\` : ''}
-        \${p.technologies?.length ? \`<div class="entry-tech">\${p.technologies.map(t => safe(t)).join(' · ')}</div>\` : ''}
+        <div class="entry-title">${safe(p.name)}</div>
+        ${p.link ? `<div class="entry-link">${safe(p.link)}</div>` : ''}
+        ${p.technologies?.length ? `<div class="entry-tech">${p.technologies.map(t => safe(t)).join(' · ')}</div>` : ''}
       </div>
-      \${dateRange(p.startDate, p.endDate) ? \`<div class="entry-date">\${dateRange(p.startDate, p.endDate)}</div>\` : ''}
+      ${dateRange(p.startDate, p.endDate) ? `<div class="entry-date">${dateRange(p.startDate, p.endDate)}</div>` : ''}
     </div>
-    \${p.description ? \`<div class="entry-desc">\${safe(p.description)}</div>\` : ''}
-    \${bullets(p.bullets)}
-  </div>\`).join('');
+    ${p.description ? `<div class="entry-desc">${safe(p.description)}</div>` : ''}
+    ${bullets(p.bullets)}
+  </div>`).join('');
 }
 
 // ─── Skills ───────────────────────────────────────────────────────────────────
 function renderSkills(skills: string[]): string {
   if (!skills?.length) return '';
-  return \`<div class="skills-grid">\${skills.map(s => \`<span class="skill-tag">\${safe(s)}</span>\`).join('')}</div>\`;
+  return `<div class="skills-grid">${skills.map(s => `<span class="skill-tag">${safe(s)}</span>`).join('')}</div>`;
 }
 
 // ─── Additional sections ──────────────────────────────────────────────────────
@@ -184,20 +192,20 @@ function renderAdditional(sec: AdditionalSection): string {
   if (sec.items?.length) {
     return bullets(sec.items);
   }
-  return \`<div class="entry-desc">\${safe(sec.rawContent)}</div>\`;
+  return `<div class="entry-desc">${safe(sec.rawContent)}</div>`;
 }
 
 // ─── Contact line ─────────────────────────────────────────────────────────────
 function renderContactLine(resume: ResumeData): string {
   const p = resume.personal;
   const parts: string[] = [];
-  if (p.email) parts.push(\`<a href="mailto:\${safe(p.email)}" class="contact-link">\${safe(p.email)}</a>\`);
-  if (p.phone) parts.push(\`<span>\${safe(p.phone)}</span>\`);
-  if (p.location) parts.push(\`<span>\${safe(p.location)}</span>\`);
+  if (p.email) parts.push(`<a href="mailto:${safe(p.email)}" class="contact-link">${safe(p.email)}</a>`);
+  if (p.phone) parts.push(`<span>${safe(p.phone)}</span>`);
+  if (p.location) parts.push(`<span>${safe(p.location)}</span>`);
   if (p.links?.length) {
     p.links.slice(0, 2).forEach(l => {
       const display = l.replace(/^https?:\/\/(www\.)?/, '').substring(0, 30);
-      parts.push(\`<a href="\${safe(l)}" class="contact-link">\${safe(display)}</a>\`);
+      parts.push(`<a href="${safe(l)}" class="contact-link">${safe(display)}</a>`);
     });
   }
   return parts.join('<span class="contact-sep">|</span>');
@@ -233,7 +241,7 @@ export function generateResumeHTML(resume: ResumeData): string {
       case 'summary':
         if (resume.summary?.trim()) {
           renderedSections.push(section('Professional Summary',
-            \`<div class="summary-text">\${safe(resume.summary)}</div>\`));
+            `<div class="summary-text">${safe(resume.summary)}</div>`));
         }
         break;
       case 'experience': {
@@ -287,19 +295,19 @@ export function generateResumeHTML(resume: ResumeData): string {
   }
 
   for (const addl of resume.additionalSections ?? []) {
-    const addlKey = \`additional:\${addl.heading.trim()}\`;
+    const addlKey = `additional:${addl.heading.trim()}`;
     if (!sectionOrder.includes(addlKey)) {
       const body = renderAdditional(addl);
       if (body) renderedSections.push(section(addl.heading, body));
     }
   }
 
-  return \`<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>\${safe(personal.name || 'Resume')}</title>
+<title>${safe(personal.name || 'Resume')}</title>
 <style>
   /* PROFESSIONAL SINGLE-COLUMN TEMPLATE - ✅ BUGS FIXED */
   
@@ -542,11 +550,11 @@ export function generateResumeHTML(resume: ResumeData): string {
 <body>
 <div class="page">
   <header class="header">
-    <h1 class="name">\${safe(personal.name || 'Your Name')}</h1>
-    <div class="contact-line">\${renderContactLine(resume)}</div>
+    <h1 class="name">${safe(personal.name || 'Your Name')}</h1>
+    <div class="contact-line">${renderContactLine(resume)}</div>
   </header>
-  \${renderedSections.join('\\n  ')}
+  ${renderedSections.join('\n  ')}
 </div>
 </body>
-</html>\`;
+</html>`;
 }
