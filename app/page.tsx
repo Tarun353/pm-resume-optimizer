@@ -1077,7 +1077,7 @@ export default function HomePage() {
               </span>
             </h1>
             <p className="text-slate-500 max-w-lg mx-auto">
-              AI optimization · Inline editing · Section reordering · Format preserved ✨
+              AI optimization · Inline editing · Section reordering · 
             </p>
           </div>
 
@@ -1225,7 +1225,7 @@ export default function HomePage() {
                               <p className="text-xs text-slate-400">
                                 {(uploadedFile.size / 1024).toFixed(0)} KB · Click to replace
                                 {fileIsDocx && (
-                                  <span className="text-blue-600 font-medium"> · Format preserved ✨</span>
+                                  <span className="text-blue-600 font-medium"> · Format ✨</span>
                                 )}
                               </p>
                             </div>
