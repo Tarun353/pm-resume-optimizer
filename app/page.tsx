@@ -537,11 +537,11 @@ function EditablePreviewModal({ resume, onClose, onDownload, onResumeChange, isD
   };
 
   // Update section order
-  const updateSectionOrder = (newOrder: string[]) => {
+  const updateSectionOrder = async (newOrder: string[]) => {
     const updated = { ...editedResume, sectionOrder: newOrder };
     setEditedResume(updated);
     onResumeChange(updated);
-    regeneratePreview();
+    await regeneratePreview();
   };
 
   return (
