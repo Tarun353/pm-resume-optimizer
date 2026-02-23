@@ -29,6 +29,7 @@ function esc(s: string | undefined | null): string {
 // ✅ FIXED: Now trims and collapses spaces
 function safe(s: string | undefined | null): string {
   if (!s) return '';
+  // Trim and collapse multiple spaces
   return esc(String(s).trim().replace(/\s+/g, ' '));
 }
 
