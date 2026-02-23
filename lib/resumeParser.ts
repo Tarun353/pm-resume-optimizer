@@ -308,9 +308,9 @@ function ensureResumeShape(raw: Partial<ResumeData>, careerStage: CareerStage): 
   if (resume.experience.length > 0) {
     console.log('[ensureResumeShape] First experience bullets:', resume.experience[0]?.bullets.length);
   }
-  console.log('[ensureResumeShape] Additional sections:', resume.additionalSections.length);
-  if (resume.additionalSections.length > 0) {
-    console.log('[ensureResumeShape] Additional section items:', resume.additionalSections[0]?.items.length);
+  console.log('[ensureResumeShape] Additional sections:', resume.additionalSections?.length ?? 0);
+  if (resume.additionalSections && resume.additionalSections.length > 0) {
+    console.log('[ensureResumeShape] Additional section items:', resume.additionalSections[0]?.items?.length ?? 0);
   }
 
   return resume;
