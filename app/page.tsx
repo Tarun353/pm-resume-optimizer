@@ -791,17 +791,6 @@ function EditablePreviewModal({ resume, onClose, onDownload, onResumeChange, isD
         <p className="text-xs text-slate-500">Updates automatically as you edit or reorder</p>
        </div>
 
-       
-      222222222222222<div className="w-1/2 bg-slate-100 flex flex-col">
-        <div className="bg-white border-b border-slate-200 px-6 py-4">
-          <div className="flex items-center gap-2 mb-1">
-            <EyeIcon />
-            <h2 className="font-bold text-slate-900 text-lg">Live Preview</h2>
-          </div>
-          <p className="text-xs text-slate-500">Updates automatically as you edit or reorder</p>
-        </div>
-        222222222222222222222222222222222
-
         <div className="flex-1 overflow-auto p-6">
           {isLoadingPreview ? (
             <div className="flex items-center justify-center h-full">
