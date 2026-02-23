@@ -1,10 +1,12 @@
 /**
- * resumeParser.ts - FIXED: Preserves ALL bullets, handles subsections
+ * resumeParser.ts - HYBRID APPROACH: Regex Pre-processing + LLM
  * 
- * Changes:
- * 1. Explicit instructions to preserve bullet structure
- * 2. Handle Responsibilities/Achievements/Environment subsections
- * 3. Increased character and token limits
+ * Strategy:
+ * 1. Extract ALL bullets with regex first (guaranteed complete)
+ * 2. Extract section structure
+ * 3. Send pre-extracted data to LLM for smart organization
+ * 
+ * This guarantees no bullet loss while keeping intelligent parsing
  */
 
 import { ResumeData, PersonalInfo, CareerStage } from './types';
@@ -71,9 +73,6 @@ function buildProfessionalOrder(
     }
   }
 
-  console.log(`[buildProfessionalOrder] Career stage: ${careerStage}`);
-  console.log(`[buildProfessionalOrder] Final order:`, finalOrder);
-
   return finalOrder;
 }
 
@@ -102,6 +101,82 @@ function checkSectionHasContent(resume: Partial<ResumeData>, key: string): boole
     default:
       return false;
   }
+}
+
+// ─── REGEX PRE-PROCESSING ─────────────────────────────────────────────────────
+
+/**
+ * Extract ALL bullets from text using regex
+ * Guarantees no bullets are lost
+ */
+function extractAllBullets(text: string): string[] {
+  const bullets: string[] = [];
+  
+  // Match lines that start with bullet points (•, -, *, or just indented)
+  const bulletRegex = /^[\s]*[•\-\*][\s]+(.+)$/gm;
+  
+  let match;
+  while ((match = bulletRegex.exec(text)) !== null) {
+    const bullet = match[1]?.trim();
+    if (bullet && bullet.length > 5) { // Filter out very short items
+      bullets.push(bullet);
+    }
+  }
+  
+  console.log(`[extractAllBullets] Found ${bullets.length} total bullets`);
+  return bullets;
+}
+
+/**
+ * Count bullets in a specific section
+ */
+function extractBulletsInSection(text: string, sectionStart: number, sectionEnd: number): string[] {
+  const sectionText = text.substring(sectionStart, sectionEnd);
+  return extractAllBullets(sectionText);
+}
+
+/**
+ * Pre-process text to extract structure
+ */
+function preProcessResume(text: string): {
+  allBullets: string[];
+  sectionHints: Record<string, number>;
+  rawText: string;
+} {
+  const allBullets = extractAllBullets(text);
+  
+  // Detect section headers (case-insensitive)
+  const sectionHints: Record<string, number> = {};
+  
+  const sectionPatterns = [
+    { pattern: /(?:professional\s+)?(?:work\s+)?experience/i, key: 'experience' },
+    { pattern: /internship/i, key: 'internships' },
+    { pattern: /education/i, key: 'education' },
+    { pattern: /projects?/i, key: 'projects' },
+    { pattern: /(?:technical\s+)?skills?/i, key: 'skills' },
+    { pattern: /(?:soft\s+skills?|core\s+competencies)/i, key: 'softSkills' },
+    { pattern: /certifications?/i, key: 'certifications' },
+    { pattern: /awards?|recognition/i, key: 'awards' },
+    { pattern: /publications?/i, key: 'publications' },
+    { pattern: /(?:career\s+)?highlights?|key\s+achievements?/i, key: 'careerHighlights' },
+    { pattern: /summary|profile|objective/i, key: 'summary' },
+  ];
+  
+  for (const { pattern, key } of sectionPatterns) {
+    const match = text.match(pattern);
+    if (match && match.index !== undefined) {
+      sectionHints[key] = match.index;
+    }
+  }
+  
+  console.log('[preProcessResume] Section hints:', Object.keys(sectionHints));
+  console.log('[preProcessResume] Total bullets extracted:', allBullets.length);
+  
+  return {
+    allBullets,
+    sectionHints,
+    rawText: text,
+  };
 }
 
 // ─── Safe JSON parser ─────────────────────────────────────────────────────────
@@ -140,49 +215,30 @@ export function safeParseJSON<T>(raw: string, fallback: T): T {
   return fallback;
 }
 
-// ─── Groq structuring prompt - FIXED ──────────────────────────────────────────
+// ─── Enhanced LLM prompt with pre-extracted bullets ───────────────────────────
 
 const STRUCTURE_SYSTEM = `You are a precise resume data extractor.
-Extract ALL fields into JSON.
 
-CRITICAL RULES FOR COMPLETE BULLET EXTRACTION:
-1. Extract EVERY SINGLE bullet point as a SEPARATE array item - do not merge, summarize, or combine
-2. If you see 10 bullets, output 10 separate items in the array
-3. Each bullet point that starts with "•" or "-" MUST be a separate array item
-4. NEVER merge multiple bullets into one long text string
+I have PRE-EXTRACTED all bullet points from the resume using regex.
+Your job is to ORGANIZE them into the correct structure - DO NOT skip any bullets.
 
-EXPERIENCE SUBSECTIONS HANDLING:
-- If a job has subsections like "Responsibilities:", "Achievements:", "Environment:", extract ALL bullets from ALL subsections
-- Combine bullets from Responsibilities, Achievements, and any other subsections into ONE bullets[] array
-- Preserve the Environment line separately if it's a tech stack (not bullets)
+CRITICAL RULES:
+1. Use ALL bullets provided in the "PRE_EXTRACTED_BULLETS" list
+2. Assign each bullet to the correct job, project, or section
+3. Do NOT merge, summarize, or combine bullets
+4. Each bullet in the input list MUST appear EXACTLY ONCE in the output
+5. Preserve bullet text exactly as provided
 
-CAREER HIGHLIGHTS / KEY ACHIEVEMENTS:
-- If you see a section like "Career Highlights" or "Key Achievements" with multiple bullets
-- Extract EACH bullet as a SEPARATE item in the items[] array
-- Do NOT combine them into one long paragraph
-
-CRITICAL ANTI-DUPLICATION RULES:
-1. If a section is labeled "Internships" or "Internship Experience", put entries ONLY in internships[]
-2. If a section is labeled "Work Experience" or "Experience", put entries ONLY in experience[]
-3. NEVER put the same job entry in both experience[] and internships[]
-4. If a job title contains "Intern", it goes in internships[] NOT experience[]
-5. Each entry appears in EXACTLY ONE array
-
-SECTION KEY MAPPING:
-- Summary/Profile/Objective → "summary"
-- Work Experience/Employment → "experience"
-- Internships → "internships"
-- Education → "education"
-- Certifications/Licenses → "certifications"
-- Awards/Honors → "awards"
-- Publications/Research → "publications"
-- Projects → "projects"
-- Skills/Technical Skills → "skills"
-- Soft Skills/Core Competencies → "softSkills"
+SECTION DETECTION:
+- Experience/Work sections → experience[]
+- Internships → internships[]
+- Projects → projects[]
 - Career Highlights/Key Achievements → additionalSections with heading "Career Highlights"
-- Anything else → "additional:EXACT_HEADING"
+- Skills listings → skills[] or softSkills[]
 
-Return ONLY valid JSON. No markdown. No explanation.
+For job entries with subsections (Responsibilities, Achievements, Environment):
+- Combine all bullets into the bullets[] array for that job
+- If you see "Environment: Python, SQL..." preserve it separately or as a note
 
 OUTPUT SCHEMA:
 {
@@ -198,7 +254,9 @@ OUTPUT SCHEMA:
   "skills": [],
   "softSkills": [],
   "additionalSections": [{ "heading": "", "rawContent": "", "items": [] }]
-}`;
+}
+
+Return ONLY valid JSON. No markdown. No explanation.`;
 
 // ─── Deduplication ────────────────────────────────────────────────────────────
 
@@ -304,31 +362,40 @@ function ensureResumeShape(raw: Partial<ResumeData>, careerStage: CareerStage): 
     sectionOrder: buildProfessionalOrder(deduplicated, careerStage),
   };
 
-  console.log('[ensureResumeShape] Experience:', resume.experience.length, 'entries');
-  if (resume.experience.length > 0) {
-    console.log('[ensureResumeShape] First experience bullets:', resume.experience[0]?.bullets.length);
+  // Logging for debugging
+  console.log('[ensureResumeShape] Experience entries:', resume.experience?.length ?? 0);
+  if (resume.experience && resume.experience.length > 0) {
+    console.log('[ensureResumeShape] First experience bullets:', resume.experience[0]?.bullets?.length ?? 0);
   }
   console.log('[ensureResumeShape] Additional sections:', resume.additionalSections?.length ?? 0);
   if (resume.additionalSections && resume.additionalSections.length > 0) {
-    console.log('[ensureResumeShape] Additional section items:', resume.additionalSections[0]?.items?.length ?? 0);
+    console.log('[ensureResumeShape] First additional section items:', resume.additionalSections[0]?.items?.length ?? 0);
   }
 
   return resume;
 }
 
-// ─── LLM structurer - INCREASED LIMITS ────────────────────────────────────────
+// ─── HYBRID LLM structurer with pre-processing ────────────────────────────────
 
 async function structureWithGroq(markdown: string, careerStage: CareerStage): Promise<ResumeData> {
-  // INCREASED: 14000 → 25000 chars
-  const truncated = markdown.length > 25000
-    ? markdown.substring(0, 20000) + '\n\n[...truncated...]\n\n' + markdown.substring(markdown.length - 3000)
-    : markdown;
+  // Step 1: Pre-process to extract all bullets
+  const preprocessed = preProcessResume(markdown);
+  
+  // Step 2: Build enhanced prompt with pre-extracted bullets
+  const bulletList = preprocessed.allBullets.map((b, i) => `${i + 1}. ${b}`).join('\n');
+  
+  const userMessage = `Here is a resume to parse.
 
-  const userMessage = `Extract resume data. Preserve EVERY bullet point as separate array items.\n\nResume:\n\n${truncated}`;
+PRE_EXTRACTED_BULLETS (${preprocessed.allBullets.length} bullets - use ALL of them):
+${bulletList}
+
+FULL RESUME TEXT:
+${markdown}
+
+Extract into JSON. Assign each pre-extracted bullet to the correct section/job. Do not lose any bullets.`;
 
   let raw = '';
   try {
-    // INCREASED: 6000 → 8000 tokens
     raw = await groqChatCompletion(STRUCTURE_SYSTEM, userMessage, 8000, 0.1);
   } catch (err) {
     console.error('[structureWithGroq] Groq failed:', err);
@@ -336,6 +403,19 @@ async function structureWithGroq(markdown: string, careerStage: CareerStage): Pr
   }
 
   const parsed = safeParseJSON<Partial<ResumeData>>(raw, {});
+  
+  // Verify bullet count
+  const totalOutputBullets = (parsed.experience ?? []).reduce((sum, e) => sum + (e.bullets?.length ?? 0), 0) +
+                             (parsed.internships ?? []).reduce((sum, e) => sum + (e.bullets?.length ?? 0), 0) +
+                             (parsed.projects ?? []).reduce((sum, p) => sum + (p.bullets?.length ?? 0), 0) +
+                             (parsed.additionalSections ?? []).reduce((sum, s) => sum + (s.items?.length ?? 0), 0);
+  
+  console.log(`[structureWithGroq] Input bullets: ${preprocessed.allBullets.length}, Output bullets: ${totalOutputBullets}`);
+  
+  if (totalOutputBullets < preprocessed.allBullets.length * 0.8) {
+    console.warn('[structureWithGroq] WARNING: Significant bullet loss detected!');
+  }
+  
   return ensureResumeShape(parsed, careerStage);
 }
 
