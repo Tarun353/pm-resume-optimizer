@@ -1,13 +1,11 @@
 /**
- * htmlTemplate.ts - PROFESSIONAL SINGLE-COLUMN TEMPLATE
- * ✅ FIXED: Name spacing, layout spacing, proper template literals
+ * htmlTemplate.ts - COMPACT PROFESSIONAL TEMPLATE
  * 
- * Design inspired by top resume builders (Zety, Resume.io, Novoresume)
- * - Clean single column (ATS-safe)
- * - Professional typography
- * - Proper spacing and hierarchy
- * - Blue accent color for headers
- * - Clean, modern, recruiter-friendly
+ * ✨ Optimized for 1-2 pages:
+ * - Smaller fonts (1pt reduced)
+ * - Tighter line-height
+ * - Compact spacing
+ * - Maximum content density
  */
 
 import {
@@ -33,11 +31,8 @@ function esc(s: string | undefined | null): string {
     .replace(/'/g, '&#39;');
 }
 
-// ✅ FIXED: Now trims and collapses multiple spaces
 function safe(s: string | undefined | null): string {
   if (!s) return '';
-  // Trim whitespace and collapse multiple spaces
-  // Fixes: "John  Smith" → "John Smith"
   return esc(String(s).trim().replace(/\s+/g, ' '));
 }
 
@@ -47,7 +42,6 @@ function section(title: string, body: string): string {
   return `
 <section class="section">
   <h2 class="section-title">${esc(title)}</h2>
-  <div class="section-divider"></div>
   ${body}
 </section>`;
 }
@@ -73,7 +67,7 @@ function renderExperience(entries: ExperienceEntry[]): string {
     <div class="entry-header">
       <div class="entry-left">
         <div class="entry-title">${safe(e.title)}</div>
-        <div class="entry-subtitle">${safe(e.company)}${e.location ? ` · ${safe(e.location)}` : ''}</div>
+        <div class="entry-org">${safe(e.company)}${e.location ? ` · ${safe(e.location)}` : ''}</div>
       </div>
       <div class="entry-date">${dateRange(e.startDate, e.endDate)}</div>
     </div>
@@ -89,7 +83,7 @@ function renderInternships(entries: InternshipEntry[]): string {
     <div class="entry-header">
       <div class="entry-left">
         <div class="entry-title">${safe(e.title)}</div>
-        <div class="entry-subtitle">${safe(e.company)}${e.location ? ` · ${safe(e.location)}` : ''}</div>
+        <div class="entry-org">${safe(e.company)}${e.location ? ` · ${safe(e.location)}` : ''}</div>
       </div>
       <div class="entry-date">${dateRange(e.startDate, e.endDate)}</div>
     </div>
@@ -105,7 +99,7 @@ function renderEducation(entries: EducationEntry[]): string {
     <div class="entry-header">
       <div class="entry-left">
         <div class="entry-title">${safe(e.degree)}</div>
-        <div class="entry-subtitle">${safe(e.institution)}${e.location ? ` · ${safe(e.location)}` : ''}</div>
+        <div class="entry-org">${safe(e.institution)}${e.location ? ` · ${safe(e.location)}` : ''}</div>
         ${e.gpa ? `<div class="entry-note">GPA: ${safe(e.gpa)}</div>` : ''}
         ${e.notes ? `<div class="entry-note">${safe(e.notes)}</div>` : ''}
       </div>
@@ -122,7 +116,7 @@ function renderCertifications(entries: CertificationEntry[]): string {
     <div class="entry-header">
       <div class="entry-left">
         <div class="entry-title">${safe(c.name)}</div>
-        ${c.issuer ? `<div class="entry-subtitle">${safe(c.issuer)}</div>` : ''}
+        ${c.issuer ? `<div class="entry-org">${safe(c.issuer)}</div>` : ''}
       </div>
       ${c.date ? `<div class="entry-date">${safe(c.date)}</div>` : ''}
     </div>
@@ -137,7 +131,7 @@ function renderAwards(entries: AwardEntry[]): string {
     <div class="entry-header">
       <div class="entry-left">
         <div class="entry-title">${safe(a.title)}</div>
-        ${a.issuer ? `<div class="entry-subtitle">${safe(a.issuer)}</div>` : ''}
+        ${a.issuer ? `<div class="entry-org">${safe(a.issuer)}</div>` : ''}
         ${a.description ? `<div class="entry-note">${safe(a.description)}</div>` : ''}
       </div>
       ${a.date ? `<div class="entry-date">${safe(a.date)}</div>` : ''}
@@ -153,7 +147,7 @@ function renderPublications(entries: PublicationEntry[]): string {
     <div class="entry-header">
       <div class="entry-left">
         <div class="entry-title">${safe(p.title)}</div>
-        ${p.publisher ? `<div class="entry-subtitle">${safe(p.publisher)}</div>` : ''}
+        ${p.publisher ? `<div class="entry-org">${safe(p.publisher)}</div>` : ''}
         ${p.description ? `<div class="entry-note">${safe(p.description)}</div>` : ''}
         ${p.link ? `<div class="entry-link">${safe(p.link)}</div>` : ''}
       </div>
@@ -183,7 +177,7 @@ function renderProjects(entries: ProjectEntry[]): string {
 // ─── Skills ───────────────────────────────────────────────────────────────────
 function renderSkills(skills: string[]): string {
   if (!skills?.length) return '';
-  return `<div class="skills-grid">${skills.map(s => `<span class="skill-tag">${safe(s)}</span>`).join('')}</div>`;
+  return `<div class="skills-list">${skills.map(s => safe(s)).join(' • ')}</div>`;
 }
 
 // ─── Additional sections ──────────────────────────────────────────────────────
@@ -199,16 +193,16 @@ function renderAdditional(sec: AdditionalSection): string {
 function renderContactLine(resume: ResumeData): string {
   const p = resume.personal;
   const parts: string[] = [];
-  if (p.email) parts.push(`<a href="mailto:${safe(p.email)}" class="contact-link">${safe(p.email)}</a>`);
-  if (p.phone) parts.push(`<span>${safe(p.phone)}</span>`);
-  if (p.location) parts.push(`<span>${safe(p.location)}</span>`);
+  if (p.email) parts.push(`${safe(p.email)}`);
+  if (p.phone) parts.push(`${safe(p.phone)}`);
+  if (p.location) parts.push(`${safe(p.location)}`);
   if (p.links?.length) {
     p.links.slice(0, 2).forEach(l => {
-      const display = l.replace(/^https?:\/\/(www\.)?/, '').substring(0, 30);
-      parts.push(`<a href="${safe(l)}" class="contact-link">${safe(display)}</a>`);
+      const display = l.replace(/^https?:\/\/(www\.)?/, '').substring(0, 35);
+      parts.push(`${safe(display)}`);
     });
   }
-  return parts.join('<span class="contact-sep">|</span>');
+  return parts.join(' • ');
 }
 
 // ─── Main HTML generator ──────────────────────────────────────────────────────
@@ -246,12 +240,12 @@ export function generateResumeHTML(resume: ResumeData): string {
         break;
       case 'experience': {
         const body = renderExperience(resume.experience ?? []);
-        if (body) renderedSections.push(section('Work Experience', body));
+        if (body) renderedSections.push(section('Professional Experience', body));
         break;
       }
       case 'internships': {
         const body = renderInternships(resume.internships ?? []);
-        if (body) renderedSections.push(section('Internships', body));
+        if (body) renderedSections.push(section('Internship Experience', body));
         break;
       }
       case 'education': {
@@ -261,22 +255,22 @@ export function generateResumeHTML(resume: ResumeData): string {
       }
       case 'certifications': {
         const body = renderCertifications(resume.certifications ?? []);
-        if (body) renderedSections.push(section('Certifications', body));
+        if (body) renderedSections.push(section('Certifications & Licenses', body));
         break;
       }
       case 'awards': {
         const body = renderAwards(resume.awards ?? []);
-        if (body) renderedSections.push(section('Awards & Honors', body));
+        if (body) renderedSections.push(section('Awards & Recognition', body));
         break;
       }
       case 'publications': {
         const body = renderPublications(resume.publications ?? []);
-        if (body) renderedSections.push(section('Publications', body));
+        if (body) renderedSections.push(section('Publications & Research', body));
         break;
       }
       case 'projects': {
         const body = renderProjects(resume.projects ?? []);
-        if (body) renderedSections.push(section('Projects', body));
+        if (body) renderedSections.push(section('Key Projects', body));
         break;
       }
       case 'skills': {
@@ -309,100 +303,89 @@ export function generateResumeHTML(resume: ResumeData): string {
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>${safe(personal.name || 'Resume')}</title>
 <style>
-  /* PROFESSIONAL SINGLE-COLUMN TEMPLATE - ✅ BUGS FIXED */
+  /* ═══════════════════════════════════════════════════════════════════════ */
+  /* COMPACT PROFESSIONAL TEMPLATE */
+  /* Optimized for 1-2 pages · Maximum content density */
+  /* ═══════════════════════════════════════════════════════════════════════ */
   
-  /* Reset & Base */
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
   
+  /* Reset */
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+  
+  /* Base - COMPACT */
   body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    font-size: 11pt;
-    line-height: 1.6;
-    color: #2d3748;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 9.5pt;
+    line-height: 1.35;
+    color: #1a1a1a;
     background: #ffffff;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
   
-  a { color: #2563eb; text-decoration: none; }
-  
-  /* Page Container */
+  /* Page - TIGHT MARGINS */
   .page {
     max-width: 8.5in;
     margin: 0 auto;
-    padding: 0.75in 0.6in;
+    padding: 0.5in 0.65in;
     background: #ffffff;
   }
   
-  /* Header */
+  /* ─── HEADER - COMPACT ─────────────────────────────────────────────────── */
+  
   .header {
-    text-align: center;
-    margin-bottom: 20px;
-    padding-bottom: 16px;
-    border-bottom: 2px solid #e2e8f0;
-  }
-  
-  /* ✅ FIXED: Better name spacing */
-  .name {
-    font-size: 26pt;
-    font-weight: 700;
-    color: #1a202c;
-    margin-bottom: 6px;
-    letter-spacing: -0.3px;
-    line-height: 1.1;
-  }
-  
-  /* ✅ FIXED: Better contact line spacing */
-  .contact-line {
-    font-size: 9.5pt;
-    color: #64748b;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 4px 0;
-    line-height: 1.3;
-  }
-  
-  .contact-link {
-    color: #2563eb;
-    font-weight: 500;
-  }
-  
-  .contact-sep {
-    color: #cbd5e1;
-    margin: 0 8px;
-  }
-  
-  /* ✅ FIXED: Tighter section spacing */
-  .section {
     margin-bottom: 16px;
-    page-break-inside: avoid;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #000000;
+  }
+  
+  .name {
+    font-size: 20pt;
+    font-weight: 700;
+    color: #000000;
+    letter-spacing: -0.5px;
+    margin-bottom: 5px;
+    line-height: 1;
+  }
+  
+  .contact-line {
+    font-size: 8.5pt;
+    color: #404040;
+    line-height: 1.3;
+    font-weight: 400;
+  }
+  
+  /* ─── SECTIONS - TIGHT SPACING ──────────────────────────────────────────── */
+  
+  .section {
+    margin-bottom: 14px;
   }
   
   .section-title {
-    font-size: 12pt;
+    font-size: 10.5pt;
     font-weight: 700;
-    color: #2563eb;
+    color: #000000;
     text-transform: uppercase;
-    letter-spacing: 0.8px;
-    margin-bottom: 6px;
+    letter-spacing: 1px;
+    margin-bottom: 7px;
+    padding-bottom: 3px;
+    border-bottom: 1.5px solid #000000;
   }
   
-  .section-divider {
-    height: 1.5px;
-    background: linear-gradient(to right, #2563eb, #cbd5e1);
-    margin-bottom: 12px;
-  }
+  /* ─── ENTRIES - COMPACT ─────────────────────────────────────────────────── */
   
-  /* ✅ FIXED: Tighter entry spacing */
   .entry {
-    margin-bottom: 12px;
+    margin-bottom: 10px;
     page-break-inside: avoid;
   }
   
   .entry-compact {
-    margin-bottom: 10px;
+    margin-bottom: 7px;
   }
   
   .entry:last-child {
@@ -413,8 +396,8 @@ export function generateResumeHTML(resume: ResumeData): string {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
+    margin-bottom: 4px;
     gap: 12px;
-    margin-bottom: 6px;
   }
   
   .entry-left {
@@ -423,100 +406,106 @@ export function generateResumeHTML(resume: ResumeData): string {
   }
   
   .entry-title {
-    font-size: 11pt;
+    font-size: 10pt;
     font-weight: 700;
-    color: #1a202c;
-    line-height: 1.3;
+    color: #000000;
+    line-height: 1.2;
+    margin-bottom: 1px;
   }
   
-  .entry-subtitle {
-    font-size: 10pt;
-    color: #475569;
-    font-style: italic;
-    margin-top: 2px;
+  .entry-org {
+    font-size: 9pt;
+    color: #404040;
+    font-weight: 500;
+    line-height: 1.2;
   }
   
   .entry-note {
-    font-size: 9.5pt;
-    color: #64748b;
+    font-size: 8.5pt;
+    color: #606060;
     margin-top: 2px;
+    line-height: 1.3;
   }
   
   .entry-date {
-    font-size: 9.5pt;
-    color: #64748b;
+    font-size: 8.5pt;
+    color: #404040;
     white-space: nowrap;
     flex-shrink: 0;
     font-weight: 500;
+    text-align: right;
   }
   
   .entry-tech {
-    font-size: 9pt;
-    color: #2563eb;
-    margin-top: 4px;
+    font-size: 8.5pt;
+    color: #000000;
+    margin-top: 3px;
     font-weight: 500;
   }
   
   .entry-link {
-    font-size: 9pt;
-    color: #2563eb;
+    font-size: 8pt;
+    color: #0066cc;
     margin-top: 2px;
+    word-break: break-all;
   }
   
   .entry-desc {
-    font-size: 10pt;
-    color: #475569;
-    line-height: 1.6;
-    margin-top: 4px;
-    margin-bottom: 6px;
+    font-size: 9pt;
+    color: #2a2a2a;
+    line-height: 1.35;
+    margin-top: 3px;
+    margin-bottom: 4px;
   }
   
-  /* Summary */
+  /* ─── SUMMARY - COMPACT ─────────────────────────────────────────────────── */
+  
   .summary-text {
-    font-size: 10.5pt;
-    line-height: 1.7;
-    color: #334155;
-    text-align: justify;
+    font-size: 9.5pt;
+    line-height: 1.4;
+    color: #1a1a1a;
+    text-align: left;
   }
   
-  /* Bullets */
+  /* ─── BULLETS - TIGHT ───────────────────────────────────────────────────── */
+  
   .bullet-list {
     margin: 0;
-    padding-left: 18px;
-    list-style: disc;
+    padding-left: 16px;
+    list-style: none;
   }
   
   .bullet-list li {
-    font-size: 10pt;
-    line-height: 1.6;
-    color: #334155;
-    margin-bottom: 4px;
-    padding-left: 4px;
+    font-size: 9.5pt;
+    line-height: 1.35;
+    color: #1a1a1a;
+    margin-bottom: 3px;
+    padding-left: 0;
+    position: relative;
+  }
+  
+  .bullet-list li:before {
+    content: "•";
+    position: absolute;
+    left: -14px;
+    font-weight: 700;
+    color: #000000;
   }
   
   .bullet-list li:last-child {
     margin-bottom: 0;
   }
   
-  /* Skills */
-  .skills-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-  }
+  /* ─── SKILLS - COMPACT ──────────────────────────────────────────────────── */
   
-  .skill-tag {
-    background: #eff6ff;
-    border: 1px solid #bfdbfe;
-    color: #1e40af;
+  .skills-list {
     font-size: 9.5pt;
-    font-weight: 500;
-    padding: 3px 10px;
-    border-radius: 4px;
-    white-space: nowrap;
+    line-height: 1.4;
+    color: #1a1a1a;
   }
   
-  /* Print Styles */
+  /* ─── PRINT OPTIMIZATION ────────────────────────────────────────────────── */
+  
   @page {
     size: Letter;
     margin: 0;
@@ -524,11 +513,11 @@ export function generateResumeHTML(resume: ResumeData): string {
   
   @media print {
     body {
-      font-size: 10.5pt;
+      font-size: 9pt;
     }
     
     .page {
-      padding: 0.5in;
+      padding: 0.4in 0.55in;
       max-width: 100%;
     }
     
@@ -541,7 +530,7 @@ export function generateResumeHTML(resume: ResumeData): string {
     }
     
     a {
-      color: #1e40af;
+      color: #0066cc;
       text-decoration: none;
     }
   }
@@ -550,7 +539,7 @@ export function generateResumeHTML(resume: ResumeData): string {
 <body>
 <div class="page">
   <header class="header">
-    <h1 class="name">${safe(personal.name || 'Your Name')}</h1>
+    <h1 class="name">${safe(personal.name || 'YOUR NAME')}</h1>
     <div class="contact-line">${renderContactLine(resume)}</div>
   </header>
   ${renderedSections.join('\n  ')}
