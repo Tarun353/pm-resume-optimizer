@@ -761,6 +761,38 @@ function EditablePreviewModal({ resume, onClose, onDownload, onResumeChange, isD
 
       {/* RIGHT PANEL: Live Preview */}
       <div className="w-1/2 bg-slate-100 flex flex-col">
+       <div className="bg-white border-b border-slate-200 px-6 py-4">
+        <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center gap-2">
+            <EyeIcon />
+            <h2 className="font-bold text-slate-900 text-lg">Live Preview</h2>
+          </div>
+          <button
+            onClick={() => regeneratePreview()}
+            disabled={isLoadingPreview}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white rounded-lg text-xs font-medium transition-all"
+            title="Refresh preview">
+            {isLoadingPreview ? (
+              <>
+               <SpinnerIcon />
+               <span>Refreshing...</span>
+              </>
+            ) : (
+              <>
+               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                   d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+               </svg>
+               <span>Refresh</span>
+              </>
+           )}
+          </button>
+        </div>
+        <p className="text-xs text-slate-500">Updates automatically as you edit or reorder</p>
+       </div>
+
+       
+      222222222222222<div className="w-1/2 bg-slate-100 flex flex-col">
         <div className="bg-white border-b border-slate-200 px-6 py-4">
           <div className="flex items-center gap-2 mb-1">
             <EyeIcon />
@@ -768,6 +800,7 @@ function EditablePreviewModal({ resume, onClose, onDownload, onResumeChange, isD
           </div>
           <p className="text-xs text-slate-500">Updates automatically as you edit or reorder</p>
         </div>
+        222222222222222222222222222222222
 
         <div className="flex-1 overflow-auto p-6">
           {isLoadingPreview ? (
