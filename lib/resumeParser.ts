@@ -1,8 +1,10 @@
 /**
- * resumeParser.ts - FIXED PROFESSIONAL ORDER
- *
- * Uses industry-standard section ordering based on career stage.
- * No LLM-based ordering - professional, reliable, ATS-optimized.
+ * resumeParser.ts - FIXED: Preserves ALL bullets, handles subsections
+ * 
+ * Changes:
+ * 1. Explicit instructions to preserve bullet structure
+ * 2. Handle Responsibilities/Achievements/Environment subsections
+ * 3. Increased character and token limits
  */
 
 import { ResumeData, PersonalInfo, CareerStage } from './types';
@@ -12,7 +14,6 @@ import { parseWithLlamaParse } from './llamaParseClient';
 // ─── Professional Section Orders ──────────────────────────────────────────────
 
 const PROFESSIONAL_ORDERS: Record<CareerStage, string[]> = {
-  // Experienced: Experience first (most important)
   experienced: [
     'summary',
     'experience',
@@ -25,7 +26,6 @@ const PROFESSIONAL_ORDERS: Record<CareerStage, string[]> = {
     'softSkills',
   ],
   
-  // Fresher: Education first, then internships/projects
   fresher: [
     'summary',
     'education',
@@ -38,7 +38,6 @@ const PROFESSIONAL_ORDERS: Record<CareerStage, string[]> = {
     'softSkills',
   ],
   
-  // Career Change: Skills first to show transferable abilities
   'career-change': [
     'summary',
     'skills',
@@ -59,7 +58,6 @@ function buildProfessionalOrder(
   const baseOrder = PROFESSIONAL_ORDERS[careerStage];
   const finalOrder: string[] = [];
 
-  // Add sections in professional order (only if they exist)
   for (const key of baseOrder) {
     const hasContent = checkSectionHasContent(resume, key);
     if (hasContent) {
@@ -67,7 +65,6 @@ function buildProfessionalOrder(
     }
   }
 
-  // Add any additional sections at the end
   for (const addl of resume.additionalSections ?? []) {
     if (addl.heading) {
       finalOrder.push(`additional:${addl.heading}`);
@@ -143,10 +140,26 @@ export function safeParseJSON<T>(raw: string, fallback: T): T {
   return fallback;
 }
 
-// ─── Groq structuring prompt (simpler - no section order needed) ──────────────
+// ─── Groq structuring prompt - FIXED ──────────────────────────────────────────
 
 const STRUCTURE_SYSTEM = `You are a precise resume data extractor.
 Extract ALL fields into JSON.
+
+CRITICAL RULES FOR COMPLETE BULLET EXTRACTION:
+1. Extract EVERY SINGLE bullet point as a SEPARATE array item - do not merge, summarize, or combine
+2. If you see 10 bullets, output 10 separate items in the array
+3. Each bullet point that starts with "•" or "-" MUST be a separate array item
+4. NEVER merge multiple bullets into one long text string
+
+EXPERIENCE SUBSECTIONS HANDLING:
+- If a job has subsections like "Responsibilities:", "Achievements:", "Environment:", extract ALL bullets from ALL subsections
+- Combine bullets from Responsibilities, Achievements, and any other subsections into ONE bullets[] array
+- Preserve the Environment line separately if it's a tech stack (not bullets)
+
+CAREER HIGHLIGHTS / KEY ACHIEVEMENTS:
+- If you see a section like "Career Highlights" or "Key Achievements" with multiple bullets
+- Extract EACH bullet as a SEPARATE item in the items[] array
+- Do NOT combine them into one long paragraph
 
 CRITICAL ANTI-DUPLICATION RULES:
 1. If a section is labeled "Internships" or "Internship Experience", put entries ONLY in internships[]
@@ -166,6 +179,7 @@ SECTION KEY MAPPING:
 - Projects → "projects"
 - Skills/Technical Skills → "skills"
 - Soft Skills/Core Competencies → "softSkills"
+- Career Highlights/Key Achievements → additionalSections with heading "Career Highlights"
 - Anything else → "additional:EXACT_HEADING"
 
 Return ONLY valid JSON. No markdown. No explanation.
@@ -223,7 +237,7 @@ function deduplicateEntries(resume: Partial<ResumeData>): Partial<ResumeData> {
   };
 }
 
-// ─── Shape enforcer with career stage ─────────────────────────────────────────
+// ─── Shape enforcer ───────────────────────────────────────────────────────────
 
 function ensureResumeShape(raw: Partial<ResumeData>, careerStage: CareerStage): ResumeData {
   const defaultPersonal: PersonalInfo = {
@@ -287,28 +301,35 @@ function ensureResumeShape(raw: Partial<ResumeData>, careerStage: CareerStage): 
       items: Array.isArray(s.items) ? s.items.filter(i => typeof i === 'string' && i.trim()) : [],
     })) : [],
 
-    // Use professional order based on career stage
     sectionOrder: buildProfessionalOrder(deduplicated, careerStage),
   };
 
-  console.log('[ensureResumeShape] Experience:', resume.experience.length);
-  console.log('[ensureResumeShape] Internships:', resume.internships?.length);
+  console.log('[ensureResumeShape] Experience:', resume.experience.length, 'entries');
+  if (resume.experience.length > 0) {
+    console.log('[ensureResumeShape] First experience bullets:', resume.experience[0]?.bullets.length);
+  }
+  console.log('[ensureResumeShape] Additional sections:', resume.additionalSections.length);
+  if (resume.additionalSections.length > 0) {
+    console.log('[ensureResumeShape] Additional section items:', resume.additionalSections[0]?.items.length);
+  }
 
   return resume;
 }
 
-// ─── LLM structurer ───────────────────────────────────────────────────────────
+// ─── LLM structurer - INCREASED LIMITS ────────────────────────────────────────
 
 async function structureWithGroq(markdown: string, careerStage: CareerStage): Promise<ResumeData> {
-  const truncated = markdown.length > 14000
-    ? markdown.substring(0, 12000) + '\n\n[...truncated...]\n\n' + markdown.substring(markdown.length - 1500)
+  // INCREASED: 14000 → 25000 chars
+  const truncated = markdown.length > 25000
+    ? markdown.substring(0, 20000) + '\n\n[...truncated...]\n\n' + markdown.substring(markdown.length - 3000)
     : markdown;
 
-  const userMessage = `Extract resume data. No duplicates.\n\nResume:\n\n${truncated}`;
+  const userMessage = `Extract resume data. Preserve EVERY bullet point as separate array items.\n\nResume:\n\n${truncated}`;
 
   let raw = '';
   try {
-    raw = await groqChatCompletion(STRUCTURE_SYSTEM, userMessage, 6000, 0.1);
+    // INCREASED: 6000 → 8000 tokens
+    raw = await groqChatCompletion(STRUCTURE_SYSTEM, userMessage, 8000, 0.1);
   } catch (err) {
     console.error('[structureWithGroq] Groq failed:', err);
     throw err;
