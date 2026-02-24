@@ -16,8 +16,10 @@ export function generateCoverLetterHTML(coverLetterText: string): string {
   }
 
   // Convert line breaks to paragraphs
+  const normalizedText = coverLetterText.replace(/\r\n/g, '\n');
+
   const paragraphs = coverLetterText
-    .split('\n\n')
+    .split(/\n{2,}/)
     .filter(p => p.trim().length > 0)
     .map(p => `<p class="paragraph">${esc(p.trim())}</p>`)
     .join('\n');
