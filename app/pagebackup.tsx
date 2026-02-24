@@ -427,9 +427,10 @@ interface EditablePreviewModalProps {
   onDownload: () => void;
   onResumeChange: (newResume: ResumeData) => void;
   isDownloading: boolean;
+  isDocxUpload: boolean;
 }
 
-function EditablePreviewModal({ resume, onClose, onDownload, onResumeChange, isDownloading }: EditablePreviewModalProps) {
+function EditablePreviewModal({ resume, onClose, onDownload, onResumeChange, isDownloading, isDocxUpload }: EditablePreviewModalProps) {
   const [editedResume, setEditedResume] = useState<ResumeData>(JSON.parse(JSON.stringify(resume)));
   const [previewHTML, setPreviewHTML] = useState<string>('');
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
@@ -536,11 +537,11 @@ function EditablePreviewModal({ resume, onClose, onDownload, onResumeChange, isD
   };
 
   // Update section order
-  const updateSectionOrder = (newOrder: string[]) => {
+  const updateSectionOrder = async (newOrder: string[]) => {
     const updated = { ...editedResume, sectionOrder: newOrder };
     setEditedResume(updated);
     onResumeChange(updated);
-    regeneratePreview();
+    await regeneratePreview();
   };
 
   return (
@@ -713,7 +714,8 @@ function EditablePreviewModal({ resume, onClose, onDownload, onResumeChange, isD
               )}
 
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-700">
-                <strong>💡 Tip:</strong> Click ✨ next to any bullet or summary to rewrite it with AI. Other sections (Education, Skills, Certifications, etc.) are preserved as-is.
+                <strong>💡 Tip:</strong> Click ✨ next to any bullet or summary to rewrite it with AI.
+                {isDocxUpload && ' Your original DOCX formatting will be preserved in the output.'}
               </div>
             </>
           )}
@@ -759,13 +761,35 @@ function EditablePreviewModal({ resume, onClose, onDownload, onResumeChange, isD
 
       {/* RIGHT PANEL: Live Preview */}
       <div className="w-1/2 bg-slate-100 flex flex-col">
-        <div className="bg-white border-b border-slate-200 px-6 py-4">
-          <div className="flex items-center gap-2 mb-1">
+       <div className="bg-white border-b border-slate-200 px-6 py-4">
+        <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center gap-2">
             <EyeIcon />
             <h2 className="font-bold text-slate-900 text-lg">Live Preview</h2>
           </div>
-          <p className="text-xs text-slate-500">Updates automatically as you edit or reorder</p>
+          <button
+            onClick={() => regeneratePreview()}
+            disabled={isLoadingPreview}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white rounded-lg text-xs font-medium transition-all"
+            title="Refresh preview">
+            {isLoadingPreview ? (
+              <>
+               <SpinnerIcon />
+               <span>Refreshing...</span>
+              </>
+            ) : (
+              <>
+               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                   d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+               </svg>
+               <span>Refresh</span>
+              </>
+           )}
+          </button>
         </div>
+        <p className="text-xs text-slate-500">Updates automatically as you edit or reorder</p>
+       </div>
 
         <div className="flex-1 overflow-auto p-6">
           {isLoadingPreview ? (
@@ -787,9 +811,13 @@ function EditablePreviewModal({ resume, onClose, onDownload, onResumeChange, isD
         </div>
 
         <div className="bg-white border-t border-slate-200 px-6 py-4 flex items-center justify-between">
-          <p className="text-xs text-slate-500">
-            Professional template · ATS-friendly · Ready to download
-          </p>
+          <div>
+            <p className="text-xs text-slate-500">
+              {isDocxUpload
+                ? '📄 Format preserved · Download keeps your original template'
+                : 'Professional template · ATS-friendly · Ready to download'}
+            </p>
+          </div>
           <div className="flex gap-3">
             <button
               onClick={onClose}
@@ -802,6 +830,8 @@ function EditablePreviewModal({ resume, onClose, onDownload, onResumeChange, isD
               className="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-slate-300 disabled:to-slate-400 text-white rounded-lg text-sm font-semibold transition-all shadow-lg shadow-blue-500/20 flex items-center gap-2">
               {isDownloading ? (
                 <><SpinnerIcon /><span className="ml-1">Generating...</span></>
+              ) : isDocxUpload ? (
+                <><span>⬇️</span> Download PDF (Your Format)</>
               ) : (
                 <><span>⬇️</span> Download PDF</>
               )}
@@ -830,18 +860,37 @@ export default function HomePage() {
   const [isDragOver, setIsDragOver]     = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [showPreview, setShowPreview]   = useState(false);
+
+  // ── NEW: DOCX state ──────────────────────────────────────────────────────────
+  const [originalDocx, setOriginalDocx]         = useState<string | null>(null);
+  const [originalResume, setOriginalResume]     = useState<ResumeData | null>(null);
+  const [isDocxUpload, setIsDocxUpload]         = useState(false);
+  // Tracks which upload sub-tab the user selected: 'pdf' or 'docx'
+  const [uploadSubMode, setUploadSubMode]       = useState<'pdf' | 'docx'>('pdf');
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ── File handling ────────────────────────────────────────────────────────
   const handleFile = useCallback((file: File) => {
     const name = file.name.toLowerCase();
+
+    // Validate against the selected sub-mode
+    if (uploadSubMode === 'pdf' && !name.endsWith('.pdf')) {
+      setError('Please upload a PDF file for this mode.');
+      return;
+    }
+    if (uploadSubMode === 'docx' && !name.endsWith('.docx')) {
+      setError('Please upload a DOCX (Word) file for this mode.');
+      return;
+    }
     if (!name.endsWith('.pdf') && !name.endsWith('.docx')) {
       setError('Only PDF and DOCX files are supported.');
       return;
     }
+
     setUploadedFile(file);
     setError(null);
-  }, []);
+  }, [uploadSubMode]);
 
   const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -861,6 +910,19 @@ export default function HomePage() {
       const res = await fetch('/api/parse', { method: 'POST', body: fd });
       if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? 'Parse failed'); }
       const d = await res.json();
+
+      // ── NEW: Capture DOCX data if parse route returns it ──────────────────
+      if (d.isDocxUpload && d.originalDocx) {
+        setOriginalDocx(d.originalDocx);
+        setOriginalResume(d.resume);
+        setIsDocxUpload(true);
+        console.log('[page] DOCX upload detected — format will be preserved');
+      } else {
+        setOriginalDocx(null);
+        setOriginalResume(null);
+        setIsDocxUpload(false);
+      }
+
       return d.resume as ResumeData;
     }
 
@@ -927,10 +989,21 @@ export default function HomePage() {
     setError(null);
 
     try {
+      // ── NEW: Include original DOCX data so server can preserve formatting ──
+      const requestBody: Record<string, unknown> = {
+        resume: optimizedResume,
+      };
+
+      if (isDocxUpload && originalDocx && originalResume) {
+        requestBody.originalDocx   = originalDocx;
+        requestBody.originalResume = originalResume;
+        console.log('[page] Sending DOCX template data for format preservation');
+      }
+
       const res = await fetch('/api/generate-pdf', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ resume: optimizedResume }),
+        body: JSON.stringify(requestBody),
       });
       if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? 'PDF failed'); }
       const blob = await res.blob();
@@ -958,7 +1031,8 @@ export default function HomePage() {
     jobDescription.trim().length >= 20 &&
     (inputMode === 'paste' ? resumeText.trim().length > 10 : uploadedFile !== null);
 
-  const fileExt = uploadedFile?.name.toLowerCase().endsWith('.pdf') ? 'pdf' : 'docx';
+  const fileIsDocx = uploadedFile?.name.toLowerCase().endsWith('.docx') ?? false;
+  const fileIsPdf  = uploadedFile?.name.toLowerCase().endsWith('.pdf')  ?? false;
 
   return (
     <>
@@ -970,6 +1044,7 @@ export default function HomePage() {
           onDownload={handleDownloadPDF}
           onResumeChange={handleResumeChange}
           isDownloading={isDownloading}
+          isDocxUpload={isDocxUpload}
         />
       )}
 
@@ -1002,7 +1077,7 @@ export default function HomePage() {
               </span>
             </h1>
             <p className="text-slate-500 max-w-lg mx-auto">
-              AI optimization · Inline editing · Section reordering · Professional preview
+              AI optimization · Inline editing · Section reordering · 
             </p>
           </div>
 
@@ -1051,22 +1126,58 @@ export default function HomePage() {
                 <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
                   <div>
                     <h2 className="font-semibold text-slate-900 text-sm">Your Resume</h2>
-                    <p className="text-xs text-slate-400 mt-0.5">All sections preserved</p>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      {inputMode === 'upload' && uploadSubMode === 'docx'
+                        ? '✨ DOCX format will be preserved in output'
+                        : 'All sections preserved'}
+                    </p>
                   </div>
+
+                  {/* ── NEW: 3-tab switcher: Paste Text | PDF | DOCX ✨ ── */}
                   <div className="flex bg-slate-100 rounded-lg p-0.5">
                     <button
-                      onClick={() => { setInputMode('paste'); setUploadedFile(null); }}
+                      onClick={() => {
+                        setInputMode('paste');
+                        setUploadedFile(null);
+                        setIsDocxUpload(false);
+                        setOriginalDocx(null);
+                        setOriginalResume(null);
+                      }}
                       className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
                         inputMode === 'paste' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'
                       }`}>
                       Paste Text
                     </button>
                     <button
-                      onClick={() => { setInputMode('upload'); setResumeText(''); }}
+                      onClick={() => {
+                        setInputMode('upload');
+                        setUploadSubMode('pdf');
+                        setResumeText('');
+                        setIsDocxUpload(false);
+                        setUploadedFile(null);
+                        setOriginalDocx(null);
+                        setOriginalResume(null);
+                      }}
                       className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
-                        inputMode === 'upload' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'
+                        inputMode === 'upload' && uploadSubMode === 'pdf'
+                          ? 'bg-white text-slate-900 shadow-sm'
+                          : 'text-slate-500'
                       }`}>
-                      Upload File
+                      PDF
+                    </button>
+                    <button
+                      onClick={() => {
+                        setInputMode('upload');
+                        setUploadSubMode('docx');
+                        setResumeText('');
+                        setUploadedFile(null);
+                      }}
+                      className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
+                        inputMode === 'upload' && uploadSubMode === 'docx'
+                          ? 'bg-white text-slate-900 shadow-sm'
+                          : 'text-slate-500'
+                      }`}>
+                      DOCX ✨
                     </button>
                   </div>
                 </div>
@@ -1081,6 +1192,13 @@ export default function HomePage() {
                     />
                   ) : (
                     <div>
+                      {/* DOCX hint banner */}
+                      {uploadSubMode === 'docx' && !uploadedFile && (
+                        <div className="mb-3 bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-blue-700">
+                          <strong>✨ DOCX Mode:</strong> Upload your Word file and we'll return a PDF that preserves your exact fonts, colors, and layout — only the content will change.
+                        </div>
+                      )}
+
                       <div
                         onDrop={handleDrop}
                         onDragOver={e => { e.preventDefault(); setIsDragOver(true); }}
@@ -1089,30 +1207,48 @@ export default function HomePage() {
                         className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
                           isDragOver ? 'border-blue-400 bg-blue-50'
                           : uploadedFile ? 'border-green-300 bg-green-50'
+                          : uploadSubMode === 'docx'
+                          ? 'border-blue-200 bg-blue-50/30 hover:border-blue-300'
                           : 'border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-slate-100'
                         }`}>
                         {uploadedFile ? (
                           <div className="flex items-center justify-center gap-3">
                             <div className={`flex items-center justify-center w-10 h-10 rounded-lg font-bold text-xs uppercase ${
-                              fileExt === 'pdf' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
-                              {fileExt}
+                              fileIsPdf  ? 'bg-red-100 text-red-600'
+                            : fileIsDocx ? 'bg-blue-100 text-blue-600'
+                            : 'bg-slate-100 text-slate-600'
+                            }`}>
+                              {fileIsPdf ? 'PDF' : fileIsDocx ? 'DOCX' : 'FILE'}
                             </div>
                             <div className="text-left">
                               <p className="text-sm font-medium text-slate-900 truncate max-w-48">{uploadedFile.name}</p>
-                              <p className="text-xs text-slate-400">{(uploadedFile.size / 1024).toFixed(0)} KB · Click to replace</p>
+                              <p className="text-xs text-slate-400">
+                                {(uploadedFile.size / 1024).toFixed(0)} KB · Click to replace
+                                {fileIsDocx && (
+                                  <span className="text-blue-600 font-medium"> · Format ✨</span>
+                                )}
+                              </p>
                             </div>
                           </div>
                         ) : (
                           <div className="text-slate-400">
                             <div className="flex justify-center mb-2"><UploadIcon /></div>
-                            <p className="text-sm font-medium text-slate-600">Drop your resume here</p>
-                            <p className="text-xs text-slate-400 mt-1">PDF or DOCX · Up to 10MB</p>
+                            <p className="text-sm font-medium text-slate-600">
+                              {uploadSubMode === 'docx' ? 'Drop your Word (.docx) file here' : 'Drop your PDF here'}
+                            </p>
+                            <p className="text-xs text-slate-400 mt-1">
+                              {uploadSubMode === 'docx' ? '.docx files only · Up to 10MB' : 'PDF files only · Up to 10MB'}
+                            </p>
                           </div>
                         )}
                       </div>
-                      <input ref={fileInputRef} type="file" accept=".pdf,.docx"
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept={uploadSubMode === 'docx' ? '.docx' : '.pdf'}
                         onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
-                        className="hidden" />
+                        className="hidden"
+                      />
                     </div>
                   )}
                 </div>
@@ -1163,7 +1299,7 @@ export default function HomePage() {
                   {inputMode === 'paste' && resumeText.trim().length <= 10
                     ? '① Add your resume text'
                     : inputMode === 'upload' && !uploadedFile
-                    ? '① Upload a resume file'
+                    ? `① Upload a ${uploadSubMode === 'docx' ? 'DOCX' : 'PDF'} file`
                     : '② Add a job description (20+ chars)'}
                 </p>
               )}
@@ -1184,9 +1320,9 @@ export default function HomePage() {
                   </p>
                   <div className="grid grid-cols-2 gap-2.5 text-left">
                     {[
+                      { icon: '📄', title: 'DOCX Format', desc: 'Upload Word file' },
                       { icon: '✏️', title: 'Edit Bullets', desc: 'Click to modify' },
                       { icon: '🔄', title: 'Drag Sections', desc: 'Reorder easily' },
-                      { icon: '👁️', title: 'Live Preview', desc: 'See instantly' },
                       { icon: '🎯', title: 'ATS-Safe', desc: 'Professional' },
                     ].map(f => (
                       <div key={f.title} className="bg-slate-50 rounded-xl p-3">
@@ -1225,6 +1361,19 @@ export default function HomePage() {
                   <KeywordBadges keywords={keywords} />
                   <ChangesList changes={changes} />
                   <ResumeSectionSummary resume={optimizedResume} />
+
+                  {/* ── NEW: DOCX format badge ── */}
+                  {isDocxUpload && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-3.5 flex items-start gap-3">
+                      <span className="text-xl">📄</span>
+                      <div>
+                        <p className="text-sm font-semibold text-blue-800">Format Preservation Active ✨</p>
+                        <p className="text-xs text-blue-600 mt-0.5">
+                          Your original fonts, colors, and layout will be preserved in the downloaded PDF.
+                        </p>
+                      </div>
+                    </div>
+                  )}
 
                   <button
                     onClick={() => setShowPreview(true)}

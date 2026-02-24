@@ -861,12 +861,16 @@ export default function HomePage() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [showPreview, setShowPreview]   = useState(false);
 
-  // ── NEW: DOCX state ──────────────────────────────────────────────────────────
+  // ── DOCX state ────────────────────────────────────────────────────────────
   const [originalDocx, setOriginalDocx]         = useState<string | null>(null);
   const [originalResume, setOriginalResume]     = useState<ResumeData | null>(null);
   const [isDocxUpload, setIsDocxUpload]         = useState(false);
-  // Tracks which upload sub-tab the user selected: 'pdf' or 'docx'
   const [uploadSubMode, setUploadSubMode]       = useState<'pdf' | 'docx'>('pdf');
+
+  // ── ✨ NEW: Cover Letter States ──────────────────────────────────────────
+  const [generationType, setGenerationType] = useState<'resume' | 'coverletter'>('resume');
+  const [coverLetter, setCoverLetter] = useState<string>('');
+  const [showCoverLetterPreview, setShowCoverLetterPreview] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -911,7 +915,7 @@ export default function HomePage() {
       if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? 'Parse failed'); }
       const d = await res.json();
 
-      // ── NEW: Capture DOCX data if parse route returns it ──────────────────
+      // Capture DOCX data if parse route returns it
       if (d.isDocxUpload && d.originalDocx) {
         setOriginalDocx(d.originalDocx);
         setOriginalResume(d.resume);
@@ -953,22 +957,105 @@ export default function HomePage() {
     return res.json() as Promise<{ optimizedResume: ResumeData; changes: string[]; keywordsInjected: string[] }>;
   };
 
-  // ── Main handler ──────────────────────────────────────────────────────────
-  const handleOptimize = async () => {
+  // ── ✨ NEW: Generate Cover Letter ────────────────────────────────────────
+  const handleGenerateCoverLetter = async () => {
+    if (!parsedResume) return;
+    
+    setLoadingStep('Generating your cover letter (~15 seconds)...');
+    
+    try {
+      const res = await fetch('/api/generate-cover-letter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          resume: parsedResume,
+          jobDescription: jobDescription.trim(),
+        }),
+      });
+      
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error ?? 'Failed to generate cover letter');
+      }
+      
+      const data = await res.json();
+      setCoverLetter(data.coverLetter);
+      setShowCoverLetterPreview(true);
+      
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Cover letter generation failed');
+      throw err;
+    }
+  };
+
+  // ── ✨ NEW: Download Cover Letter PDF ────────────────────────────────────
+  const handleDownloadCoverLetterPDF = async () => {
+    if (!coverLetter) return;
+    
+    setIsDownloading(true);
+    setError(null);
+    
+    try {
+      const name = parsedResume?.personal?.name || 'Applicant';
+      const fileName = `${name.replace(/\s+/g, '_')}_Cover_Letter.pdf`;
+      
+      const res = await fetch('/api/generate-cover-letter-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          coverLetter,
+          fileName,
+        }),
+      });
+      
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error ?? 'PDF generation failed');
+      }
+      
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      setShowCoverLetterPreview(false);
+      
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'PDF download failed');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  // ── ✨ UPDATED: Main handler - handles both resume and cover letter ──────
+  const handleGenerate = async () => {
     setError(null);
     setIsLoading(true);
     setOptimizedResume(null);
     setChanges([]);
     setKeywords([]);
+    setCoverLetter('');
 
     try {
+      // Parse resume first (needed for both)
       const parsed = await parseResume();
       setParsedResume(parsed);
 
-      const result = await optimizeResumeData(parsed);
-      setOptimizedResume(result.optimizedResume);
-      setChanges(result.changes ?? []);
-      setKeywords(result.keywordsInjected ?? []);
+      if (generationType === 'resume') {
+        // Existing resume optimization logic
+        const result = await optimizeResumeData(parsed);
+        setOptimizedResume(result.optimizedResume);
+        setChanges(result.changes ?? []);
+        setKeywords(result.keywordsInjected ?? []);
+      } else {
+        // Cover letter generation
+        await handleGenerateCoverLetter();
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong.');
     } finally {
@@ -989,7 +1076,6 @@ export default function HomePage() {
     setError(null);
 
     try {
-      // ── NEW: Include original DOCX data so server can preserve formatting ──
       const requestBody: Record<string, unknown> = {
         resume: optimizedResume,
       };
@@ -1048,6 +1134,65 @@ export default function HomePage() {
         />
       )}
 
+      {/* ✨ NEW: Cover Letter Preview Modal */}
+      {showCoverLetterPreview && coverLetter && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl mx-4 max-h-[90vh] flex flex-col">
+            
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+              <div>
+                <h2 className="font-bold text-slate-900 text-xl flex items-center gap-2">
+                  ✉️ Your Cover Letter
+                </h2>
+                <p className="text-sm text-slate-500 mt-1">Review and download</p>
+              </div>
+              <button
+                onClick={() => setShowCoverLetterPreview(false)}
+                className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+                <CloseIcon />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-auto p-6">
+              <div className="max-w-3xl mx-auto bg-white shadow-lg p-12 rounded-lg">
+                <textarea
+                  value={coverLetter}
+                  onChange={(e) => setCoverLetter(e.target.value)}
+                  className="w-full min-h-[500px] text-sm border border-slate-200 rounded-lg p-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none font-mono"
+                  style={{ lineHeight: '1.6' }}
+                />
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-between bg-slate-50">
+              <p className="text-xs text-slate-500">
+                Edit the text above if needed, then download as PDF
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowCoverLetterPreview(false)}
+                  className="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 rounded-lg transition-colors">
+                  Close
+                </button>
+                <button
+                  onClick={handleDownloadCoverLetterPDF}
+                  disabled={isDownloading}
+                  className="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-slate-300 disabled:to-slate-400 text-white rounded-lg text-sm font-semibold transition-all shadow-lg shadow-blue-500/20 flex items-center gap-2">
+                  {isDownloading ? (
+                    <><SpinnerIcon /><span className="ml-1">Generating...</span></>
+                  ) : (
+                    <><span>⬇️</span> Download PDF</>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/20 to-indigo-50/30">
         {/* Nav */}
         <nav className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-200/60">
@@ -1077,7 +1222,7 @@ export default function HomePage() {
               </span>
             </h1>
             <p className="text-slate-500 max-w-lg mx-auto">
-              AI optimization · Inline editing · Section reordering · 
+              AI optimization · Cover letters · Inline editing · Section reordering
             </p>
           </div>
 
@@ -1133,7 +1278,6 @@ export default function HomePage() {
                     </p>
                   </div>
 
-                  {/* ── NEW: 3-tab switcher: Paste Text | PDF | DOCX ✨ ── */}
                   <div className="flex bg-slate-100 rounded-lg p-0.5">
                     <button
                       onClick={() => {
@@ -1192,7 +1336,6 @@ export default function HomePage() {
                     />
                   ) : (
                     <div>
-                      {/* DOCX hint banner */}
                       {uploadSubMode === 'docx' && !uploadedFile && (
                         <div className="mb-3 bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-blue-700">
                           <strong>✨ DOCX Mode:</strong> Upload your Word file and we'll return a PDF that preserves your exact fonts, colors, and layout — only the content will change.
@@ -1225,7 +1368,7 @@ export default function HomePage() {
                               <p className="text-xs text-slate-400">
                                 {(uploadedFile.size / 1024).toFixed(0)} KB · Click to replace
                                 {fileIsDocx && (
-                                  <span className="text-blue-600 font-medium"> · Format ✨</span>
+                                  <span className="text-blue-600 font-medium"> · Format preserved ✨</span>
                                 )}
                               </p>
                             </div>
@@ -1278,9 +1421,69 @@ export default function HomePage() {
                 </div>
               </div>
 
-              {/* Optimize button */}
+              {/* ✨ NEW: Generation Type Selection */}
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="px-5 py-3.5 border-b border-slate-100">
+                  <h2 className="font-semibold text-slate-900 text-sm">What would you like to generate?</h2>
+                  <p className="text-xs text-slate-400 mt-0.5">Choose your output type</p>
+                </div>
+                
+                <div className="p-4 space-y-3">
+                  {/* Resume Option */}
+                  <label className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                    generationType === 'resume'
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+                  }`}>
+                    <input
+                      type="radio"
+                      name="generationType"
+                      value="resume"
+                      checked={generationType === 'resume'}
+                      onChange={() => setGenerationType('resume')}
+                      className="mt-1 w-4 h-4 text-blue-600"
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-lg">📄</span>
+                        <p className="font-semibold text-slate-900 text-sm">Optimize Resume</p>
+                      </div>
+                      <p className="text-xs text-slate-500">
+                        AI-optimized, ATS-friendly resume with keyword matching and professional formatting
+                      </p>
+                    </div>
+                  </label>
+
+                  {/* Cover Letter Option */}
+                  <label className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                    generationType === 'coverletter'
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+                  }`}>
+                    <input
+                      type="radio"
+                      name="generationType"
+                      value="coverletter"
+                      checked={generationType === 'coverletter'}
+                      onChange={() => setGenerationType('coverletter')}
+                      className="mt-1 w-4 h-4 text-blue-600"
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-lg">✉️</span>
+                        <p className="font-semibold text-slate-900 text-sm">Generate Cover Letter</p>
+                      </div>
+                      <p className="text-xs text-slate-500">
+                        Professional cover letter tailored to the job description and highlighting your strengths
+                      </p>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              {/* ✨ UPDATED: Generate button */}
               <button
-                onClick={handleOptimize}
+                onClick={handleGenerate}
                 disabled={!canOptimize}
                 className={`w-full py-4 rounded-2xl text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${
                   canOptimize
@@ -1289,8 +1492,10 @@ export default function HomePage() {
                 }`}>
                 {isLoading ? (
                   <><SpinnerIcon /><span className="ml-1">{loadingStep || 'Working...'}</span></>
-                ) : (
+                ) : generationType === 'resume' ? (
                   <><span>✨</span> Optimize My Resume</>
+                ) : (
+                  <><span>✉️</span> Generate Cover Letter</>
                 )}
               </button>
 
@@ -1314,16 +1519,16 @@ export default function HomePage() {
                   <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
                     <span className="text-3xl">🎨</span>
                   </div>
-                  <h3 className="font-semibold text-slate-900 mb-2">Full Control Over Your Resume</h3>
+                  <h3 className="font-semibold text-slate-900 mb-2">Full Control Over Your Documents</h3>
                   <p className="text-sm text-slate-400 max-w-xs mx-auto mb-6">
-                    Edit content · Reorder sections · Live preview · Professional output guaranteed
+                    Optimize resumes · Generate cover letters · Edit content · Professional output guaranteed
                   </p>
                   <div className="grid grid-cols-2 gap-2.5 text-left">
                     {[
-                      { icon: '📄', title: 'DOCX Format', desc: 'Upload Word file' },
-                      { icon: '✏️', title: 'Edit Bullets', desc: 'Click to modify' },
-                      { icon: '🔄', title: 'Drag Sections', desc: 'Reorder easily' },
-                      { icon: '🎯', title: 'ATS-Safe', desc: 'Professional' },
+                      { icon: '📄', title: 'Resume', desc: 'ATS-optimized' },
+                      { icon: '✉️', title: 'Cover Letter', desc: 'AI-generated' },
+                      { icon: '✏️', title: 'Edit', desc: 'Full control' },
+                      { icon: '🎯', title: 'Professional', desc: 'Download PDF' },
                     ].map(f => (
                       <div key={f.title} className="bg-slate-50 rounded-xl p-3">
                         <div className="text-lg mb-1">{f.icon}</div>
@@ -1340,7 +1545,9 @@ export default function HomePage() {
                   <div className="flex justify-center mb-4">
                     <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
                   </div>
-                  <p className="font-semibold text-slate-900 mb-1">AI is optimizing...</p>
+                  <p className="font-semibold text-slate-900 mb-1">
+                    {generationType === 'resume' ? 'AI is optimizing...' : 'Generating cover letter...'}
+                  </p>
                   <p className="text-sm text-slate-400">{loadingStep}</p>
                 </div>
               )}
@@ -1352,17 +1559,17 @@ export default function HomePage() {
                 </div>
               )}
 
-              {parsedResume && !optimizedResume && !isLoading && (
+              {parsedResume && !optimizedResume && !coverLetter && !isLoading && (
                 <ResumeSectionSummary resume={parsedResume} />
               )}
 
+              {/* Resume Results */}
               {optimizedResume && !isLoading && (
                 <>
                   <KeywordBadges keywords={keywords} />
                   <ChangesList changes={changes} />
                   <ResumeSectionSummary resume={optimizedResume} />
 
-                  {/* ── NEW: DOCX format badge ── */}
                   {isDocxUpload && (
                     <div className="bg-blue-50 border border-blue-200 rounded-xl p-3.5 flex items-start gap-3">
                       <span className="text-xl">📄</span>
@@ -1390,6 +1597,21 @@ export default function HomePage() {
                     <strong>Tip:</strong> Not satisfied? Edit the job description or career stage, then click Optimize again.
                   </div>
                 </>
+              )}
+
+              {/* ✨ NEW: Cover Letter Results */}
+              {coverLetter && !isLoading && (
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+                  <p className="text-sm font-semibold text-emerald-800 mb-2">✉️ Cover Letter Generated!</p>
+                  <p className="text-xs text-emerald-700 mb-3">
+                    Your personalized cover letter is ready. Review and download below.
+                  </p>
+                  <button
+                    onClick={() => setShowCoverLetterPreview(true)}
+                    className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-xl text-sm font-semibold transition-all shadow-lg shadow-emerald-500/20">
+                    📄 Preview & Download Cover Letter
+                  </button>
+                </div>
               )}
             </div>
           </div>
