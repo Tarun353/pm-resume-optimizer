@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generatePDF } from '@/lib/pdfGenerator';
 import { generateCoverLetterHTML } from '@/lib/coverLetterTemplate';
 
 interface CoverLetterPDFRequest {
@@ -22,8 +21,36 @@ export async function POST(req: NextRequest) {
     console.log('[generate-cover-letter-pdf] Generating HTML...');
     const html = generateCoverLetterHTML(coverLetter);
 
-    console.log('[generate-cover-letter-pdf] Generating PDF...');
-    const pdfBuffer = await generatePDF(html);
+    console.log('[generate-cover-letter-pdf] Generating PDF with Puppeteer...');
+    
+    // Generate PDF using Puppeteer directly
+    const puppeteer = await import('puppeteer');
+    
+    const browser = await puppeteer.default.launch({
+      headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+      ],
+    });
+
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: 'networkidle0' });
+
+    const pdfBuffer = await page.pdf({
+      format: 'Letter',
+      printBackground: true,
+      margin: {
+        top: '0',
+        right: '0',
+        bottom: '0',
+        left: '0',
+      },
+    });
+
+    await browser.close();
 
     const filename = fileName || 'Cover_Letter.pdf';
 
