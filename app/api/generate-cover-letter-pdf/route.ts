@@ -54,7 +54,13 @@ export async function POST(req: NextRequest) {
 
     const filename = fileName || 'Cover_Letter.pdf';
 
-    return new NextResponse(pdfBuffer, {
+    // ✅ FIX ADDED HERE — Buffer → ArrayBuffer conversion
+    const pdfArrayBuffer = pdfBuffer.buffer.slice(
+      pdfBuffer.byteOffset,
+      pdfBuffer.byteOffset + pdfBuffer.byteLength
+    );
+
+    return new NextResponse(pdfArrayBuffer, {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
