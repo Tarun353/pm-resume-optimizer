@@ -1163,6 +1163,14 @@ export default function HomePage() {
                   className="w-full min-h-[500px] text-sm border border-slate-200 rounded-lg p-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none font-mono"
                   style={{ lineHeight: '1.6' }}
                 />
+                {/* ✨ AI Rewrite Button for Cover Letter */}
+                <div className="flex justify-end mt-2">
+                  <AIButton
+                    text={coverLetter}
+                    onRewrite={(newText) => setCoverLetter(newText)}
+                    sectionType="generic"
+                  />
+                </div>
               </div>
             </div>
 
