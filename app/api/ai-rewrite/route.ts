@@ -10,6 +10,7 @@ interface AIRewriteRequest {
   context: {
     sectionType: 'summary' | 'bullet' | 'education' | 'skill' | 'certification' | 'award' | 'publication' | 'project' | 'generic';
     jobDescription?: string;
+    resumeContext?: any;
   };
 }
 
@@ -114,6 +115,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // Build user message with context
     let userMessage = `Original text:\n${body.text}\n\nUser's instruction: ${body.instruction}\n\n`;
+    // ⭐ NEW — provide resume context for intelligent rewriting
+    if (body.context?.resumeContext) {
+      userMessage += `Resume Context (use this to understand references like "my projects", "my internships", etc):\n${JSON.stringify(body.context.resumeContext).substring(0, 3000)}\n\n`;
+    }
 
     // Add job description context if provided (helps with keyword matching)
     if (body.context?.jobDescription && body.context.jobDescription.length > 50) {
