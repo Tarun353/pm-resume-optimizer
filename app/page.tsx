@@ -8,6 +8,9 @@ import { PaymentModal } from '@/components/PaymentModal';
 import { UserProfile } from '@/components/UserProfile';
 import { supabase } from '@/lib/supabase';
 
+export const dynamic = 'force-dynamic';
+
+
 // ─── Icons ────────────────────────────────────────────────────────────────────
 function UploadIcon() {
   return (

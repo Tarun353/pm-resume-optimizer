@@ -1,24 +1,27 @@
-import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
-import './globals.css';
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
+import { AuthProvider } from "@/lib/AuthContext";
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'ATS Resume Optimizer — Land More Interviews',
-  description:
-    'Optimize your resume for Applicant Tracking Systems using AI. Upload your resume and job description to get ATS-optimized content instantly.',
-  keywords: ['ATS', 'resume optimizer', 'AI resume', 'job application', 'resume builder'],
+  title: "ResumeForge - AI Resume Optimizer & Cover Letter Generator",
+  description: "Beat the ATS with AI-powered resume optimization and professional cover letter generation",
 };
 
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}) {
+}>) {
   return (
-    <html lang="en" className={inter.variable}>
-      <body className="antialiased">{children}</body>
+    <html lang="en">
+      <body className={inter.className}>
+        <AuthProvider>
+          {children}
+        </AuthProvider>
+      </body>
     </html>
   );
 }
