@@ -869,7 +869,7 @@ export default function HomePage() {
   const [isDragOver, setIsDragOver]     = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [showPreview, setShowPreview]   = useState(false);
-  const [showLoginModal, setShowLoginModal] = useState(false);
+
 
   // ── DOCX state ────────────────────────────────────────────────────────────
   const [originalDocx, setOriginalDocx]         = useState<string | null>(null);
