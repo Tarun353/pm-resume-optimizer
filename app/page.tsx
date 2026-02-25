@@ -470,7 +470,7 @@ function EditablePreviewModal({ resume, onClose, onDownload, onResumeChange, isD
   // Initial load
   useState(() => {
     regeneratePreview();
-  });
+  }) []);
 
   // Update summary
   const updateSummary = (newSummary: string) => {
@@ -1298,6 +1298,7 @@ useEffect(() => {
         onClose={() => setShowLoginModal(false)}
         onSuccess={() => {
           setShowLoginModal(false);
+          window.dispatchEvent(new Event('login-complete'));
         }}
       />
 
