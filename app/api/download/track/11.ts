@@ -1,23 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { supabase, getServiceSupabase } from '@/lib/supabase';
 
 const FREE_DOWNLOADS = 5;
-
-// Helper to create authenticated Supabase clients
-function getSupabaseClients() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  
-  if (!url || !anonKey || !serviceKey) {
-    throw new Error('Supabase credentials not configured');
-  }
-  
-  return {
-    supabase: createClient(url, anonKey),
-    serviceSupabase: createClient(url, serviceKey),
-  };
-}
 
 export async function POST(req: NextRequest) {
   try {
@@ -29,14 +13,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { supabase, serviceSupabase } = getSupabaseClients();
-
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const serviceSupabase = getServiceSupabase();
 
     // Get user profile
     const { data: dbUser, error: userError } = await serviceSupabase
@@ -108,14 +92,14 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { supabase, serviceSupabase } = getSupabaseClients();
-
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const serviceSupabase = getServiceSupabase();
 
     const { data: dbUser, error: userError } = await serviceSupabase
       .from('users')

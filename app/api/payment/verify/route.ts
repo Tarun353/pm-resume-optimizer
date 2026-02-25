@@ -1,12 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
-import { getServiceSupabase } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 
 const PLAN_DURATIONS: Record<string, number> = {
   '1day': 1,
   '10days': 10,
   '1month': 30,
 };
+
+function getServiceSupabase() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  
+  if (!url || !serviceKey) {
+    throw new Error('Supabase credentials not configured');
+  }
+  
+  return createClient(url, serviceKey);
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -17,10 +28,15 @@ export async function POST(req: NextRequest) {
       planType,
     } = await req.json();
 
+    const keySecret = process.env.RAZORPAY_KEY_SECRET;
+    if (!keySecret) {
+      throw new Error('Razorpay credentials not configured');
+    }
+
     // Verify signature
     const text = `${razorpay_order_id}|${razorpay_payment_id}`;
     const generated_signature = crypto
-      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET!)
+      .createHmac('sha256', keySecret)
       .update(text)
       .digest('hex');
 

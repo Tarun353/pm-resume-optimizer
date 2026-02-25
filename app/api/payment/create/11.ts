@@ -1,22 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import Razorpay from 'razorpay';
 import { supabase } from '@/lib/supabase';
 
-// Lazy initialize Razorpay only when needed
-function getRazorpayClient() {
-  const Razorpay = require('razorpay');
-  
-  const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
-  const keySecret = process.env.RAZORPAY_KEY_SECRET;
-  
-  if (!keyId || !keySecret) {
-    throw new Error('Razorpay credentials not configured');
-  }
-  
-  return new Razorpay({
-    key_id: keyId,
-    key_secret: keySecret,
-  });
-}
+const razorpay = new Razorpay({
+  key_id: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
+  key_secret: process.env.RAZORPAY_KEY_SECRET!,
+});
 
 export async function POST(req: NextRequest) {
   try {
@@ -34,9 +23,6 @@ export async function POST(req: NextRequest) {
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    // Initialize Razorpay client only when needed
-    const razorpay = getRazorpayClient();
 
     // Create Razorpay order
     const order = await razorpay.orders.create({
