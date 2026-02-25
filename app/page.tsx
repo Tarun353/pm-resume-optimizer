@@ -1725,9 +1725,11 @@ export default function HomePage() {
         </div>
       </div>
       {/* Login Modal */}
-      {showLoginModal && (
-      <LoginModal onClose={() => setShowLoginModal(false)} />
-       )}
+      <LoginModal
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onSuccess={() => setShowLoginModal(false)}
+/>
     </>
   );
 }
