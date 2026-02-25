@@ -17,36 +17,34 @@ function CloseIcon() {
   );
 }
 
-function SpinnerIcon() {
+function GoogleIcon() {
   return (
-    <svg className="animate-spin h-4 w-4 text-white inline" fill="none" viewBox="0 0 24 24">
-      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-      <path className="opacity-75" fill="currentColor"
-        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+    <svg className="w-5 h-5" viewBox="0 0 24 24">
+      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
     </svg>
   );
 }
 
 export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
-  const { signInWithEmail } = useAuth();
-  const [email, setEmail] = useState('');
+  const { signInWithGoogle } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
 
   if (!isOpen) return null;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleGoogleLogin = async () => {
     setError('');
     setLoading(true);
 
     try {
-      await signInWithEmail(email);
-      setSent(true);
+      await signInWithGoogle();
+      // Success handled by auth state change
+      // User will be redirected back automatically
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to send magic link');
-    } finally {
+      setError(err instanceof Error ? err.message : 'Failed to sign in with Google');
       setLoading(false);
     }
   };
@@ -59,7 +57,7 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
           <div>
             <h2 className="font-bold text-slate-900 text-xl">Sign in to Download</h2>
             <p className="text-sm text-slate-500 mt-1">
-              {sent ? 'Check your email!' : 'Get your first 5 downloads free'}
+              Get your first 5 downloads free
             </p>
           </div>
           <button
@@ -69,87 +67,40 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
           </button>
         </div>
 
-        {!sent ? (
-          <>
-            {/* Benefits */}
-            <div className="mb-6 space-y-2">
-              <div className="flex items-center gap-2 text-sm text-slate-600">
-                <span className="text-green-500">✓</span>
-                <span>First 5 downloads completely free</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-slate-600">
-                <span className="text-green-500">✓</span>
-                <span>No password needed - magic link login</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-slate-600">
-                <span className="text-green-500">✓</span>
-                <span>Your data stays private and secure</span>
-              </div>
-            </div>
+        {/* Benefits */}
+        <div className="mb-6 space-y-2">
+          <div className="flex items-center gap-2 text-sm text-slate-600">
+            <span className="text-green-500">✓</span>
+            <span>First 5 downloads completely free</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-slate-600">
+            <span className="text-green-500">✓</span>
+            <span>One-click login with Google</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-slate-600">
+            <span className="text-green-500">✓</span>
+            <span>No email verification needed</span>
+          </div>
+        </div>
 
-            {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Email Address
-                </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  required
-                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                />
-              </div>
-
-              {error && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-600">
-                  {error}
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={loading || !email}
-                className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-slate-300 disabled:to-slate-400 text-white rounded-lg text-sm font-semibold transition-all shadow-lg">
-                {loading ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <SpinnerIcon />
-                    Sending magic link...
-                  </span>
-                ) : (
-                  'Continue with Email'
-                )}
-              </button>
-            </form>
-
-            <p className="text-xs text-slate-400 text-center mt-4">
-              We'll send you a magic link to sign in. No password needed!
-            </p>
-          </>
-        ) : (
-          <div className="text-center py-6">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-3xl">📧</span>
-            </div>
-            <h3 className="font-semibold text-slate-900 mb-2">Check your email!</h3>
-            <p className="text-sm text-slate-600 mb-4">
-              We sent a magic link to <strong>{email}</strong>
-            </p>
-            <p className="text-xs text-slate-500 mb-6">
-              Click the link in your email to sign in. It may take a minute to arrive.
-            </p>
-            <button
-              onClick={() => {
-                setSent(false);
-                setEmail('');
-              }}
-              className="text-sm text-blue-600 hover:text-blue-700 font-medium">
-              Use a different email
-            </button>
+        {error && (
+          <div className="mb-4 bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-600">
+            {error}
           </div>
         )}
+
+        {/* Google Sign In Button */}
+        <button
+          onClick={handleGoogleLogin}
+          disabled={loading}
+          className="w-full py-3 px-4 bg-white hover:bg-gray-50 border-2 border-slate-300 rounded-lg text-sm font-semibold transition-all shadow-sm flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed">
+          <GoogleIcon />
+          {loading ? 'Signing in...' : 'Continue with Google'}
+        </button>
+
+        <p className="text-xs text-slate-400 text-center mt-4">
+          By continuing, you agree to our Terms of Service and Privacy Policy
+        </p>
       </div>
     </div>
   );

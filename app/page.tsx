@@ -7,6 +7,7 @@ import { LoginModal } from '@/components/LoginModal';
 import { PaymentModal } from '@/components/PaymentModal';
 import { UserProfile } from '@/components/UserProfile';
 import { supabase } from '@/lib/supabase';
+import { Navbar } from '@/components/Navbar';
 
 export const dynamic = 'force-dynamic';
 
@@ -868,6 +869,7 @@ export default function HomePage() {
   const [isDragOver, setIsDragOver]     = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [showPreview, setShowPreview]   = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
   // ── DOCX state ────────────────────────────────────────────────────────────
   const [originalDocx, setOriginalDocx]         = useState<string | null>(null);
@@ -1117,6 +1119,7 @@ export default function HomePage() {
   // ── Download PDF ──────────────────────────────────────────────────────────
   const handleDownloadPDF = async () => {
     if (!optimizedResume) return;
+    
 
     // Check if user is logged in
     if (!user) {
@@ -1302,34 +1305,9 @@ export default function HomePage() {
 
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/20 to-indigo-50/30">
         {/* Nav */}
-        <nav className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-200/60">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
-                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              </div>
-              <div>
-                <h1 className="font-bold text-slate-900 tracking-tight text-lg">ResumeForge</h1>
-                <p className="text-xs text-slate-500">AI-Powered ATS Optimizer</p>
-              </div>
-            </div>
-            {/* User profile widget */}
-            <div className="flex items-center gap-3">
-              {user ? (
-                <UserProfile />
-              ) : (
-                <button
-                  onClick={() => setShowLoginModal(true)}
-                  className="px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-                  Sign In
-                </button>
-              )}
-            </div>
-          </div>
-        </nav>
+        <Navbar onSignInClick={() => setShowLoginModal(true)} />
+          
+  
 
         <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-10 pb-12">
           {/* Hero */}
@@ -1746,6 +1724,10 @@ export default function HomePage() {
           </div>
         </div>
       </div>
+      {/* Login Modal */}
+      {showLoginModal && (
+      <LoginModal onClose={() => setShowLoginModal(false)} />
+       )}
     </>
   );
 }

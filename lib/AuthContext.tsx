@@ -8,7 +8,7 @@ interface AuthContextType {
   user: AuthUser | null;
   dbUser: DBUser | null;
   loading: boolean;
-  signInWithEmail: (email: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -43,12 +43,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Sign in with email (magic link)
-  const signInWithEmail = async (email: string) => {
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
+  // Sign in with Google (one-click)
+  const signInWithGoogle = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
       options: {
-        emailRedirectTo: window.location.origin,
+        redirectTo: window.location.href, // Stay on current page
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        },
       },
     });
 
@@ -95,7 +99,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         dbUser,
         loading,
-        signInWithEmail,
+        signInWithGoogle,
         signOut,
         refreshUser,
       }}>
