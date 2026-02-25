@@ -468,9 +468,9 @@ function EditablePreviewModal({ resume, onClose, onDownload, onResumeChange, isD
   }, [editedResume]);
 
   // Initial load
-  useState(() => {
+  useEffect(() => {
     regeneratePreview();
-  }) []);
+  }, []);
 
   // Update summary
   const updateSummary = (newSummary: string) => {
