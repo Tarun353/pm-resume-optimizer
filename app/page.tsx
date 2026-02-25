@@ -8,6 +8,7 @@ import { PaymentModal } from '@/components/PaymentModal';
 import { UserProfile } from '@/components/UserProfile';
 import { supabase } from '@/lib/supabase';
 import { Navbar } from '@/components/Navbar';
+import { useEffect } from 'react'; // Add useEffect if not already imported
 
 export const dynamic = 'force-dynamic';
 
@@ -889,6 +890,89 @@ export default function HomePage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // ── Save state before OAuth redirect ──────────────────────────────────────
+const saveStateBeforeLogin = () => {
+  const state = {
+    resumeText,
+    jobDescription,
+    parsedResume,
+    optimizedResume,
+    coverLetter,
+    uploadedFileName: uploadedFile?.name || null,
+    inputMode,
+    careerStage,
+    generationType,
+    timestamp: Date.now(),
+  };
+  sessionStorage.setItem('resumeState', JSON.stringify(state));
+  console.log('State saved before login');
+};
+
+// ── Restore state after OAuth redirect ────────────────────────────────────
+const restoreStateAfterLogin = () => {
+  const savedState = sessionStorage.getItem('resumeState');
+  if (!savedState) return false;
+
+  try {
+    const state = JSON.parse(savedState);
+    
+    // Only restore if saved within last 10 minutes
+    if (Date.now() - state.timestamp > 10 * 60 * 1000) {
+      sessionStorage.removeItem('resumeState');
+      return false;
+    }
+
+    // Restore state
+    setResumeText(state.resumeText || '');
+    setJobDescription(state.jobDescription || '');
+    setParsedResume(state.parsedResume || null);
+    setOptimizedResume(state.optimizedResume || null);
+    setCoverLetter(state.coverLetter || '');
+    setInputMode(state.inputMode || 'paste');
+    setCareerStage(state.careerStage || 'experienced');
+    setGenerationType(state.generationType || 'resume');
+
+    // Clear saved state
+    sessionStorage.removeItem('resumeState');
+    
+    console.log('State restored after login');
+    return true;
+  } catch (err) {
+    console.error('Failed to restore state:', err);
+    sessionStorage.removeItem('resumeState');
+    return false;
+  }
+};
+
+// ── Listen for login completion ───────────────────────────────────────────
+useEffect(() => {
+  const handleLoginComplete = () => {
+    console.log('Login completed, restoring state...');
+    
+    const restored = restoreStateAfterLogin();
+    
+    if (restored) {
+      // Auto-trigger download after small delay
+      setTimeout(() => {
+        if (optimizedResume && generationType === 'resume') {
+          console.log('Auto-triggering resume download');
+          handleDownloadPDF();
+        } else if (coverLetter && generationType === 'coverletter') {
+          console.log('Auto-triggering cover letter download');
+          handleDownloadCoverLetterPDF();
+        }
+      }, 1000);
+    }
+  };
+
+  window.addEventListener('login-complete', handleLoginComplete);
+  
+  return () => {
+    window.removeEventListener('login-complete', handleLoginComplete);
+  };
+}, [optimizedResume, coverLetter, generationType]); // Dependencies
+
+
   // ── File handling ────────────────────────────────────────────────────────
   const handleFile = useCallback((file: File) => {
     const name = file.name.toLowerCase();
@@ -1009,6 +1093,7 @@ export default function HomePage() {
 
     // Check if user is logged in
     if (!user) {
+      saveStateBeforeLogin();
       setShowLoginModal(true);
       return;
     }
@@ -1123,6 +1208,7 @@ export default function HomePage() {
 
     // Check if user is logged in
     if (!user) {
+      saveStateBeforeLogin();
       setShowLoginModal(true);
       return;
     }
@@ -1724,12 +1810,6 @@ export default function HomePage() {
           </div>
         </div>
       </div>
-      {/* Login Modal */}
-      <LoginModal
-        isOpen={showLoginModal}
-        onClose={() => setShowLoginModal(false)}
-        onSuccess={() => setShowLoginModal(false)}
-/>
     </>
   );
 }

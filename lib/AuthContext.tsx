@@ -43,20 +43,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Sign in with Google (one-click)
+  // Sign in with Google
   const signInWithGoogle = async () => {
+    // Mark that we're about to login
+    sessionStorage.setItem('loginInProgress', 'true');
+    
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: window.location.href, // Stay on current page
+        redirectTo: window.location.href, // Come back to same page
         queryParams: {
           access_type: 'offline',
-          prompt: 'consent',
+          prompt: 'select_account',
         },
       },
     });
 
-    if (error) throw error;
+    if (error) {
+      sessionStorage.removeItem('loginInProgress');
+      throw error;
+    }
   };
 
   // Sign out
@@ -73,6 +79,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(session?.user ?? null);
       if (session?.user) {
         fetchUserProfile(session.user.id);
+        
+        // Check if we just came back from login
+        const loginInProgress = sessionStorage.getItem('loginInProgress');
+        if (loginInProgress === 'true') {
+          sessionStorage.removeItem('loginInProgress');
+          // Trigger event to notify page
+          setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('login-complete'));
+          }, 500); // Small delay for state to settle
+        }
       }
       setLoading(false);
     });
@@ -80,10 +96,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchUserProfile(session.user.id);
+        await fetchUserProfile(session.user.id);
       } else {
         setDbUser(null);
       }
