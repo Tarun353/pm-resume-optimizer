@@ -10,22 +10,25 @@
     "postinstall": "node node_modules/puppeteer/install.mjs"
   },
   "dependencies": {
-    "next": "14.2.3",
-    "react": "^18",
-    "react-dom": "^18",
+    "@supabase/auth-helpers-nextjs": "^0.15.0",
+    "@supabase/supabase-js": "^2.97.0",
     "groq-sdk": "^0.3.3",
+    "mammoth": "^1.7.2",
+    "next": "14.2.3",
     "puppeteer": "^22.8.0",
-    "mammoth": "^1.7.2"
+    "razorpay": "^2.9.6",
+    "react": "^18",
+    "react-dom": "^18"
   },
   "devDependencies": {
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
-    "typescript": "^5",
+    "autoprefixer": "^10.4.19",
     "eslint": "^8",
     "eslint-config-next": "14.2.3",
+    "postcss": "^8.4.38",
     "tailwindcss": "^3.4.1",
-    "autoprefixer": "^10.4.19",
-    "postcss": "^8.4.38"
+    "typescript": "^5"
   }
 }

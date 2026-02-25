@@ -2,6 +2,11 @@
 
 import { useState, useCallback, useRef } from 'react';
 import { ResumeData, InputMode, CareerStage } from '@/lib/types';
+import { useAuth } from '@/lib/AuthContext';
+import { LoginModal } from '@/components/LoginModal';
+import { PaymentModal } from '@/components/PaymentModal';
+import { UserProfile } from '@/components/UserProfile';
+import { supabase } from '@/lib/supabase';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 function UploadIcon() {
@@ -872,6 +877,11 @@ export default function HomePage() {
   const [coverLetter, setCoverLetter] = useState<string>('');
   const [showCoverLetterPreview, setShowCoverLetterPreview] = useState(false);
 
+  // ── Auth states ───────────────────────────────────────────────────────────
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const { user } = useAuth();
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ── File handling ────────────────────────────────────────────────────────
@@ -991,28 +1001,60 @@ export default function HomePage() {
   // ── ✨ NEW: Download Cover Letter PDF ────────────────────────────────────
   const handleDownloadCoverLetterPDF = async () => {
     if (!coverLetter) return;
-    
+
+    // Check if user is logged in
+    if (!user) {
+      setShowLoginModal(true);
+      return;
+    }
+
+    // Track download and check limit
+    try {
+      const session = await supabase.auth.getSession();
+      const token = session.data.session?.access_token;
+
+      const trackRes = await fetch('/api/download/track', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ type: 'coverletter' }),
+      });
+
+      if (!trackRes.ok) {
+        const data = await trackRes.json();
+        if (data.reason === 'limit_exceeded') {
+          setShowPaymentModal(true);
+          return;
+        }
+        throw new Error(data.error || 'Failed to track download');
+      }
+    } catch (err) {
+      if (err instanceof Error && err.message !== 'Failed to track download') {
+        setError(err.message);
+        return;
+      }
+    }
+
     setIsDownloading(true);
     setError(null);
-    
+
     try {
       const name = parsedResume?.personal?.name || 'Applicant';
       const fileName = `${name.replace(/\s+/g, '_')}_Cover_Letter.pdf`;
-      
+
       const res = await fetch('/api/generate-cover-letter-pdf', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          coverLetter,
-          fileName,
-        }),
+        body: JSON.stringify({ coverLetter, fileName }),
       });
-      
+
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.error ?? 'PDF generation failed');
       }
-      
+
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -1022,9 +1064,9 @@ export default function HomePage() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      
+
       setShowCoverLetterPreview(false);
-      
+
     } catch (err) {
       setError(err instanceof Error ? err.message : 'PDF download failed');
     } finally {
@@ -1072,6 +1114,42 @@ export default function HomePage() {
   // ── Download PDF ──────────────────────────────────────────────────────────
   const handleDownloadPDF = async () => {
     if (!optimizedResume) return;
+
+    // Check if user is logged in
+    if (!user) {
+      setShowLoginModal(true);
+      return;
+    }
+
+    // Track download and check limit
+    try {
+      const session = await supabase.auth.getSession();
+      const token = session.data.session?.access_token;
+
+      const trackRes = await fetch('/api/download/track', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ type: 'resume' }),
+      });
+
+      if (!trackRes.ok) {
+        const data = await trackRes.json();
+        if (data.reason === 'limit_exceeded') {
+          setShowPaymentModal(true);
+          return;
+        }
+        throw new Error(data.error || 'Failed to track download');
+      }
+    } catch (err) {
+      if (err instanceof Error && err.message !== 'Failed to track download') {
+        setError(err.message);
+        return;
+      }
+    }
+
     setIsDownloading(true);
     setError(null);
 
@@ -1122,6 +1200,24 @@ export default function HomePage() {
 
   return (
     <>
+      {/* Login Modal */}
+      <LoginModal
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onSuccess={() => {
+          setShowLoginModal(false);
+        }}
+      />
+
+      {/* Payment Modal */}
+      <PaymentModal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        onSuccess={() => {
+          setShowPaymentModal(false);
+        }}
+      />
+
       {/* Editable Preview Modal */}
       {showPreview && optimizedResume && (
         <EditablePreviewModal
@@ -1216,6 +1312,18 @@ export default function HomePage() {
                 <h1 className="font-bold text-slate-900 tracking-tight text-lg">ResumeForge</h1>
                 <p className="text-xs text-slate-500">AI-Powered ATS Optimizer</p>
               </div>
+            </div>
+            {/* User profile widget */}
+            <div className="flex items-center gap-3">
+              {user ? (
+                <UserProfile />
+              ) : (
+                <button
+                  onClick={() => setShowLoginModal(true)}
+                  className="px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                  Sign In
+                </button>
+              )}
             </div>
           </div>
         </nav>
