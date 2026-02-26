@@ -70,6 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut();
     setUser(null);
     setDbUser(null);
+    window.location.reload();
   };
 
   // Initialize auth state
@@ -95,16 +96,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Listen for auth changes
     const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        await fetchUserProfile(session.user.id);
-      } else {
-        setDbUser(null);
-      }
-      setLoading(false);
-    });
+  data: { subscription },
+} = supabase.auth.onAuthStateChange(async (event, session) => {
+
+  setUser(session?.user ?? null);
+
+  if (session?.user) {
+    await fetchUserProfile(session.user.id);
+
+    // ✅ FIRE LOGIN EVENT HERE (REAL FIX)
+    const loginInProgress = sessionStorage.getItem('loginInProgress');
+    if (event === 'SIGNED_IN' && loginInProgress === 'true') {
+      sessionStorage.removeItem('loginInProgress');
+      setTimeout(() => {
+        window.dispatchEvent(new Event('login-complete'));
+      }, 300);
+    }
+
+  } else {
+    setDbUser(null);
+  }
+
+  setLoading(false);
+});
 
     return () => subscription.unsubscribe();
   }, []);

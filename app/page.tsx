@@ -953,15 +953,21 @@ useEffect(() => {
     
     if (restored) {
       // Auto-trigger download after small delay
-      setTimeout(() => {
-        if (optimizedResume && generationType === 'resume') {
-          console.log('Auto-triggering resume download');
-          handleDownloadPDF();
-        } else if (coverLetter && generationType === 'coverletter') {
-          console.log('Auto-triggering cover letter download');
-          handleDownloadCoverLetterPDF();
-        }
-      }, 1000);
+     setTimeout(async () => {
+  console.log('Preparing auto-download after login...');
+
+  await supabase.auth.refreshSession(); // 🔥 important
+
+  if (optimizedResume && generationType === 'resume') {
+    console.log('Auto-triggering resume download');
+    await handleDownloadPDF();
+
+  } else if (coverLetter && generationType === 'coverletter') {
+    console.log('Auto-triggering cover letter download');
+    await handleDownloadCoverLetterPDF();
+  }
+
+}, 600);
     }
   };
 
