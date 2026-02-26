@@ -946,28 +946,43 @@ const restoreStateAfterLogin = () => {
 
 // ── Listen for login completion ───────────────────────────────────────────
 useEffect(() => {
-  const handleLoginComplete = () => {
+  const handleLoginComplete = async () => {
     console.log('Login completed, restoring state...');
     
     const restored = restoreStateAfterLogin();
     
     if (restored) {
-      // Auto-trigger download after small delay
-     setTimeout(async () => {
-  console.log('Preparing auto-download after login...');
-
-  await supabase.auth.refreshSession(); // 🔥 important
-
-  if (optimizedResume && generationType === 'resume') {
-    console.log('Auto-triggering resume download');
-    await handleDownloadPDF();
-
-  } else if (coverLetter && generationType === 'coverletter') {
-    console.log('Auto-triggering cover letter download');
-    await handleDownloadCoverLetterPDF();
-  }
-
-}, 600);
+      console.log('State restored, waiting for session...');
+      
+      // ✅ Wait for session to be available
+      let attempts = 0;
+      const maxAttempts = 20;
+      let session = null;
+      
+      while (!session && attempts < maxAttempts) {
+        const { data } = await supabase.auth.getSession();
+        session = data.session;
+        if (!session) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+          attempts++;
+        }
+      }
+      
+      if (!session) {
+        console.error('Session not available after login');
+        return;
+      }
+      
+      console.log('Session available, triggering download');
+      
+      // Trigger download
+      if (optimizedResume && generationType === 'resume') {
+        console.log('Auto-downloading resume');
+        await handleDownloadPDF();
+      } else if (coverLetter && generationType === 'coverletter') {
+        console.log('Auto-downloading cover letter');
+        await handleDownloadCoverLetterPDF();
+      }
     }
   };
 
@@ -976,7 +991,7 @@ useEffect(() => {
   return () => {
     window.removeEventListener('login-complete', handleLoginComplete);
   };
-}, [optimizedResume, coverLetter, generationType]); // Dependencies
+}, [optimizedResume, coverLetter, generationType]);
 
 
   // ── File handling ────────────────────────────────────────────────────────
@@ -1095,7 +1110,80 @@ useEffect(() => {
 
   // ── ✨ NEW: Download Cover Letter PDF ────────────────────────────────────
   const handleDownloadCoverLetterPDF = async () => {
-    if (!coverLetter) return;
+  if (!coverLetter) return;
+
+  // ✅ Check session directly (not user state)
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.user) {
+    saveStateBeforeLogin();
+    setShowLoginModal(true);
+    return;
+  }
+
+  // Track download and check limit
+  try {
+    const token = session.access_token;
+
+    const trackRes = await fetch('/api/download/track', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ type: 'coverletter' }),
+    });
+
+    if (!trackRes.ok) {
+      const data = await trackRes.json();
+      if (data.reason === 'limit_exceeded') {
+        setShowPaymentModal(true);
+        return;
+      }
+      throw new Error(data.error || 'Failed to track download');
+    }
+  } catch (err) {
+    if (err instanceof Error && err.message !== 'Failed to track download') {
+      setError(err.message);
+      return;
+    }
+  }
+
+  setIsDownloading(true);
+  setError(null);
+
+  try {
+    const name = parsedResume?.personal?.name || 'Applicant';
+    const fileName = `${name.replace(/\s+/g, '_')}_Cover_Letter.pdf`;
+
+    const res = await fetch('/api/generate-cover-letter-pdf', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ coverLetter, fileName }),
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error ?? 'PDF generation failed');
+    }
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    await refreshUser();
+    setShowCoverLetterPreview(false);
+  } catch (err) {
+    setError(err instanceof Error ? err.message : 'PDF download failed');
+  } finally {
+    setIsDownloading(false);
+  }
+};
 
     // Check if user is logged in
     // 🔥 refresh auth before checking user
@@ -1214,7 +1302,87 @@ await supabase.auth.refreshSession();
 
   // ── Download PDF ──────────────────────────────────────────────────────────
   const handleDownloadPDF = async () => {
-    if (!optimizedResume) return;
+  if (!optimizedResume) return;
+
+  // ✅ Check session directly (not user state)
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.user) {
+    saveStateBeforeLogin();
+    setShowLoginModal(true);
+    return;
+  }
+
+  // Track download and check limit
+  try {
+    const token = session.access_token;
+
+    const trackRes = await fetch('/api/download/track', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ type: 'resume' }),
+    });
+
+    if (!trackRes.ok) {
+      const data = await trackRes.json();
+      if (data.reason === 'limit_exceeded') {
+        setShowPaymentModal(true);
+        return;
+      }
+      throw new Error(data.error || 'Failed to track download');
+    }
+  } catch (err) {
+    if (err instanceof Error && err.message !== 'Failed to track download') {
+      setError(err.message);
+      return;
+    }
+  }
+
+  setIsDownloading(true);
+  setError(null);
+
+  try {
+    const requestBody: Record<string, unknown> = {
+      resume: optimizedResume,
+    };
+
+    if (isDocxUpload && originalDocx && originalResume) {
+      requestBody.originalDocx = originalDocx;
+      requestBody.originalResume = originalResume;
+    }
+
+    const res = await fetch('/api/generate-pdf', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestBody),
+    });
+    
+    if (!res.ok) { 
+      const d = await res.json(); 
+      throw new Error(d.error ?? 'PDF failed'); 
+    }
+    
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const name = (optimizedResume.personal?.name ?? 'Resume').replace(/\s+/g, '_');
+    a.href = url;
+    a.download = `${name}_ATS_Optimized.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    await refreshUser();
+    setShowPreview(false);
+  } catch (err) {
+    setError(err instanceof Error ? err.message : 'PDF download failed.');
+  } finally {
+    setIsDownloading(false);
+  }
+};
     
 
     // Check if user is logged in
