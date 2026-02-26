@@ -886,7 +886,7 @@ export default function HomePage() {
   // ── Auth states ───────────────────────────────────────────────────────────
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const { user } = useAuth();
+  const { user, dbUser, refreshUser } = useAuth();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -1155,6 +1155,8 @@ useEffect(() => {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
+      await refreshUser();
+
       setShowCoverLetterPreview(false);
 
     } catch (err) {
@@ -1273,6 +1275,8 @@ useEffect(() => {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
+      await refreshUser();
+
       setShowPreview(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'PDF download failed.');
@@ -1298,6 +1302,7 @@ useEffect(() => {
         onClose={() => setShowLoginModal(false)}
         onSuccess={() => {
           setShowLoginModal(false);
+          await refreshUser();
           window.dispatchEvent(new Event('login-complete'));
         }}
       />
