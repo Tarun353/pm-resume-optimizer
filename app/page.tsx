@@ -1098,11 +1098,14 @@ useEffect(() => {
     if (!coverLetter) return;
 
     // Check if user is logged in
+    // 🔥 refresh auth before checking user
+await supabase.auth.refreshSession();
     if (!user) {
       saveStateBeforeLogin();
       setShowLoginModal(true);
       return;
     }
+    console.log('Download cover letter clicked'); // debug log
 
     // Track download and check limit
     try {
