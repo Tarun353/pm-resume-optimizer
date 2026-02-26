@@ -1300,7 +1300,7 @@ useEffect(() => {
       <LoginModal
         isOpen={showLoginModal}
         onClose={() => setShowLoginModal(false)}
-        onSuccess={() => {
+        onSuccess={async () => {
           setShowLoginModal(false);
           await refreshUser();
           window.dispatchEvent(new Event('login-complete'));
