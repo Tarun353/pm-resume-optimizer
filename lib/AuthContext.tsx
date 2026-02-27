@@ -67,24 +67,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Sign out
   const signOut = async () => {
+    console.log('Initiating sign out...');
+    
+    // 1. Immediately clear local states so the UI updates instantly
+    setUser(null);
+    setDbUser(null);
+    
+    // 2. Clear any browser storage
+    sessionStorage.removeItem('loginInProgress');
+    sessionStorage.removeItem('resumeState');
+
+    // 3. Set a safety fallback timeout. 
+    // If Supabase takes longer than 500ms to respond (or hangs completely), 
+    // we force the redirect anyway.
+    const forceReload = setTimeout(() => {
+      console.warn('Supabase signout timed out, forcing reload...');
+      window.location.href = '/';
+    }, 500);
+
     try {
-      // Show loading or prevent multiple clicks if desired
-      await supabase.auth.signOut();
+      // 4. Attempt to sign out of Supabase WITHOUT awaiting it to block the thread
+      supabase.auth.signOut().then(({ error }) => {
+        if (error) console.error('Supabase signout error:', error);
+        clearTimeout(forceReload); // Clear the timeout if it finishes early
+        window.location.href = '/';
+      });
     } catch (error) {
-      console.error('Error during sign out:', error);
-    } finally {
-      // This will ALWAYS run, even if Supabase fails
-      setUser(null);
-      setDbUser(null);
-      
-      // Clear any session storage items you might have set
-      sessionStorage.removeItem('loginInProgress');
-      sessionStorage.removeItem('resumeState');
-      
-      // Force reload to clear all states and redirect properly
+      console.error('Unexpected error during sign out:', error);
+      clearTimeout(forceReload);
       window.location.href = '/';
     }
   };
+
+
+  
 
   // Initialize auth state
   useEffect(() => {
