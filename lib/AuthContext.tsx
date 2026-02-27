@@ -67,10 +67,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Sign out
   const signOut = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setDbUser(null);
-    window.location.reload();
+    try {
+      // Show loading or prevent multiple clicks if desired
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error('Error during sign out:', error);
+    } finally {
+      // This will ALWAYS run, even if Supabase fails
+      setUser(null);
+      setDbUser(null);
+      
+      // Clear any session storage items you might have set
+      sessionStorage.removeItem('loginInProgress');
+      sessionStorage.removeItem('resumeState');
+      
+      // Force reload to clear all states and redirect properly
+      window.location.href = '/';
+    }
   };
 
   // Initialize auth state
