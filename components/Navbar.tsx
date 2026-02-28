@@ -88,10 +88,10 @@ export function Navbar({ onSignInClick }: NavbarProps) {
                       </p>
                     </div>
 
-                    {/* Sign Out */}
+                    {/* Sign Out - ✅ FIXED */}
                     <button
-                      onClick={() => {
-                        signOut();
+                      onClick={async () => {
+                        await signOut();
                         setShowMenu(false);
                       }}
                       className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors">
