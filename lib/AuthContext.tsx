@@ -74,13 +74,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     sessionStorage.removeItem('resumeState');
 
     try {
-      // IMPORTANT: bound sign-out wait time so UI never appears unresponsive
-      const signOutPromise = supabase.auth.signOut({ scope: 'local' });
-      const timeoutPromise = new Promise<{ error: Error }>((resolve) => {
-        setTimeout(() => resolve({ error: new Error('Sign-out timed out') }), 3000);
-      });
-
-      const { error } = await Promise.race([signOutPromise, timeoutPromise]);
+      // IMPORTANT: await sign-out so Supabase can clear local session tokens
+      const { error } = await supabase.auth.signOut({ scope: 'local' });
       if (error) {
         console.error('Supabase signout error:', error);
       }
