@@ -47,11 +47,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signInWithGoogle = async () => {
     // Mark that we're about to login
     sessionStorage.setItem('loginInProgress', 'true');
-    
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: window.location.href, // Come back to same page
+        redirectTo: window.location.href,
         queryParams: {
           access_type: 'offline',
           prompt: 'select_account',
@@ -87,10 +87,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setDbUser(null);
       window.location.href = '/';
     }
+
+    setUser(null);
+    setDbUser(null);
   };
-
-
-  
 
   // Initialize auth state
   useEffect(() => {
@@ -98,8 +98,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchUserProfile(session.user.id);
-        
+        void fetchUserProfile(session.user.id);
+
         // Check if we just came back from login
         const loginInProgress = sessionStorage.getItem('loginInProgress');
         if (loginInProgress === 'true') {
@@ -107,7 +107,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Trigger event to notify page
           setTimeout(() => {
             window.dispatchEvent(new CustomEvent('login-complete'));
-          }, 500); // Small delay for state to settle
+          }, 500);
         }
       }
       setLoading(false);
