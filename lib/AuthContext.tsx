@@ -29,8 +29,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .eq('id', userId)
         .single();
 
+      if (!error && data) {
+        setDbUser(data);
+        return;
+      }
+
+      // If user exists in auth but missing in public.users, auto-create profile row.
+      if (error && error.code === 'PGRST116') {
+        const { data: authData } = await supabase.auth.getUser();
+        const authUser = authData.user;
+
+        if (!authUser || authUser.id !== userId) {
+          throw new Error('Authenticated user mismatch while recreating profile');
+        }
+
+        const newProfile = {
+          id: authUser.id,
+          email: authUser.email ?? '',
+          subscription_type: 'free' as const,
+          created_at: new Date().toISOString(),
+        };
+
+        const { data: created, error: createError } = await supabase
+          .from('users')
+          .insert(newProfile)
+          .select('*')
+          .single();
+
+        if (createError) throw createError;
+
+        setDbUser(created);
+        return;
+      }
+
       if (error) throw error;
-      setDbUser(data);
     } catch (error) {
       console.error('Error fetching user profile:', error);
     }
