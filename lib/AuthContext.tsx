@@ -115,29 +115,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Listen for auth changes
     const {
-  data: { subscription },
-} = supabase.auth.onAuthStateChange(async (event, session) => {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user ?? null);
 
-  setUser(session?.user ?? null);
+      if (session?.user) {
+        // Avoid awaiting async work directly in auth callback; it can block auth state transitions.
+        void fetchUserProfile(session.user.id);
 
-  if (session?.user) {
-    await fetchUserProfile(session.user.id);
+        const loginInProgress = sessionStorage.getItem('loginInProgress');
+        if (event === 'SIGNED_IN' && loginInProgress === 'true') {
+          sessionStorage.removeItem('loginInProgress');
+          setTimeout(() => {
+            window.dispatchEvent(new Event('login-complete'));
+          }, 300);
+        }
+      } else {
+        setDbUser(null);
+      }
 
-    // ✅ FIRE LOGIN EVENT HERE (REAL FIX)
-    const loginInProgress = sessionStorage.getItem('loginInProgress');
-    if (event === 'SIGNED_IN' && loginInProgress === 'true') {
-      sessionStorage.removeItem('loginInProgress');
-      setTimeout(() => {
-        window.dispatchEvent(new Event('login-complete'));
-      }, 300);
-    }
-
-  } else {
-    setDbUser(null);
-  }
-
-  setLoading(false);
-});
+      setLoading(false);
+    });
 
     return () => subscription.unsubscribe();
   }, []);
