@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 
+const PLAN_PRICES: Record<string, number> = {
+  '1day': 19,
+  '10days': 49,
+  '1month': 139,
+};
+
 // Lazy initialize Razorpay only when needed
 function getRazorpayClient() {
   const Razorpay = require('razorpay');
@@ -20,19 +26,16 @@ function getRazorpayClient() {
 
 export async function POST(req: NextRequest) {
   try {
-    const { planType, amount } = await req.json();
+    const body = await req.json();
+    const { userId, plan } = body;
 
-    // Get user from auth header
-    const authHeader = req.headers.get('authorization');
-    if (!authHeader) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!userId) {
+      return new Response('Unauthorized', { status: 401 });
     }
 
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const amount = PLAN_PRICES[plan];
+    if (!amount) {
+      return NextResponse.json({ error: 'Invalid plan selected' }, { status: 400 });
     }
 
     // Initialize Razorpay client only when needed
@@ -42,16 +45,16 @@ export async function POST(req: NextRequest) {
     const order = await razorpay.orders.create({
       amount: amount * 100, // Amount in paise
       currency: 'INR',
-      receipt: `order_${user.id}_${Date.now()}`,
+      receipt: `order_${userId}_${Date.now()}`,
     });
 
     // Save payment record
     const { error: dbError } = await supabase
       .from('payments')
       .insert({
-        user_id: user.id,
+        user_id: userId,
         amount: amount,
-        plan_type: planType,
+        plan_type: plan,
         razorpay_order_id: order.id,
         status: 'pending',
       });
