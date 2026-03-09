@@ -84,18 +84,13 @@ export function PaymentModal({ isOpen, onClose, onSuccess }: PaymentModalProps) 
         throw new Error('Unauthorized');
       }
 
-      const { data: { session } } = await supabase.auth.getSession();
-      const requestHeaders: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-      if (session?.access_token) {
-        requestHeaders.Authorization = `Bearer ${session.access_token}`;
-      }
-
       // Create order on backend
       const res = await fetch('/api/payment/create', {
         method: 'POST',
-        headers: requestHeaders,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({
           userId: authUser.id,
           plan: selectedPlan,
