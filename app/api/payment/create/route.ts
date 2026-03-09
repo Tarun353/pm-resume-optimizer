@@ -2,15 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import Razorpay from 'razorpay';
 import { supabase } from '@/lib/supabase';
 
-export const runtime = 'nodejs';
-
 const PLAN_PRICES: Record<string, number> = {
   '1day': 19,
   '10days': 49,
   '1month': 139,
 };
 
-function getRazorpayClient(): Razorpay {
+// Lazy initialize Razorpay only when needed
+function getRazorpayClient() {
+  const Razorpay = require('razorpay');
+  
   const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
   const keySecret = process.env.RAZORPAY_KEY_SECRET;
 
@@ -32,16 +33,14 @@ function getRazorpayClient(): Razorpay {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { userId, plan } = body as { userId?: string; plan?: string };
+    const { userId, plan } = body;
 
     if (!userId) {
-      console.warn('[payment/create] Unauthorized: userId missing in request body');
       return new Response('Unauthorized', { status: 401 });
     }
 
-    const amount = plan ? PLAN_PRICES[plan] : undefined;
+    const amount = PLAN_PRICES[plan];
     if (!amount) {
-      console.warn('[payment/create] Invalid plan:', { userId, plan });
       return NextResponse.json({ error: 'Invalid plan selected' }, { status: 400 });
     }
 
@@ -60,7 +59,7 @@ export async function POST(req: NextRequest) {
       .from('payments')
       .insert({
         user_id: userId,
-        amount,
+        amount: amount,
         plan_type: plan,
         razorpay_order_id: order.id,
         status: 'pending',
