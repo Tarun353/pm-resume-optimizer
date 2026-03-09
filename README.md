@@ -136,3 +136,4 @@ The AI **only touches**:
 - `internships[].bullets` — same as experience (Call 2)
 
 **Never modified**: education, certifications, awards, publications, projects, skills, additionalSections
+Deployment trigger
