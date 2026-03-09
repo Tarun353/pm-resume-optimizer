@@ -106,12 +106,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     sessionStorage.removeItem('resumeState');
 
     try {
-      const { error } = await supabase.auth.signOut();
+      // IMPORTANT: await sign-out so Supabase can clear local session tokens
+      const { error } = await supabase.auth.signOut({ scope: 'local' });
       if (error) {
         console.error('Supabase signout error:', error);
       }
     } catch (error) {
       console.error('Unexpected error during sign out:', error);
+    } finally {
+      // Always clear in-memory state and refresh the app shell
+      setUser(null);
+      setDbUser(null);
+      window.location.href = '/';
     }
 
     setUser(null);
@@ -146,6 +152,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(session?.user ?? null);
 
       if (session?.user) {
+        // Avoid awaiting async work directly in auth callback; it can block auth state transitions.
         void fetchUserProfile(session.user.id);
 
         const loginInProgress = sessionStorage.getItem('loginInProgress');
