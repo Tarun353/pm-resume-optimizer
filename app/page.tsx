@@ -1186,9 +1186,46 @@ useEffect(() => {
 };
 
 
+  // ── Pre-check quota before expensive generation ───────────────────────────
+  const canRunGeneration = async (): Promise<boolean> => {
+    // Keep existing behavior for unauthenticated users.
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) return true;
+
+    try {
+      const statusRes = await fetch('/api/download/track', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (!statusRes.ok) {
+        const data = await statusRes.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to check download quota');
+      }
+
+      const status = await statusRes.json();
+      if (!status.canDownload) {
+        setShowPaymentModal(true);
+        return false;
+      }
+
+      return true;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to check download quota');
+      return false;
+    }
+  };
+
+
   // ── ✨ UPDATED: Main handler - handles both resume and cover letter ──────
   const handleGenerate = async () => {
     setError(null);
+
+    const allowed = await canRunGeneration();
+    if (!allowed) return;
+
     setIsLoading(true);
     setOptimizedResume(null);
     setChanges([]);

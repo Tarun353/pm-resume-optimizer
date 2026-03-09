@@ -29,8 +29,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .eq('id', userId)
         .single();
 
+      if (!error && data) {
+        setDbUser(data);
+        return;
+      }
+
+      // If user exists in auth but missing in public.users, auto-create profile row.
+      if (error && error.code === 'PGRST116') {
+        const { data: authData } = await supabase.auth.getUser();
+        const authUser = authData.user;
+
+        if (!authUser || authUser.id !== userId) {
+          throw new Error('Authenticated user mismatch while recreating profile');
+        }
+
+        const newProfile = {
+          id: authUser.id,
+          email: authUser.email ?? '',
+          subscription_type: 'free' as const,
+          created_at: new Date().toISOString(),
+        };
+
+        const { data: created, error: createError } = await supabase
+          .from('users')
+          .insert(newProfile)
+          .select('*')
+          .single();
+
+        if (createError) throw createError;
+
+        setDbUser(created);
+        return;
+      }
+
       if (error) throw error;
-      setDbUser(data);
     } catch (error) {
       console.error('Error fetching user profile:', error);
     }
@@ -47,11 +79,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signInWithGoogle = async () => {
     // Mark that we're about to login
     sessionStorage.setItem('loginInProgress', 'true');
-    
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: window.location.href, // Come back to same page
+        redirectTo: window.location.href,
         queryParams: {
           access_type: 'offline',
           prompt: 'select_account',
@@ -68,39 +100,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Sign out
   const signOut = async () => {
     console.log('Initiating sign out...');
-    
-    // 1. Immediately clear local states so the UI updates instantly
-    setUser(null);
-    setDbUser(null);
-    
-    // 2. Clear any browser storage
+
+    // Clear transient browser state used by auth UX
     sessionStorage.removeItem('loginInProgress');
     sessionStorage.removeItem('resumeState');
 
-    // 3. Set a safety fallback timeout. 
-    // If Supabase takes longer than 500ms to respond (or hangs completely), 
-    // we force the redirect anyway.
-    const forceReload = setTimeout(() => {
-      console.warn('Supabase signout timed out, forcing reload...');
-      window.location.href = '/';
-    }, 500);
-
     try {
-      // 4. Attempt to sign out of Supabase WITHOUT awaiting it to block the thread
-      supabase.auth.signOut().then(({ error }) => {
-        if (error) console.error('Supabase signout error:', error);
-        clearTimeout(forceReload); // Clear the timeout if it finishes early
-        window.location.href = '/';
-      });
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Supabase signout error:', error);
+      }
     } catch (error) {
       console.error('Unexpected error during sign out:', error);
-      clearTimeout(forceReload);
-      window.location.href = '/';
     }
+
+    setUser(null);
+    setDbUser(null);
   };
-
-
-  
 
   // Initialize auth state
   useEffect(() => {
@@ -108,8 +124,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchUserProfile(session.user.id);
-        
+        void fetchUserProfile(session.user.id);
+
         // Check if we just came back from login
         const loginInProgress = sessionStorage.getItem('loginInProgress');
         if (loginInProgress === 'true') {
@@ -117,7 +133,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Trigger event to notify page
           setTimeout(() => {
             window.dispatchEvent(new CustomEvent('login-complete'));
-          }, 500); // Small delay for state to settle
+          }, 500);
         }
       }
       setLoading(false);
@@ -125,29 +141,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Listen for auth changes
     const {
-  data: { subscription },
-} = supabase.auth.onAuthStateChange(async (event, session) => {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user ?? null);
 
-  setUser(session?.user ?? null);
+      if (session?.user) {
+        void fetchUserProfile(session.user.id);
 
-  if (session?.user) {
-    await fetchUserProfile(session.user.id);
+        const loginInProgress = sessionStorage.getItem('loginInProgress');
+        if (event === 'SIGNED_IN' && loginInProgress === 'true') {
+          sessionStorage.removeItem('loginInProgress');
+          setTimeout(() => {
+            window.dispatchEvent(new Event('login-complete'));
+          }, 300);
+        }
+      } else {
+        setDbUser(null);
+      }
 
-    // ✅ FIRE LOGIN EVENT HERE (REAL FIX)
-    const loginInProgress = sessionStorage.getItem('loginInProgress');
-    if (event === 'SIGNED_IN' && loginInProgress === 'true') {
-      sessionStorage.removeItem('loginInProgress');
-      setTimeout(() => {
-        window.dispatchEvent(new Event('login-complete'));
-      }, 300);
-    }
-
-  } else {
-    setDbUser(null);
-  }
-
-  setLoading(false);
-});
+      setLoading(false);
+    });
 
     return () => subscription.unsubscribe();
   }, []);
