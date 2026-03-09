@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/lib/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -78,13 +79,24 @@ export function PaymentModal({ isOpen, onClose, onSuccess }: PaymentModalProps) 
       const plan = PLANS.find(p => p.key === selectedPlan);
       if (!plan) throw new Error('Invalid plan');
 
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (!authUser?.id) {
+        throw new Error('Unauthorized');
+      }
+
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+
       // Create order on backend
       const res = await fetch('/api/payment/create', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({
-          planType: plan.key,
-          amount: plan.price,
+          userId: authUser.id,
+          plan: selectedPlan,
         }),
       });
 
