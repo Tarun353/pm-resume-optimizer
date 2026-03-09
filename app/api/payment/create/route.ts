@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import Razorpay from 'razorpay';
 import { supabase } from '@/lib/supabase';
 
 const PLAN_PRICES: Record<string, number> = {
@@ -13,11 +14,16 @@ function getRazorpayClient() {
   
   const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
   const keySecret = process.env.RAZORPAY_KEY_SECRET;
-  
+
   if (!keyId || !keySecret) {
+    console.error('[payment/create] Missing Razorpay env vars:', {
+      hasKeyId: !!keyId,
+      hasKeySecret: !!keySecret,
+    });
     throw new Error('Razorpay credentials not configured');
   }
-  
+
+  console.log('[payment/create] Initializing Razorpay client');
   return new Razorpay({
     key_id: keyId,
     key_secret: keySecret,
@@ -38,17 +44,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid plan selected' }, { status: 400 });
     }
 
-    // Initialize Razorpay client only when needed
     const razorpay = getRazorpayClient();
 
-    // Create Razorpay order
+    console.log('[payment/create] Creating Razorpay order:', { userId, plan, amount });
     const order = await razorpay.orders.create({
-      amount: amount * 100, // Amount in paise
+      amount: amount * 100,
       currency: 'INR',
       receipt: `order_${userId}_${Date.now()}`,
     });
+    console.log('[payment/create] Razorpay order created:', { orderId: order.id, amount: order.amount });
 
-    // Save payment record
+    // Best-effort DB write: do not fail order creation response if this insert fails.
     const { error: dbError } = await supabase
       .from('payments')
       .insert({
@@ -60,8 +66,7 @@ export async function POST(req: NextRequest) {
       });
 
     if (dbError) {
-      console.error('Failed to save payment record:', dbError);
-      return NextResponse.json({ error: 'Failed to create order' }, { status: 500 });
+      console.error('[payment/create] Failed to save payment record (continuing):', dbError);
     }
 
     return NextResponse.json({
@@ -70,9 +75,11 @@ export async function POST(req: NextRequest) {
       currency: order.currency,
     });
   } catch (error) {
-    console.error('Payment creation error:', error);
+    console.error('[payment/create] Payment creation error:', error);
     return NextResponse.json(
-      { error: 'Failed to create payment order' },
+      {
+        error: error instanceof Error ? error.message : 'Failed to create payment order',
+      },
       { status: 500 }
     );
   }
