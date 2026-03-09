@@ -87,7 +87,10 @@ export function PaymentModal({ isOpen, onClose, onSuccess }: PaymentModalProps) 
       // Create order on backend
       const res = await fetch('/api/payment/create', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({
           userId: authUser.id,
           plan: selectedPlan,
