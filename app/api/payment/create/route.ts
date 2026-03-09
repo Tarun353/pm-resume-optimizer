@@ -30,6 +30,13 @@ function getRazorpayClient() {
   });
 }
 
+function buildReceipt(userId: string): string {
+  // Razorpay receipt must be <= 40 chars.
+  const shortUser = userId.replace(/-/g, '').slice(-8);
+  const ts = Date.now().toString(36);
+  return `ord_${shortUser}_${ts}`;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
