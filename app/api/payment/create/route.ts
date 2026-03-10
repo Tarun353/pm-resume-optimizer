@@ -2,15 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import Razorpay from 'razorpay';
 import { supabase } from '@/lib/supabase';
 
-export const runtime = 'nodejs';
-
 const PLAN_PRICES: Record<string, number> = {
   '1day': 19,
   '10days': 49,
   '1month': 139,
 };
 
-function getRazorpayClient(): Razorpay {
+// Lazy initialize Razorpay only when needed
+function getRazorpayClient() {
+  const Razorpay = require('razorpay');
+  
   const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
   const keySecret = process.env.RAZORPAY_KEY_SECRET;
 
@@ -39,48 +40,25 @@ function buildReceipt(userId: string): string {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    let { userId, plan } = body as { userId?: string; plan?: string };
-
-    // Backward/defensive fallback: resolve userId from bearer token if body misses it.
-    if (!userId) {
-      const authHeader = req.headers.get('authorization');
-      const token = authHeader?.startsWith('Bearer ') ? authHeader.replace('Bearer ', '') : null;
-      if (token) {
-        const { data: { user } } = await supabase.auth.getUser(token);
-        userId = user?.id;
-      }
-    }
+    const { userId, plan } = body;
 
     if (!userId) {
-      console.warn('[payment/create] Unauthorized: userId missing in request body');
       return new Response('Unauthorized', { status: 401 });
     }
 
-    const amount = plan ? PLAN_PRICES[plan] : undefined;
+    const amount = PLAN_PRICES[plan];
     if (!amount) {
-      console.warn('[payment/create] Invalid plan:', { userId, plan });
       return NextResponse.json({ error: 'Invalid plan selected' }, { status: 400 });
     }
 
     const razorpay = getRazorpayClient();
 
     console.log('[payment/create] Creating Razorpay order:', { userId, plan, amount });
-    let order;
-    try {
-      order = await razorpay.orders.create({
-        amount: amount * 100,
-        currency: 'INR',
-        receipt: buildReceipt(userId),
-      });
-    } catch (rzpError) {
-      console.error('[payment/create] Razorpay order create failed:', rzpError);
-      const message =
-        (rzpError as any)?.error?.description ||
-        (rzpError as any)?.error?.reason ||
-        (rzpError as Error)?.message ||
-        'Razorpay order creation failed';
-      return NextResponse.json({ error: message }, { status: 500 });
-    }
+    const order = await razorpay.orders.create({
+      amount: amount * 100,
+      currency: 'INR',
+      receipt: `order_${userId}_${Date.now()}`,
+    });
     console.log('[payment/create] Razorpay order created:', { orderId: order.id, amount: order.amount });
 
     // Best-effort DB write: do not fail order creation response if this insert fails.
@@ -88,7 +66,7 @@ export async function POST(req: NextRequest) {
       .from('payments')
       .insert({
         user_id: userId,
-        amount,
+        amount: amount,
         plan_type: plan,
         razorpay_order_id: order.id,
         status: 'pending',
