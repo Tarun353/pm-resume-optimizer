@@ -289,4 +289,6 @@ export function PaymentModal({ isOpen, onClose, onSuccess }: PaymentModalProps) 
       </div>
     </div>
   );
+
+  // rebuild trigger
 }
