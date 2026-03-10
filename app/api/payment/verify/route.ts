@@ -69,6 +69,8 @@ export async function POST(req: NextRequest) {
     }
 
     const razorpay = getRazorpayClient()
+    console.log('Verifying Razorpay payment:', razorpay_payment_id)
+    console.log('Order:', razorpay_order_id)
     const razorpayPayment = await razorpay.payments.fetch(razorpay_payment_id)
 
     if (razorpayPayment.status !== 'captured') {
