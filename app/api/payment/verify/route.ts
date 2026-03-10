@@ -103,6 +103,16 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    const { data: existingPayment } = await supabase
+      .from('payments')
+      .select('status')
+      .eq('razorpay_order_id', razorpay_order_id)
+      .single()
+
+    if (existingPayment?.status === 'completed') {
+      return NextResponse.json({ success: true })
+    }
+
     // Update payment table
     const { error: updatePaymentError } = await supabase
       .from('payments')
