@@ -8,6 +8,7 @@ import { PaymentModal } from '@/components/PaymentModal';
 import { UserProfile } from '@/components/UserProfile';
 import { supabase } from '@/lib/supabase';
 import { Navbar } from '@/components/Navbar';
+import { calculateATSScore } from '@/lib/atsScore';
 import { useEffect } from 'react'; // Add useEffect if not already imported
 
 export const dynamic = 'force-dynamic';
@@ -263,6 +264,36 @@ const SECTION_NAMES: Record<string, string> = {
   softSkills: '💡 Core Competencies',
 };
 
+const DEFAULT_SECTIONS = [
+  'summary',
+  'experience',
+  'internships',
+  'education',
+  'skills',
+  'projects',
+  'certifications',
+  'awards',
+  'publications',
+  'softSkills',
+  'additional:Achievements',
+  'additional:Languages',
+];
+
+const ADDABLE_SECTIONS = [
+  { key: 'summary', label: 'Professional Summary' },
+  { key: 'experience', label: 'Work Experience' },
+  { key: 'internships', label: 'Internships' },
+  { key: 'education', label: 'Education' },
+  { key: 'skills', label: 'Skills' },
+  { key: 'projects', label: 'Projects' },
+  { key: 'certifications', label: 'Certifications' },
+  { key: 'awards', label: 'Awards' },
+  { key: 'publications', label: 'Publications' },
+  { key: 'softSkills', label: 'Core Competencies' },
+  { key: 'additional:Achievements', label: 'Achievements' },
+  { key: 'additional:Languages', label: 'Languages' },
+];
+
 // ─── Section summary chip ──────────────────────────────────────────────────────
 function SectionChip({ label, count, present }: { label: string; count?: number; present: boolean }) {
   return (
@@ -430,6 +461,74 @@ function SectionReorder({ sectionOrder, onReorder }: SectionReorderProps) {
   );
 }
 
+
+
+function getInitialActiveSections(resume: ResumeData): string[] {
+  const base = resume.sectionOrder?.length ? [...resume.sectionOrder] : [...DEFAULT_SECTIONS];
+
+  for (const sec of resume.additionalSections ?? []) {
+    const key = `additional:${sec.heading}`;
+    if (sec.heading?.trim() && !base.includes(key)) {
+      base.push(key);
+    }
+  }
+
+  return Array.from(new Set(base));
+}
+
+function sectionHasContent(resume: ResumeData, section: string): boolean {
+  if (section.startsWith('additional:')) {
+    const heading = section.replace(/^additional:/, '').trim();
+    const entry = (resume.additionalSections ?? []).find(s => s.heading.trim() === heading);
+    return !!entry && ((entry.items?.length ?? 0) > 0 || !!entry.rawContent?.trim());
+  }
+
+  switch (section) {
+    case 'summary': return !!resume.summary?.trim();
+    case 'experience': return (resume.experience?.length ?? 0) > 0;
+    case 'internships': return (resume.internships?.length ?? 0) > 0;
+    case 'education': return (resume.education?.length ?? 0) > 0;
+    case 'skills': return (resume.skills?.length ?? 0) > 0;
+    case 'projects': return (resume.projects?.length ?? 0) > 0;
+    case 'certifications': return (resume.certifications?.length ?? 0) > 0;
+    case 'awards': return (resume.awards?.length ?? 0) > 0;
+    case 'publications': return (resume.publications?.length ?? 0) > 0;
+    case 'softSkills': return (resume.softSkills?.length ?? 0) > 0;
+    default: return false;
+  }
+}
+
+function SectionEditor({
+  section,
+  value,
+  onChange,
+}: {
+  section: string;
+  value: unknown;
+  onChange: (section: string, value: string) => void;
+}) {
+  const title = SECTION_NAMES[section] || section.replace('additional:', '📄 ');
+  const isSummary = section === 'summary';
+  const textValue = typeof value === 'string'
+    ? value
+    : Array.isArray(value)
+      ? value.map((item) => typeof item === 'string' ? item : JSON.stringify(item)).join('\n')
+      : value
+        ? JSON.stringify(value, null, 2)
+        : '';
+
+  return (
+    <div className="mb-6 pb-6 border-b border-slate-200">
+      <h3 className="text-sm font-bold text-blue-600 uppercase tracking-wide mb-3">{title}</h3>
+      <textarea
+        value={textValue}
+        onChange={(e) => onChange(section, e.target.value)}
+        className="w-full min-h-[100px] p-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-y"
+        placeholder={isSummary ? 'Enter your professional summary...' : `Edit ${section} content...`}
+      />
+    </div>
+  );
+}
 // ─── EDITABLE PREVIEW MODAL ───────────────────────────────────────────────────
 interface EditablePreviewModalProps {
   resume: ResumeData;
@@ -445,6 +544,8 @@ function EditablePreviewModal({ resume, onClose, onDownload, onResumeChange, isD
   const [previewHTML, setPreviewHTML] = useState<string>('');
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
   const [activeTab, setActiveTab] = useState<'edit' | 'reorder'>('edit');
+  const [activeSections, setActiveSections] = useState<string[]>(() => getInitialActiveSections(resume));
+  const atsScore = calculateATSScore(editedResume);
 
   // Generate preview whenever editedResume changes
   const regeneratePreview = useCallback(async () => {
@@ -546,9 +647,102 @@ function EditablePreviewModal({ resume, onClose, onDownload, onResumeChange, isD
     }
   };
 
+  const applyResumeUpdate = async (updated: ResumeData) => {
+    setEditedResume(updated);
+    onResumeChange(updated);
+    await regeneratePreview();
+  };
+
+  const handleSectionUpdate = async (section: string, rawValue: string) => {
+    const updated: ResumeData = { ...editedResume };
+
+    if (section === 'summary') {
+      updated.summary = rawValue;
+      await applyResumeUpdate(updated);
+      return;
+    }
+
+    if (section === 'skills' || section === 'softSkills') {
+      const parsed = rawValue.split('\n').map(v => v.trim()).filter(Boolean);
+      (updated as unknown as Record<string, unknown>)[section] = parsed;
+      await applyResumeUpdate(updated);
+      return;
+    }
+
+    if (section.startsWith('additional:')) {
+      const heading = section.replace(/^additional:/, '').trim();
+      const existing = [...(updated.additionalSections ?? [])];
+      const idx = existing.findIndex(item => item.heading.trim() === heading);
+      const items = rawValue.split('\n').map(v => v.trim()).filter(Boolean);
+      const next = { heading, items, rawContent: rawValue };
+      if (idx >= 0) existing[idx] = next;
+      else existing.push(next);
+      updated.additionalSections = existing;
+      await applyResumeUpdate(updated);
+      return;
+    }
+
+    const listSections = ['education', 'certifications', 'awards', 'publications', 'projects'];
+    if (listSections.includes(section)) {
+      try {
+        const lines = rawValue.trim();
+        const parsed = lines ? JSON.parse(lines) : [];
+        if (Array.isArray(parsed)) {
+          (updated as unknown as Record<string, unknown>)[section] = parsed;
+        }
+      } catch {
+        // Preserve current value if JSON is invalid while typing.
+      }
+      await applyResumeUpdate(updated);
+      return;
+    }
+
+    await applyResumeUpdate(updated);
+  };
+
+  const addSection = async (sectionName: string) => {
+    if (activeSections.includes(sectionName)) return;
+
+    const nextActive = [...activeSections, sectionName];
+    setActiveSections(nextActive);
+
+    const updated: ResumeData = {
+      ...editedResume,
+      sectionOrder: [...editedResume.sectionOrder.filter(sectionHas => sectionHas !== sectionName), sectionName],
+    };
+
+    if (sectionName.startsWith('additional:')) {
+      const heading = sectionName.replace(/^additional:/, '').trim();
+      updated.additionalSections = updated.additionalSections ?? [];
+      if (!updated.additionalSections.find(sec => sec.heading.trim() === heading)) {
+        updated.additionalSections.push({ heading, items: [], rawContent: '' });
+      }
+    }
+
+    await applyResumeUpdate(updated);
+  };
+
+  const removeSection = async (sectionName: string) => {
+    const nextActive = activeSections.filter(s => s !== sectionName);
+    setActiveSections(nextActive);
+
+    const updated: ResumeData = {
+      ...editedResume,
+      sectionOrder: editedResume.sectionOrder.filter(s => s !== sectionName),
+    };
+
+    if (sectionName.startsWith('additional:')) {
+      const heading = sectionName.replace(/^additional:/, '').trim();
+      updated.additionalSections = (updated.additionalSections ?? []).filter(sec => sec.heading.trim() !== heading);
+    }
+
+    await applyResumeUpdate(updated);
+  };
+
   // Update section order
   const updateSectionOrder = async (newOrder: string[]) => {
-    const updated = { ...editedResume, sectionOrder: newOrder };
+    const filteredOrder = newOrder.filter(section => activeSections.includes(section));
+    const updated = { ...editedResume, sectionOrder: filteredOrder };
     setEditedResume(updated);
     onResumeChange(updated);
     await regeneratePreview();
@@ -608,27 +802,57 @@ function EditablePreviewModal({ resume, onClose, onDownload, onResumeChange, isD
           {/* EDIT TAB */}
           {activeTab === 'edit' && (
             <>
-              {/* Summary Section */}
-              <div className="mb-6 pb-6 border-b border-slate-200">
-                <h3 className="text-sm font-bold text-blue-600 uppercase tracking-wide mb-3">Professional Summary</h3>
-                <textarea
-                  value={editedResume.summary}
-                  onChange={(e) => updateSummary(e.target.value)}
-                  className="w-full min-h-[100px] p-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
-                  placeholder="Enter your professional summary..."
-                />
-                {/* ✨ AI Button for Summary */}
-                <div className="flex justify-end mt-1">
-                  <AIButton
-                    text={editedResume.summary}
-                    onRewrite={(newText) => updateSummary(newText)}
-                    sectionType="summary"
-                  />
+              <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+                <p className="text-sm font-semibold text-emerald-800">ATS Resume Score: {atsScore}/100</p>
+              </div>
+
+              <div className="mb-6 rounded-lg border border-slate-200 p-4">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Manage Sections</p>
+                <div className="flex flex-wrap gap-2">
+                  {ADDABLE_SECTIONS.map((section) => {
+                    const active = activeSections.includes(section.key);
+                    return (
+                      <button
+                        key={section.key}
+                        onClick={() => active ? removeSection(section.key) : addSection(section.key)}
+                        className={`px-3 py-1.5 text-xs rounded-lg border transition-colors ${
+                          active
+                            ? 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100'
+                            : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
+                        }`}
+                      >
+                        {active ? 'Remove' : 'Add'} {section.label}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
+              {activeSections.map((section) => {
+                if (section === 'experience' || section === 'internships') {
+                  return null;
+                }
+
+                if (!sectionHasContent(editedResume, section) && !section.startsWith('additional:')) {
+                  return null;
+                }
+
+                const value = section.startsWith('additional:')
+                  ? ((editedResume.additionalSections ?? []).find(sec => sec.heading.trim() === section.replace(/^additional:/, '').trim())?.rawContent ?? '')
+                  : (editedResume as unknown as Record<string, unknown>)[section];
+
+                return (
+                  <SectionEditor
+                    key={section}
+                    section={section}
+                    value={value}
+                    onChange={handleSectionUpdate}
+                  />
+                );
+              })}
+
               {/* Experience Section */}
-              {editedResume.experience && editedResume.experience.length > 0 && (
+              {activeSections.includes('experience') && editedResume.experience && editedResume.experience.length > 0 && (
                 <div className="mb-6 pb-6 border-b border-slate-200">
                   <h3 className="text-sm font-bold text-blue-600 uppercase tracking-wide mb-3">Work Experience</h3>
                   <div className="space-y-6">
@@ -647,7 +871,6 @@ function EditablePreviewModal({ resume, onClose, onDownload, onResumeChange, isD
                                 onChange={(e) => updateExperienceBullet(expIndex, bulletIndex, e.target.value)}
                                 className="flex-1 text-sm px-2 py-1 border border-slate-200 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                               />
-                              {/* ✨ AI Button for Experience Bullet */}
                               <AIButton
                                 text={bullet}
                                 onRewrite={(newText) => updateExperienceBullet(expIndex, bulletIndex, newText)}
@@ -676,7 +899,7 @@ function EditablePreviewModal({ resume, onClose, onDownload, onResumeChange, isD
               )}
 
               {/* Internships Section */}
-              {editedResume.internships && editedResume.internships.length > 0 && (
+              {activeSections.includes('internships') && editedResume.internships && editedResume.internships.length > 0 && (
                 <div className="mb-6 pb-6 border-b border-slate-200">
                   <h3 className="text-sm font-bold text-blue-600 uppercase tracking-wide mb-3">Internships</h3>
                   <div className="space-y-6">
@@ -695,7 +918,6 @@ function EditablePreviewModal({ resume, onClose, onDownload, onResumeChange, isD
                                 onChange={(e) => updateInternshipBullet(intIndex, bulletIndex, e.target.value)}
                                 className="flex-1 text-sm px-2 py-1 border border-slate-200 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                               />
-                              {/* ✨ AI Button for Internship Bullet */}
                               <AIButton
                                 text={bullet}
                                 onRewrite={(newText) => updateInternshipBullet(intIndex, bulletIndex, newText)}
@@ -722,7 +944,6 @@ function EditablePreviewModal({ resume, onClose, onDownload, onResumeChange, isD
                   </div>
                 </div>
               )}
-
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-700">
                 <strong>💡 Tip:</strong> Click ✨ next to any bullet or summary to rewrite it with AI.
                 {isDocxUpload && ' Your original DOCX formatting will be preserved in the output.'}
@@ -757,7 +978,7 @@ function EditablePreviewModal({ resume, onClose, onDownload, onResumeChange, isD
               </div>
 
               <SectionReorder
-                sectionOrder={editedResume.sectionOrder}
+                sectionOrder={editedResume.sectionOrder.filter(section => activeSections.includes(section))}
                 onReorder={updateSectionOrder}
               />
 
@@ -1817,6 +2038,9 @@ useEffect(() => {
               {/* Resume Results */}
               {optimizedResume && !isLoading && (
                 <>
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3.5">
+                    <p className="text-sm font-semibold text-emerald-800">ATS Resume Score: {calculateATSScore(optimizedResume)}/100</p>
+                  </div>
                   <KeywordBadges keywords={keywords} />
                   <ChangesList changes={changes} />
                   <ResumeSectionSummary resume={optimizedResume} />
