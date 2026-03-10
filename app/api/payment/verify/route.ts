@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
 import { createClient } from '@supabase/supabase-js'
+import Razorpay from 'razorpay'
 
 const PLAN_DURATIONS: Record<string, number> = {
   '1day': 1,
@@ -17,6 +18,20 @@ function getServiceSupabase() {
   }
 
   return createClient(url, serviceKey)
+}
+
+function getRazorpayClient() {
+  const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID
+  const keySecret = process.env.RAZORPAY_KEY_SECRET
+
+  if (!keyId || !keySecret) {
+    throw new Error('Razorpay credentials not configured')
+  }
+
+  return new Razorpay({
+    key_id: keyId,
+    key_secret: keySecret,
+  })
 }
 
 export async function POST(req: NextRequest) {
@@ -49,6 +64,23 @@ export async function POST(req: NextRequest) {
       console.error('[verify] Signature mismatch')
       return NextResponse.json(
         { error: 'Invalid signature' },
+        { status: 400 }
+      )
+    }
+
+    const razorpay = getRazorpayClient()
+    const razorpayPayment = await razorpay.payments.fetch(razorpay_payment_id)
+
+    if (razorpayPayment.status !== 'captured') {
+      return NextResponse.json(
+        { error: 'Payment not captured' },
+        { status: 400 }
+      )
+    }
+
+    if (razorpayPayment.order_id !== razorpay_order_id) {
+      return NextResponse.json(
+        { error: 'Order mismatch' },
         { status: 400 }
       )
     }
