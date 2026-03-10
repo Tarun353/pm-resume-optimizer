@@ -84,6 +84,9 @@ export function PaymentModal({ isOpen, onClose, onSuccess }: PaymentModalProps) 
         throw new Error('Unauthorized');
       }
 
+      // Fetch token from session
+      const token = await supabase.auth.getSession().then(res => res.data.session?.access_token);
+
       // Create order on backend
       const res = await fetch('/api/payment/create', {
         method: 'POST',
@@ -203,7 +206,8 @@ export function PaymentModal({ isOpen, onClose, onSuccess }: PaymentModalProps) 
                   selectedPlan === plan.key
                     ? 'border-blue-500 bg-blue-50 shadow-lg'
                     : 'border-slate-200 bg-white hover:border-slate-300'
-                }`}>
+                }`}
+              >
                 {plan.popular && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-xs font-semibold rounded-full">
                     Most Popular
@@ -266,7 +270,7 @@ export function PaymentModal({ isOpen, onClose, onSuccess }: PaymentModalProps) 
           <button
             onClick={handlePayment}
             disabled={loading}
-            className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-slate-300 disabled:to-slate-400 text-white rounded-xl text-sm font-semibold transition-all shadow-lg flex items-center justify-center gap-2">
+            className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-slate-300 disabled:to-slate-400 text-white rounded-xl text-sm">
             {loading ? (
               <>
                 <SpinnerIcon />
