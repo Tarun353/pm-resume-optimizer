@@ -49,6 +49,17 @@ export async function POST(req: NextRequest) {
 
       if (orderId) {
         const supabase = getServiceSupabase()
+        const order_id = orderId
+
+        const { data: paymentRow } = await supabase
+          .from("payments")
+          .select("*")
+          .eq("razorpay_order_id", order_id)
+          .single()
+
+        if (!paymentRow) {
+          return new Response("Order not found", { status: 404 })
+        }
 
         await supabase
           .from("payments")
