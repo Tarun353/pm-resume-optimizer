@@ -12,7 +12,7 @@ const PLAN_PRICES: Record<string, number> = {
 function getRazorpayClient() {
   const Razorpay = require('razorpay');
   
-  const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+  const keyId = process.env.RAZORPAY_KEY_ID;
   const keySecret = process.env.RAZORPAY_KEY_SECRET;
 
   if (!keyId || !keySecret) {
