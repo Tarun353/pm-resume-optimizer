@@ -688,6 +688,51 @@ function EditablePreviewModal({ resume, onClose, onDownload, onResumeChange, isD
     return '';
   };
 
+  const getAdditionalSection = (section: string) => {
+    if (!section.startsWith('additional:')) return null;
+    const heading = section.replace(/^additional:/, '').trim();
+    return (editedResume.additionalSections || []).find(sec => sec.heading.trim() === heading) ?? null;
+  };
+
+  const getAdditionalSectionItems = (section: string): string[] => {
+    const entry = getAdditionalSection(section);
+    if (!entry) return [];
+
+    if (Array.isArray(entry.items) && entry.items.length > 0) {
+      return entry.items.filter(item => typeof item === 'string' && item.trim().length > 0);
+    }
+
+    if (typeof entry.rawContent === 'string' && entry.rawContent.trim().length > 0) {
+      return entry.rawContent
+        .split('\n')
+        .map(item => item.trim())
+        .filter(Boolean);
+    }
+
+    return [];
+  };
+
+  const updateAdditionalSectionItems = async (section: string, items: string[]) => {
+    const updated: ResumeData = { ...editedResume };
+    const heading = section.replace(/^additional:/, '').trim();
+    const existing = [...(updated.additionalSections ?? [])];
+    const idx = existing.findIndex(item => item.heading.trim() === heading);
+    const sanitizedItems = items.map(item => item.trim()).filter(Boolean);
+    const next = { heading, items: sanitizedItems, rawContent: sanitizedItems.join('\n') };
+
+    if (idx >= 0) existing[idx] = next;
+    else existing.push(next);
+
+    updated.additionalSections = existing;
+    await applyResumeUpdate(updated);
+  };
+
+  const updateAdditionalSectionItem = async (section: string, itemIndex: number, value: string) => {
+    const current = getAdditionalSectionItems(section);
+    current[itemIndex] = value;
+    await updateAdditionalSectionItems(section, current);
+  };
+
   const updateAliasedArrayEntry = async (
     section: keyof ResumeData,
     index: number,
@@ -926,7 +971,7 @@ function EditablePreviewModal({ resume, onClose, onDownload, onResumeChange, isD
                     <h3 className="text-lg font-semibold text-slate-900">{SECTION_NAMES[selectedSection] || selectedSection.replace('additional:', '')}</h3>
                     {selectedSection.startsWith('additional:') && (
                       <AIButton
-                        text={((editedResume.additionalSections || []).find(sec => sec.heading.trim() === selectedSection.replace(/^additional:/, '').trim())?.rawContent) || ''}
+                        text={getAdditionalSectionItems(selectedSection).join('\n')}
                         onRewrite={(newText) => { void handleSectionUpdate(selectedSection, newText); }}
                         sectionType="custom-section"
                       />
@@ -1123,12 +1168,30 @@ function EditablePreviewModal({ resume, onClose, onDownload, onResumeChange, isD
                   )}
 
                   {selectedSection.startsWith('additional:') && (
-                    <textarea
-                      value={((editedResume.additionalSections || []).find(sec => sec.heading.trim() === selectedSection.replace(/^additional:/, '').trim())?.rawContent) || ''}
-                      onChange={(e) => handleSectionUpdate(selectedSection, e.target.value)}
-                      className="w-full min-h-[120px] rounded-lg border border-slate-300 p-3 text-sm"
-                      placeholder="One item per line"
-                    />
+                    <div className="space-y-2">
+                      {getAdditionalSectionItems(selectedSection).map((item, itemIndex) => (
+                        <div key={itemIndex} className="flex items-start gap-2">
+                          <input
+                            value={item}
+                            onChange={(e) => updateAdditionalSectionItem(selectedSection, itemIndex, e.target.value)}
+                            className="flex-1 rounded border p-2 text-sm"
+                            placeholder={`Bullet ${itemIndex + 1}`}
+                          />
+                          <AIButton
+                            text={item}
+                            onRewrite={(newText) => { void updateAdditionalSectionItem(selectedSection, itemIndex, newText); }}
+                            sectionType="custom-section-item"
+                          />
+                        </div>
+                      ))}
+
+                      <button
+                        onClick={() => { void updateAdditionalSectionItems(selectedSection, [...getAdditionalSectionItems(selectedSection), 'New bullet point - click to edit']); }}
+                        className="text-sm text-blue-600"
+                      >
+                        Add bullet
+                      </button>
+                    </div>
                   )}
                 </div>
               )}
