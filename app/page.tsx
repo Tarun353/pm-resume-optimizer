@@ -8,7 +8,7 @@ import { PaymentModal } from '@/components/PaymentModal';
 import { UserProfile } from '@/components/UserProfile';
 import { supabase } from '@/lib/supabase';
 import { Navbar } from '@/components/Navbar';
-import { calculateATSScore } from '@/lib/atsScore';
+import { calculateATSScoreWithSuggestions } from '@/lib/atsScore';
 import { useEffect } from 'react'; // Add useEffect if not already imported
 
 export const dynamic = 'force-dynamic';
@@ -498,37 +498,16 @@ function sectionHasContent(resume: ResumeData, section: string): boolean {
   }
 }
 
-function SectionEditor({
-  section,
-  value,
-  onChange,
-}: {
-  section: string;
-  value: unknown;
-  onChange: (section: string, value: string) => void;
-}) {
-  const title = SECTION_NAMES[section] || section.replace('additional:', '📄 ');
-  const isSummary = section === 'summary';
-  const textValue = typeof value === 'string'
-    ? value
-    : Array.isArray(value)
-      ? value.map((item) => typeof item === 'string' ? item : JSON.stringify(item)).join('\n')
-      : value
-        ? JSON.stringify(value, null, 2)
-        : '';
+const REQUIRED_SECTIONS = ['experience'];
+const OPTIONAL_MODAL_SECTIONS = [
+  { key: 'projects', label: 'Projects' },
+  { key: 'certifications', label: 'Certifications' },
+  { key: 'awards', label: 'Awards' },
+  { key: 'publications', label: 'Publications' },
+  { key: 'additional:Languages', label: 'Languages' },
+  { key: 'additional:Volunteer Experience', label: 'Volunteer Experience' },
+];
 
-  return (
-    <div className="mb-6 pb-6 border-b border-slate-200">
-      <h3 className="text-sm font-bold text-blue-600 uppercase tracking-wide mb-3">{title}</h3>
-      <textarea
-        value={textValue}
-        onChange={(e) => onChange(section, e.target.value)}
-        className="w-full min-h-[100px] p-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-y"
-        placeholder={isSummary ? 'Enter your professional summary...' : `Edit ${section} content...`}
-      />
-    </div>
-  );
-}
 // ─── EDITABLE PREVIEW MODAL ───────────────────────────────────────────────────
 interface EditablePreviewModalProps {
   resume: ResumeData;
@@ -545,7 +524,9 @@ function EditablePreviewModal({ resume, onClose, onDownload, onResumeChange, isD
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
   const [activeTab, setActiveTab] = useState<'edit' | 'reorder'>('edit');
   const [activeSections, setActiveSections] = useState<string[]>(() => getInitialActiveSections(resume));
-  const atsScore = calculateATSScore(editedResume);
+  const [selectedSection, setSelectedSection] = useState<string | null>(null);
+  const [showAddSectionModal, setShowAddSectionModal] = useState(false);
+  const atsResult = calculateATSScoreWithSuggestions(editedResume);
 
   // Generate preview whenever editedResume changes
   const regeneratePreview = useCallback(async () => {
@@ -653,6 +634,30 @@ function EditablePreviewModal({ resume, onClose, onDownload, onResumeChange, isD
     await regeneratePreview();
   };
 
+  const updateField = async (section: keyof ResumeData, value: unknown) => {
+    const updated = { ...editedResume, [section]: value } as ResumeData;
+    await applyResumeUpdate(updated);
+  };
+
+  const updateArrayEntry = async (section: keyof ResumeData, index: number, field: string, value: string) => {
+    const list = ([...(((editedResume as unknown as Record<string, unknown>)[section] as Record<string, unknown>[]) ?? [])]);
+    const row = { ...(list[index] ?? {}) };
+    row[field] = value;
+    list[index] = row;
+    await updateField(section, list);
+  };
+
+  const addArrayEntry = async (section: keyof ResumeData, entry: Record<string, unknown>) => {
+    const list = ([...(((editedResume as unknown as Record<string, unknown>)[section] as Record<string, unknown>[]) ?? [])]);
+    list.push(entry);
+    await updateField(section, list);
+  };
+
+  const deleteArrayEntry = async (section: keyof ResumeData, index: number) => {
+    const list = ([...(((editedResume as unknown as Record<string, unknown>)[section] as Record<string, unknown>[]) ?? [])]);
+    await updateField(section, list.filter((_, i) => i !== index));
+  };
+
   const handleSectionUpdate = async (section: string, rawValue: string) => {
     const updated: ResumeData = { ...editedResume };
 
@@ -705,6 +710,7 @@ function EditablePreviewModal({ resume, onClose, onDownload, onResumeChange, isD
 
     const nextActive = [...activeSections, sectionName];
     setActiveSections(nextActive);
+    setSelectedSection(sectionName);
 
     const updated: ResumeData = {
       ...editedResume,
@@ -723,18 +729,17 @@ function EditablePreviewModal({ resume, onClose, onDownload, onResumeChange, isD
   };
 
   const removeSection = async (sectionName: string) => {
+    if (REQUIRED_SECTIONS.includes(sectionName)) return;
+    if (!window.confirm('Remove this section from the resume?')) return;
+
     const nextActive = activeSections.filter(s => s !== sectionName);
     setActiveSections(nextActive);
+    if (selectedSection === sectionName) setSelectedSection(null);
 
     const updated: ResumeData = {
       ...editedResume,
       sectionOrder: editedResume.sectionOrder.filter(s => s !== sectionName),
     };
-
-    if (sectionName.startsWith('additional:')) {
-      const heading = sectionName.replace(/^additional:/, '').trim();
-      updated.additionalSections = (updated.additionalSections ?? []).filter(sec => sec.heading.trim() !== heading);
-    }
 
     await applyResumeUpdate(updated);
   };
@@ -803,148 +808,195 @@ function EditablePreviewModal({ resume, onClose, onDownload, onResumeChange, isD
           {activeTab === 'edit' && (
             <>
               <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3">
-                <p className="text-sm font-semibold text-emerald-800">ATS Resume Score: {atsScore}/100</p>
+                <p className="text-sm font-semibold text-emerald-800">ATS Resume Score: {atsResult.score}/100</p>
+                {atsResult.suggestions.length > 0 && (
+                  <div className="mt-2">
+                    <p className="text-xs font-semibold text-emerald-900">Improve your score:</p>
+                    <ul className="mt-1 space-y-1 text-xs text-emerald-800">
+                      {atsResult.suggestions.map((suggestion) => (
+                        <li key={suggestion}>• {suggestion}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
 
-              <div className="mb-6 rounded-lg border border-slate-200 p-4">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Manage Sections</p>
-                <div className="flex flex-wrap gap-2">
-                  {ADDABLE_SECTIONS.map((section) => {
-                    const active = activeSections.includes(section.key);
-                    return (
-                      <button
-                        key={section.key}
-                        onClick={() => active ? removeSection(section.key) : addSection(section.key)}
-                        className={`px-3 py-1.5 text-xs rounded-lg border transition-colors ${
-                          active
-                            ? 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100'
-                            : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
-                        }`}
-                      >
-                        {active ? 'Remove' : 'Add'} {section.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+              {!selectedSection ? (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-slate-900">Edit Content</h3>
+                    <button
+                      onClick={() => setShowAddSectionModal(true)}
+                      className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700">
+                      <PlusIcon /> Add Section
+                    </button>
+                  </div>
 
-              {activeSections.map((section) => {
-                if (section === 'experience' || section === 'internships') {
-                  return null;
-                }
-
-                if (!sectionHasContent(editedResume, section) && !section.startsWith('additional:')) {
-                  return null;
-                }
-
-                const value = section.startsWith('additional:')
-                  ? ((editedResume.additionalSections ?? []).find(sec => sec.heading.trim() === section.replace(/^additional:/, '').trim())?.rawContent ?? '')
-                  : (editedResume as unknown as Record<string, unknown>)[section];
-
-                return (
-                  <SectionEditor
-                    key={section}
-                    section={section}
-                    value={value}
-                    onChange={handleSectionUpdate}
-                  />
-                );
-              })}
-
-              {/* Experience Section */}
-              {activeSections.includes('experience') && editedResume.experience && editedResume.experience.length > 0 && (
-                <div className="mb-6 pb-6 border-b border-slate-200">
-                  <h3 className="text-sm font-bold text-blue-600 uppercase tracking-wide mb-3">Work Experience</h3>
-                  <div className="space-y-6">
-                    {editedResume.experience.map((exp, expIndex) => (
-                      <div key={expIndex} className="bg-slate-50 rounded-lg p-4">
-                        <div className="font-semibold text-slate-900 mb-1">{exp.title}</div>
-                        <div className="text-sm text-slate-600 mb-3">{exp.company}</div>
-
-                        <div className="space-y-2">
-                          {exp.bullets.map((bullet, bulletIndex) => (
-                            <div key={bulletIndex} className="flex gap-2 items-start">
-                              <span className="text-slate-400 mt-1.5">•</span>
-                              <input
-                                type="text"
-                                value={bullet}
-                                onChange={(e) => updateExperienceBullet(expIndex, bulletIndex, e.target.value)}
-                                className="flex-1 text-sm px-2 py-1 border border-slate-200 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                              />
-                              <AIButton
-                                text={bullet}
-                                onRewrite={(newText) => updateExperienceBullet(expIndex, bulletIndex, newText)}
-                                sectionType="bullet"
-                              />
-                              <button
-                                onClick={() => deleteExperienceBullet(expIndex, bulletIndex)}
-                                className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
-                                title="Delete bullet">
-                                <TrashIcon />
-                              </button>
-                            </div>
-                          ))}
-
-                          <button
-                            onClick={() => addExperienceBullet(expIndex)}
-                            className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium mt-2">
-                            <PlusIcon />
-                            Add Bullet Point
-                          </button>
-                        </div>
+                  <div className="space-y-2">
+                    {activeSections.map((section) => (
+                      <div key={section} className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2">
+                        <button
+                          onClick={() => setSelectedSection(section)}
+                          className="text-sm font-medium text-slate-700 hover:text-blue-700">
+                          {SECTION_NAMES[section] || section.replace('additional:', '')} &gt;
+                        </button>
+                        <button
+                          onClick={() => removeSection(section)}
+                          disabled={REQUIRED_SECTIONS.includes(section)}
+                          className="text-xs text-red-600 disabled:text-slate-300">
+                          Delete
+                        </button>
                       </div>
                     ))}
                   </div>
                 </div>
-              )}
+              ) : (
+                <div>
+                  <button onClick={() => setSelectedSection(null)} className="mb-4 text-sm text-blue-600">&lt; Back</button>
+                  <h3 className="mb-4 text-lg font-semibold text-slate-900">{SECTION_NAMES[selectedSection] || selectedSection.replace('additional:', '')}</h3>
 
-              {/* Internships Section */}
-              {activeSections.includes('internships') && editedResume.internships && editedResume.internships.length > 0 && (
-                <div className="mb-6 pb-6 border-b border-slate-200">
-                  <h3 className="text-sm font-bold text-blue-600 uppercase tracking-wide mb-3">Internships</h3>
-                  <div className="space-y-6">
-                    {editedResume.internships.map((int, intIndex) => (
-                      <div key={intIndex} className="bg-slate-50 rounded-lg p-4">
-                        <div className="font-semibold text-slate-900 mb-1">{int.title}</div>
-                        <div className="text-sm text-slate-600 mb-3">{int.company}</div>
+                  {selectedSection === 'summary' && (
+                    <textarea value={editedResume.summary} onChange={(e) => updateSummary(e.target.value)} className="w-full min-h-[120px] rounded-lg border border-slate-300 p-3 text-sm" />
+                  )}
 
-                        <div className="space-y-2">
-                          {int.bullets.map((bullet, bulletIndex) => (
-                            <div key={bulletIndex} className="flex gap-2 items-start">
-                              <span className="text-slate-400 mt-1.5">•</span>
-                              <input
-                                type="text"
-                                value={bullet}
-                                onChange={(e) => updateInternshipBullet(intIndex, bulletIndex, e.target.value)}
-                                className="flex-1 text-sm px-2 py-1 border border-slate-200 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                              />
-                              <AIButton
-                                text={bullet}
-                                onRewrite={(newText) => updateInternshipBullet(intIndex, bulletIndex, newText)}
-                                sectionType="bullet"
-                              />
-                              <button
-                                onClick={() => deleteInternshipBullet(intIndex, bulletIndex)}
-                                className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
-                                title="Delete bullet">
-                                <TrashIcon />
-                              </button>
+                  {selectedSection === 'skills' && (
+                    <textarea
+                      value={(editedResume.skills || []).join('\n')}
+                      onChange={(e) => updateField('skills', e.target.value.split('\n').map(v => v.trim()).filter(Boolean))}
+                      className="w-full min-h-[140px] rounded-lg border border-slate-300 p-3 text-sm"
+                      placeholder="One skill per line"
+                    />
+                  )}
+
+                  {selectedSection === 'education' && (
+                    <div className="space-y-4">
+                      {(editedResume.education || []).map((edu, index) => (
+                        <div key={index} className="rounded-lg border border-slate-200 p-3 space-y-2">
+                          <input value={edu.degree || ''} onChange={(e) => updateArrayEntry('education', index, 'degree', e.target.value)} placeholder="Degree" className="w-full rounded border p-2 text-sm" />
+                          <input value={edu.institution || ''} onChange={(e) => updateArrayEntry('education', index, 'institution', e.target.value)} placeholder="Institution" className="w-full rounded border p-2 text-sm" />
+                          <input value={edu.location || ''} onChange={(e) => updateArrayEntry('education', index, 'location', e.target.value)} placeholder="Location" className="w-full rounded border p-2 text-sm" />
+                          <div className="grid grid-cols-2 gap-2">
+                            <input value={edu.startDate || ''} onChange={(e) => updateArrayEntry('education', index, 'startDate', e.target.value)} placeholder="Start Date" className="w-full rounded border p-2 text-sm" />
+                            <input value={edu.endDate || ''} onChange={(e) => updateArrayEntry('education', index, 'endDate', e.target.value)} placeholder="End Date" className="w-full rounded border p-2 text-sm" />
+                          </div>
+                          <input value={edu.gpa || ''} onChange={(e) => updateArrayEntry('education', index, 'gpa', e.target.value)} placeholder="GPA" className="w-full rounded border p-2 text-sm" />
+                          <input value={edu.notes || ''} onChange={(e) => updateArrayEntry('education', index, 'notes', e.target.value)} placeholder="Notes" className="w-full rounded border p-2 text-sm" />
+                          <button onClick={() => deleteArrayEntry('education', index)} className="text-xs text-red-600">Delete Entry</button>
+                        </div>
+                      ))}
+                      <button onClick={() => addArrayEntry('education', { degree: '', institution: '', bullets: [] })} className="text-sm text-blue-600">Add Education Entry</button>
+                    </div>
+                  )}
+
+                  {selectedSection === 'experience' && (
+                    <div className="space-y-4">
+                      {(editedResume.experience || []).map((exp, expIndex) => (
+                        <div key={expIndex} className="rounded-lg border border-slate-200 p-3">
+                          <div className="space-y-2">
+                            <input value={exp.company || ''} onChange={(e) => updateArrayEntry('experience', expIndex, 'company', e.target.value)} placeholder="Company" className="w-full rounded border p-2 text-sm" />
+                            <input value={exp.title || ''} onChange={(e) => updateArrayEntry('experience', expIndex, 'title', e.target.value)} placeholder="Role" className="w-full rounded border p-2 text-sm" />
+                            <div className="grid grid-cols-2 gap-2">
+                              <input value={exp.startDate || ''} onChange={(e) => updateArrayEntry('experience', expIndex, 'startDate', e.target.value)} placeholder="Start Date" className="w-full rounded border p-2 text-sm" />
+                              <input value={exp.endDate || ''} onChange={(e) => updateArrayEntry('experience', expIndex, 'endDate', e.target.value)} placeholder="End Date" className="w-full rounded border p-2 text-sm" />
+                            </div>
+                            <p className="text-sm font-medium text-slate-700">Responsibilities</p>
+                            {(exp.bullets || []).map((bullet, bulletIndex) => (
+                              <div key={bulletIndex} className="flex items-center gap-2">
+                                <input value={bullet} onChange={(e) => updateExperienceBullet(expIndex, bulletIndex, e.target.value)} className="flex-1 rounded border p-2 text-sm" />
+                                <AIButton
+                                  text={bullet}
+                                  onRewrite={(newText) => updateExperienceBullet(expIndex, bulletIndex, newText)}
+                                  sectionType="experience-bullet"
+                                />
+                                <button onClick={() => deleteExperienceBullet(expIndex, bulletIndex)} className="text-xs text-red-600">Delete</button>
+                              </div>
+                            ))}
+                            <button onClick={() => addExperienceBullet(expIndex)} className="text-sm text-blue-600">Add bullet</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {selectedSection === 'internships' && (
+                    <div className="space-y-4">
+                      {(editedResume.internships || []).map((item, intIndex) => (
+                        <div key={intIndex} className="rounded-lg border border-slate-200 p-3 space-y-2">
+                          <input value={item.company || ''} onChange={(e) => updateArrayEntry('internships', intIndex, 'company', e.target.value)} placeholder="Company" className="w-full rounded border p-2 text-sm" />
+                          <input value={item.title || ''} onChange={(e) => updateArrayEntry('internships', intIndex, 'title', e.target.value)} placeholder="Role" className="w-full rounded border p-2 text-sm" />
+                          {(item.bullets || []).map((bullet, bulletIndex) => (
+                            <div key={bulletIndex} className="flex items-center gap-2">
+                              <input value={bullet} onChange={(e) => updateInternshipBullet(intIndex, bulletIndex, e.target.value)} className="flex-1 rounded border p-2 text-sm" />
+                              <button onClick={() => deleteInternshipBullet(intIndex, bulletIndex)} className="text-xs text-red-600">Delete</button>
                             </div>
                           ))}
-
-                          <button
-                            onClick={() => addInternshipBullet(intIndex)}
-                            className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium mt-2">
-                            <PlusIcon />
-                            Add Bullet Point
-                          </button>
+                          <button onClick={() => addInternshipBullet(intIndex)} className="text-sm text-blue-600">Add bullet</button>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
+                  )}
+
+                  {selectedSection === 'certifications' && (
+                    <div className="space-y-3">
+                      {(editedResume.certifications || []).map((cert, index) => (
+                        <div key={index} className="rounded-lg border border-slate-200 p-3 space-y-2">
+                          <input value={cert.name || ''} onChange={(e) => updateArrayEntry('certifications', index, 'name', e.target.value)} placeholder="Certification" className="w-full rounded border p-2 text-sm" />
+                          <input value={cert.issuer || ''} onChange={(e) => updateArrayEntry('certifications', index, 'issuer', e.target.value)} placeholder="Issuer" className="w-full rounded border p-2 text-sm" />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {selectedSection === 'projects' && (
+                    <div className="space-y-3">
+                      {(editedResume.projects || []).map((project, index) => (
+                        <div key={index} className="rounded-lg border border-slate-200 p-3 space-y-2">
+                          <input value={project.name || ''} onChange={(e) => updateArrayEntry('projects', index, 'name', e.target.value)} placeholder="Project Name" className="w-full rounded border p-2 text-sm" />
+                          <textarea value={project.description || ''} onChange={(e) => updateArrayEntry('projects', index, 'description', e.target.value)} placeholder="Description" className="w-full rounded border p-2 text-sm" />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {selectedSection === 'softSkills' && (
+                    <textarea
+                      value={(editedResume.softSkills || []).join('\n')}
+                      onChange={(e) => updateField('softSkills', e.target.value.split('\n').map(v => v.trim()).filter(Boolean))}
+                      className="w-full min-h-[120px] rounded-lg border border-slate-300 p-3 text-sm"
+                      placeholder="One competency per line"
+                    />
+                  )}
+
+                  {selectedSection.startsWith('additional:') && (
+                    <textarea
+                      value={((editedResume.additionalSections || []).find(sec => sec.heading.trim() === selectedSection.replace(/^additional:/, '').trim())?.rawContent) || ''}
+                      onChange={(e) => handleSectionUpdate(selectedSection, e.target.value)}
+                      className="w-full min-h-[120px] rounded-lg border border-slate-300 p-3 text-sm"
+                      placeholder="One item per line"
+                    />
+                  )}
+                </div>
+              )}
+
+              {showAddSectionModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+                  <div className="w-full max-w-md rounded-xl bg-white p-5">
+                    <div className="mb-3 flex items-center justify-between">
+                      <h4 className="text-lg font-semibold">Add Section</h4>
+                      <button onClick={() => setShowAddSectionModal(false)}><CloseIcon /></button>
+                    </div>
+                    <div className="space-y-2">
+                      {OPTIONAL_MODAL_SECTIONS.map((section) => (
+                        <button key={section.key} onClick={async () => { await addSection(section.key); setShowAddSectionModal(false); }} className="w-full rounded border border-slate-200 px-3 py-2 text-left text-sm hover:bg-slate-50">
+                          {section.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
               )}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-700">
+
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-700 mt-4">
                 <strong>💡 Tip:</strong> Click ✨ next to any bullet or summary to rewrite it with AI.
                 {isDocxUpload && ' Your original DOCX formatting will be preserved in the output.'}
               </div>
@@ -2039,7 +2091,7 @@ useEffect(() => {
               {optimizedResume && !isLoading && (
                 <>
                   <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3.5">
-                    <p className="text-sm font-semibold text-emerald-800">ATS Resume Score: {calculateATSScore(optimizedResume)}/100</p>
+                    <p className="text-sm font-semibold text-emerald-800">ATS Resume Score: {calculateATSScoreWithSuggestions(optimizedResume).score}/100</p>
                   </div>
                   <KeywordBadges keywords={keywords} />
                   <ChangesList changes={changes} />
