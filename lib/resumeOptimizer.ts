@@ -85,6 +85,55 @@ Rewrite the summary (3-4 sentences, professional, authentic):`;
   }
 }
 
+async function generateSummaryFromContext(resume: ResumeData, jd: string, keywords: string[]): Promise<string> {
+  const keywordList = keywords.slice(0, 5).join(', ');
+  const experienceSnapshot = (resume.experience ?? [])
+    .slice(0, 3)
+    .map((exp) => {
+      const bullets = (exp.bullets ?? []).slice(0, 2).join('; ');
+      return `- ${exp.title} at ${exp.company}${bullets ? `: ${bullets}` : ''}`;
+    })
+    .join('\n');
+
+  const internshipSnapshot = (resume.internships ?? [])
+    .slice(0, 2)
+    .map((item) => {
+      const bullets = (item.bullets ?? []).slice(0, 2).join('; ');
+      return `- ${item.title} at ${item.company}${bullets ? `: ${bullets}` : ''}`;
+    })
+    .join('\n');
+
+  const userMsg = `Create a professional resume summary for this candidate.
+Use their experience + internships + job description context.
+Naturally include relevant terms from: ${keywordList}
+
+Experience:
+${experienceSnapshot || 'Not provided'}
+
+Internships:
+${internshipSnapshot || 'Not provided'}
+
+Job Description:
+${jd}
+
+Output only the final summary in 3-4 concise ATS-friendly sentences.`;
+
+  try {
+    const generated = await groqChatCompletion(SUMMARY_SYSTEM, userMsg, 300, 0.4);
+    if (generated.trim().length > 20) return generated.trim();
+  } catch (err) {
+    console.error('[generateSummaryFromContext] Error:', err);
+  }
+
+  const primaryExp = resume.experience?.[0];
+  const primaryInternship = resume.internships?.[0];
+  const role = primaryExp?.title || primaryInternship?.title || 'professional';
+  const companyContext = [primaryExp?.company, primaryInternship?.company].filter(Boolean).join(' and ');
+  const fallbackKeywordText = keywords.slice(0, 3).join(', ');
+
+  return `Professional ${role} with hands-on experience${companyContext ? ` at ${companyContext}` : ''}, delivering impact through cross-functional execution and measurable outcomes. Brings practical internship and project exposure aligned to target role needs${fallbackKeywordText ? `, including ${fallbackKeywordText}` : ''}. Combines analytical thinking, ownership, and clear communication to drive high-quality results in fast-paced environments.`;
+}
+
 // ─── Optimize bullets ──────────────────────────────────────────────────────────
 
 const BULLETS_SYSTEM = `You are an expert resume writer. Your goal: strengthen bullet points for ATS and human readers.
@@ -191,7 +240,7 @@ export async function optimizeResume(
   const optimizedResume: ResumeData = JSON.parse(JSON.stringify(resume));
 
   try {
-    // 1. Optimize summary (if exists)
+    // 1. Optimize or generate summary (always ensure one exists)
     if (resume.summary && resume.summary.trim().length > 10) {
       console.log('[optimizeResume] Optimizing summary...');
       const newSummary = await optimizeSummary(resume.summary, jobDescription, keywords);
@@ -199,6 +248,15 @@ export async function optimizeResume(
         optimizedResume.summary = newSummary;
         changes.push('Rewrote professional summary with JD-matched keywords and power verbs');
       }
+    } else {
+      console.log('[optimizeResume] Generating missing summary from context...');
+      optimizedResume.summary = await generateSummaryFromContext(resume, jobDescription, keywords);
+      changes.push('Generated professional summary from experience, internships, and job description');
+    }
+
+    const currentSectionOrder = optimizedResume.sectionOrder ?? [];
+    if (!currentSectionOrder.includes('summary')) {
+      optimizedResume.sectionOrder = ['summary', ...currentSectionOrder];
     }
 
     // 2. Optimize experience bullets (if exists)
