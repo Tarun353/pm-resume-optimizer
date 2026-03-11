@@ -500,12 +500,15 @@ function sectionHasContent(resume: ResumeData, section: string): boolean {
 
 const REQUIRED_SECTIONS = ['experience'];
 const OPTIONAL_MODAL_SECTIONS = [
+  { key: 'summary', label: 'Professional Summary' },
   { key: 'projects', label: 'Projects' },
   { key: 'certifications', label: 'Certifications' },
   { key: 'awards', label: 'Awards' },
   { key: 'publications', label: 'Publications' },
+  { key: 'skills', label: 'Skills' },
   { key: 'additional:Languages', label: 'Languages' },
   { key: 'additional:Volunteer Experience', label: 'Volunteer Experience' },
+  { key: 'additional:Leadership Experience', label: 'Leadership Experience' },
 ];
 
 // ─── EDITABLE PREVIEW MODAL ───────────────────────────────────────────────────
@@ -526,6 +529,7 @@ function EditablePreviewModal({ resume, onClose, onDownload, onResumeChange, isD
   const [activeSections, setActiveSections] = useState<string[]>(() => getInitialActiveSections(resume));
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
   const [showAddSectionModal, setShowAddSectionModal] = useState(false);
+  const [customSectionName, setCustomSectionName] = useState('');
   const atsResult = calculateATSScoreWithSuggestions(editedResume);
 
   // Generate preview whenever editedResume changes
@@ -728,6 +732,14 @@ function EditablePreviewModal({ resume, onClose, onDownload, onResumeChange, isD
     await applyResumeUpdate(updated);
   };
 
+  const addCustomSection = async () => {
+    const heading = customSectionName.trim();
+    if (!heading) return;
+    await addSection(`additional:${heading}`);
+    setCustomSectionName('');
+    setShowAddSectionModal(false);
+  };
+
   const removeSection = async (sectionName: string) => {
     if (REQUIRED_SECTIONS.includes(sectionName)) return;
     if (!window.confirm('Remove this section from the resume?')) return;
@@ -853,7 +865,16 @@ function EditablePreviewModal({ resume, onClose, onDownload, onResumeChange, isD
               ) : (
                 <div>
                   <button onClick={() => setSelectedSection(null)} className="mb-4 text-sm text-blue-600">&lt; Back</button>
-                  <h3 className="mb-4 text-lg font-semibold text-slate-900">{SECTION_NAMES[selectedSection] || selectedSection.replace('additional:', '')}</h3>
+                  <div className="mb-4 flex items-center justify-between gap-2">
+                    <h3 className="text-lg font-semibold text-slate-900">{SECTION_NAMES[selectedSection] || selectedSection.replace('additional:', '')}</h3>
+                    {selectedSection.startsWith('additional:') && (
+                      <AIButton
+                        text={((editedResume.additionalSections || []).find(sec => sec.heading.trim() === selectedSection.replace(/^additional:/, '').trim())?.rawContent) || ''}
+                        onRewrite={(newText) => { void handleSectionUpdate(selectedSection, newText); }}
+                        sectionType="custom-section"
+                      />
+                    )}
+                  </div>
 
                   {selectedSection === 'summary' && (
                     <textarea value={editedResume.summary} onChange={(e) => updateSummary(e.target.value)} className="w-full min-h-[120px] rounded-lg border border-slate-300 p-3 text-sm" />
@@ -991,6 +1012,22 @@ function EditablePreviewModal({ resume, onClose, onDownload, onResumeChange, isD
                           {section.label}
                         </button>
                       ))}
+                    </div>
+
+                    <div className="mt-5 border-t border-slate-200 pt-4">
+                      <h5 className="text-sm font-semibold text-slate-800">Create Custom Section</h5>
+                      <input
+                        value={customSectionName}
+                        onChange={(e) => setCustomSectionName(e.target.value)}
+                        placeholder="Section name (e.g., Soft Skills)"
+                        className="mt-2 w-full rounded border border-slate-300 px-3 py-2 text-sm"
+                      />
+                      <button
+                        onClick={addCustomSection}
+                        disabled={!customSectionName.trim()}
+                        className="mt-2 w-full rounded bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:bg-slate-300">
+                        Add Section
+                      </button>
                     </div>
                   </div>
                 </div>
