@@ -123,10 +123,17 @@ function AIButton({
   sectionType: string;
 }) {
   const [showModal, setShowModal] = useState(false);
+  const [originalText, setOriginalText] = useState('');
   const [instruction, setInstruction] = useState('');
   const [isRewriting, setIsRewriting] = useState(false);
 
+  const openRewriteModal = (sourceText: string) => {
+    setOriginalText(sourceText);
+    setShowModal(true);
+  };
+
   const handleRewrite = async () => {
+    if (!originalText.trim()) return;
     if (!instruction.trim()) return;
     setIsRewriting(true);
     try {
@@ -134,17 +141,20 @@ function AIButton({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          text,
+          text: originalText,
           instruction,
           context: { sectionType },
         }),
       });
-      if (res.ok) {
-        const data = await res.json();
-        onRewrite(data.rewritten);
-        setShowModal(false);
-        setInstruction('');
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data?.error || 'Failed to rewrite text');
       }
+
+      onRewrite(data.rewritten);
+      setShowModal(false);
+      setInstruction('');
     } catch (err) {
       console.error('AI rewrite failed:', err);
     } finally {
@@ -155,7 +165,7 @@ function AIButton({
   return (
     <>
       <button
-        onClick={() => setShowModal(true)}
+        onClick={() => openRewriteModal(text)}
         className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"
         title="Rewrite with AI">
         ✨
@@ -169,7 +179,7 @@ function AIButton({
             <div className="mb-4">
               <label className="text-sm font-medium text-slate-700 block mb-2">Original:</label>
               <div className="p-3 bg-slate-50 rounded text-sm text-slate-600">
-                {text.substring(0, 200)}{text.length > 200 && '...'}
+                {originalText.substring(0, 200)}{originalText.length > 200 && '...'}
               </div>
             </div>
 
@@ -917,7 +927,14 @@ function EditablePreviewModal({ resume, onClose, onDownload, onResumeChange, isD
                   </div>
 
                   {selectedSection === 'summary' && (
-                    <textarea value={editedResume.summary} onChange={(e) => updateSummary(e.target.value)} className="w-full min-h-[120px] rounded-lg border border-slate-300 p-3 text-sm" />
+                    <div className="flex items-start gap-2">
+                      <textarea value={editedResume.summary} onChange={(e) => updateSummary(e.target.value)} className="w-full min-h-[120px] rounded-lg border border-slate-300 p-3 text-sm" />
+                      <AIButton
+                        text={editedResume.summary || ''}
+                        onRewrite={(newText) => updateSummary(newText)}
+                        sectionType="summary"
+                      />
+                    </div>
                   )}
 
                   {selectedSection === 'skills' && (
@@ -988,6 +1005,11 @@ function EditablePreviewModal({ resume, onClose, onDownload, onResumeChange, isD
                           {(item.bullets || []).map((bullet, bulletIndex) => (
                             <div key={bulletIndex} className="flex items-center gap-2">
                               <input value={bullet} onChange={(e) => updateInternshipBullet(intIndex, bulletIndex, e.target.value)} className="flex-1 rounded border p-2 text-sm" />
+                              <AIButton
+                                text={bullet}
+                                onRewrite={(newText) => updateInternshipBullet(intIndex, bulletIndex, newText)}
+                                sectionType="bullet"
+                              />
                               <button onClick={() => deleteInternshipBullet(intIndex, bulletIndex)} className="text-xs text-red-600">Delete</button>
                             </div>
                           ))}
