@@ -662,6 +662,46 @@ function EditablePreviewModal({ resume, onClose, onDownload, onResumeChange, isD
     await updateField(section, list.filter((_, i) => i !== index));
   };
 
+  const getEntryText = (entry: unknown, fields: string[]): string => {
+    const objectEntry = (entry ?? {}) as Record<string, unknown>;
+    for (const field of fields) {
+      const value = objectEntry[field];
+      if (typeof value === 'string') return value;
+    }
+    return '';
+  };
+
+  const updateAliasedArrayEntry = async (
+    section: keyof ResumeData,
+    index: number,
+    primaryField: string,
+    aliases: string[],
+    value: string,
+  ) => {
+    const list = ([...(((editedResume as unknown as Record<string, unknown>)[section] as Record<string, unknown>[]) ?? [])]);
+    const row = { ...(list[index] ?? {}) };
+    row[primaryField] = value;
+    aliases.forEach(alias => {
+      if (alias !== primaryField && typeof row[alias] === 'string') {
+        row[alias] = value;
+      }
+    });
+    list[index] = row;
+    await updateField(section, list);
+  };
+
+  const updateProjectBullet = async (projectIndex: number, bulletIndex: number, value: string) => {
+    const projects = ([...(((editedResume.projects as unknown as Record<string, unknown>[]) ?? []))]);
+    const project = { ...(projects[projectIndex] ?? {}) };
+    const bullets = Array.isArray(project.bullets)
+      ? [...(project.bullets as string[])]
+      : [];
+    bullets[bulletIndex] = value;
+    project.bullets = bullets;
+    projects[projectIndex] = project;
+    await updateField('projects', projects);
+  };
+
   const handleSectionUpdate = async (section: string, rawValue: string) => {
     const updated: ResumeData = { ...editedResume };
 
@@ -961,8 +1001,56 @@ function EditablePreviewModal({ resume, onClose, onDownload, onResumeChange, isD
                     <div className="space-y-3">
                       {(editedResume.certifications || []).map((cert, index) => (
                         <div key={index} className="rounded-lg border border-slate-200 p-3 space-y-2">
-                          <input value={cert.name || ''} onChange={(e) => updateArrayEntry('certifications', index, 'name', e.target.value)} placeholder="Certification" className="w-full rounded border p-2 text-sm" />
+                          <div className="flex items-center gap-2">
+                            <input value={getEntryText(cert, ['name', 'title'])} onChange={(e) => updateAliasedArrayEntry('certifications', index, 'name', ['title'], e.target.value)} placeholder="Certification" className="w-full rounded border p-2 text-sm" />
+                            <AIButton
+                              text={getEntryText(cert, ['name', 'title'])}
+                              onRewrite={(newText) => { void updateAliasedArrayEntry('certifications', index, 'name', ['title'], newText); }}
+                              sectionType="certification-name"
+                            />
+                          </div>
                           <input value={cert.issuer || ''} onChange={(e) => updateArrayEntry('certifications', index, 'issuer', e.target.value)} placeholder="Issuer" className="w-full rounded border p-2 text-sm" />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {selectedSection === 'awards' && (
+                    <div className="space-y-3">
+                      {(editedResume.awards || []).map((award, index) => (
+                        <div key={index} className="rounded-lg border border-slate-200 p-3 space-y-2">
+                          <input value={getEntryText(award, ['title', 'name'])} onChange={(e) => updateAliasedArrayEntry('awards', index, 'title', ['name'], e.target.value)} placeholder="Award Title" className="w-full rounded border p-2 text-sm" />
+                          <input value={award.issuer || ''} onChange={(e) => updateArrayEntry('awards', index, 'issuer', e.target.value)} placeholder="Issuer" className="w-full rounded border p-2 text-sm" />
+                          <input value={award.date || ''} onChange={(e) => updateArrayEntry('awards', index, 'date', e.target.value)} placeholder="Date" className="w-full rounded border p-2 text-sm" />
+                          <div className="flex items-start gap-2">
+                            <textarea value={award.description || ''} onChange={(e) => updateArrayEntry('awards', index, 'description', e.target.value)} placeholder="Description" className="w-full rounded border p-2 text-sm" />
+                            <AIButton
+                              text={award.description || ''}
+                              onRewrite={(newText) => { void updateArrayEntry('awards', index, 'description', newText); }}
+                              sectionType="award-description"
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {selectedSection === 'publications' && (
+                    <div className="space-y-3">
+                      {(editedResume.publications || []).map((publication, index) => (
+                        <div key={index} className="rounded-lg border border-slate-200 p-3 space-y-2">
+                          <input value={getEntryText(publication, ['title', 'name'])} onChange={(e) => updateAliasedArrayEntry('publications', index, 'title', ['name'], e.target.value)} placeholder="Publication Title" className="w-full rounded border p-2 text-sm" />
+                          <input value={publication.publisher || ''} onChange={(e) => updateArrayEntry('publications', index, 'publisher', e.target.value)} placeholder="Publisher" className="w-full rounded border p-2 text-sm" />
+                          <input value={publication.date || ''} onChange={(e) => updateArrayEntry('publications', index, 'date', e.target.value)} placeholder="Date" className="w-full rounded border p-2 text-sm" />
+                          <input value={publication.link || ''} onChange={(e) => updateArrayEntry('publications', index, 'link', e.target.value)} placeholder="Link" className="w-full rounded border p-2 text-sm" />
+                          <div className="flex items-start gap-2">
+                            <textarea value={publication.description || ''} onChange={(e) => updateArrayEntry('publications', index, 'description', e.target.value)} placeholder="Description" className="w-full rounded border p-2 text-sm" />
+                            <AIButton
+                              text={publication.description || ''}
+                              onRewrite={(newText) => { void updateArrayEntry('publications', index, 'description', newText); }}
+                              sectionType="publication-description"
+                            />
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -972,8 +1060,25 @@ function EditablePreviewModal({ resume, onClose, onDownload, onResumeChange, isD
                     <div className="space-y-3">
                       {(editedResume.projects || []).map((project, index) => (
                         <div key={index} className="rounded-lg border border-slate-200 p-3 space-y-2">
-                          <input value={project.name || ''} onChange={(e) => updateArrayEntry('projects', index, 'name', e.target.value)} placeholder="Project Name" className="w-full rounded border p-2 text-sm" />
-                          <textarea value={project.description || ''} onChange={(e) => updateArrayEntry('projects', index, 'description', e.target.value)} placeholder="Description" className="w-full rounded border p-2 text-sm" />
+                          <input value={getEntryText(project, ['name', 'title'])} onChange={(e) => updateAliasedArrayEntry('projects', index, 'name', ['title'], e.target.value)} placeholder="Project Name" className="w-full rounded border p-2 text-sm" />
+                          <div className="flex items-start gap-2">
+                            <textarea value={project.description || ''} onChange={(e) => updateArrayEntry('projects', index, 'description', e.target.value)} placeholder="Description" className="w-full rounded border p-2 text-sm" />
+                            <AIButton
+                              text={project.description || ''}
+                              onRewrite={(newText) => { void updateArrayEntry('projects', index, 'description', newText); }}
+                              sectionType="project-description"
+                            />
+                          </div>
+                          {(project.bullets || []).map((bullet, bulletIndex) => (
+                            <div key={bulletIndex} className="flex items-start gap-2">
+                              <textarea value={bullet} onChange={(e) => updateProjectBullet(index, bulletIndex, e.target.value)} className="w-full rounded border p-2 text-sm" placeholder={`Bullet ${bulletIndex + 1}`} />
+                              <AIButton
+                                text={bullet}
+                                onRewrite={(newText) => { void updateProjectBullet(index, bulletIndex, newText); }}
+                                sectionType="project-bullet"
+                              />
+                            </div>
+                          ))}
                         </div>
                       ))}
                     </div>
