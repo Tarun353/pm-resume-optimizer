@@ -127,10 +127,17 @@ function AIButton({
   const [instruction, setInstruction] = useState('');
   const [isRewriting, setIsRewriting] = useState(false);
 
-  const openRewriteModal = (sourceText: string) => {
-    setOriginalText(sourceText);
+  const openRewriteModal = () => {
+    setOriginalText(text || '');
+    setInstruction('');
     setShowModal(true);
   };
+
+  useEffect(() => {
+    if (showModal) {
+      setOriginalText(text || '');
+    }
+  }, [showModal, text]);
 
   const handleRewrite = async () => {
     if (!originalText.trim()) return;
@@ -165,7 +172,7 @@ function AIButton({
   return (
     <>
       <button
-        onClick={() => openRewriteModal(text)}
+        onClick={openRewriteModal}
         className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"
         title="Rewrite with AI">
         ✨
