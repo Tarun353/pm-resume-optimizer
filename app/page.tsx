@@ -252,19 +252,19 @@ const CAREER_STAGES: Array<{
   {
     value: 'fresher',
     label: 'Fresh Graduate',
-    description: '<1 year experience · Education first',
+    description: '<1 year experience • Education first',
     icon: '🎓',
   },
   {
     value: 'experienced',
     label: 'Experienced Professional',
-    description: '2+ years experience · Experience first',
+    description: '2+ years experience • Experience first',
     icon: '💼',
   },
   {
     value: 'career-change',
     label: 'Career Transition',
-    description: 'Switching industries · Skills first',
+    description: 'Switching industries • Skills first',
     icon: '🔄',
   },
 ];
@@ -1986,6 +1986,7 @@ useEffect(() => {
     !isLoading &&
     jobDescription.trim().length >= 20 &&
     (resumeText.trim().length > 10 || uploadedFile !== null);
+  const showRightPanel = isLoading || !!error || !!parsedResume || !!optimizedResume || !!coverLetter;
 
   const fileIsDocx = uploadedFile?.name.toLowerCase().endsWith('.docx') ?? false;
   const fileIsPdf  = uploadedFile?.name.toLowerCase().endsWith('.pdf')  ?? false;
@@ -2112,8 +2113,31 @@ useEffect(() => {
             </p>
           </div>
 
+          <div className="mt-8 mb-6 bg-white rounded-xl shadow-sm p-4">
+            <h2 className="font-semibold text-slate-900">Select Your Career Stage</h2>
+            <p className="text-sm text-gray-500">
+              This determines the professional section order in your final resume.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3">
+              {CAREER_STAGES.map(stage => (
+                <button
+                  key={stage.value}
+                  onClick={() => setCareerStage(stage.value)}
+                  className={`text-left bg-gray-50 rounded-lg p-3 border cursor-pointer transition-colors hover:border-blue-500 ${
+                    careerStage === stage.value
+                      ? 'border-blue-600 bg-blue-50'
+                      : 'border-slate-200'
+                  }`}>
+                  <div className="text-lg mb-1">{stage.icon}</div>
+                  <p className="text-sm font-semibold text-slate-900">{stage.label}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">{stage.description}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Two-column layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+          <div className={`grid grid-cols-1 ${showRightPanel ? 'lg:grid-cols-2' : ''} gap-6 items-start`}>
 
             {/* ── LEFT: Inputs ── */}
             <div className="space-y-4">
@@ -2296,34 +2320,8 @@ The more detailed it is, the better the keyword matching.`}
             </div>
 
             {/* ── RIGHT: Results ── */}
+            {showRightPanel && (
             <div className="space-y-4">
-
-              {/* Empty state */}
-              {!parsedResume && !isLoading && (
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center">
-                  <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <span className="text-3xl">🎨</span>
-                  </div>
-                  <h3 className="font-semibold text-slate-900 mb-2">Full Control Over Your Documents</h3>
-                  <p className="text-sm text-slate-400 max-w-xs mx-auto mb-6">
-                    Optimize resumes · Generate cover letters · Edit content · Professional output guaranteed
-                  </p>
-                  <div className="grid grid-cols-2 gap-2.5 text-left">
-                    {[
-                      { icon: '📄', title: 'Resume', desc: 'ATS-optimized' },
-                      { icon: '✉️', title: 'Cover Letter', desc: 'AI-generated' },
-                      { icon: '✏️', title: 'Edit', desc: 'Full control' },
-                      { icon: '🎯', title: 'Professional', desc: 'Download PDF' },
-                    ].map(f => (
-                      <div key={f.title} className="bg-slate-50 rounded-xl p-3">
-                        <div className="text-lg mb-1">{f.icon}</div>
-                        <p className="text-xs font-semibold text-slate-700">{f.title}</p>
-                        <p className="text-xs text-slate-400">{f.desc}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
 
               {isLoading && (
                 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center">
@@ -2406,6 +2404,7 @@ The more detailed it is, the better the keyword matching.`}
                 </div>
               )}
             </div>
+            )}
           </div>
 
           {/* Footer */}
