@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef } from 'react';
-import { ResumeData, InputMode, CareerStage } from '@/lib/types';
+import { ResumeData, InputMode, CareerStage, ParseResponse } from '@/lib/types';
 import { useAuth } from '@/lib/AuthContext';
 import { LoginModal } from '@/components/LoginModal';
 import { PaymentModal } from '@/components/PaymentModal';
@@ -531,6 +531,7 @@ const OPTIONAL_MODAL_SECTIONS = [
 // ─── EDITABLE PREVIEW MODAL ───────────────────────────────────────────────────
 interface EditablePreviewModalProps {
   resume: ResumeData;
+  rawResumeText: string;
   onClose: () => void;
   onDownload: () => void;
   onResumeChange: (newResume: ResumeData) => void;
@@ -538,16 +539,30 @@ interface EditablePreviewModalProps {
   isDocxUpload: boolean;
 }
 
-function EditablePreviewModal({ resume, onClose, onDownload, onResumeChange, isDownloading, isDocxUpload }: EditablePreviewModalProps) {
+function EditablePreviewModal({ resume, rawResumeText, onClose, onDownload, onResumeChange, isDownloading, isDocxUpload }: EditablePreviewModalProps) {
   const [editedResume, setEditedResume] = useState<ResumeData>(JSON.parse(JSON.stringify(resume)));
   const [previewHTML, setPreviewHTML] = useState<string>('');
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
   const [activeTab, setActiveTab] = useState<'edit' | 'reorder'>('edit');
+  const [showOriginalText, setShowOriginalText] = useState(false);
+  const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'failed'>('idle');
   const [activeSections, setActiveSections] = useState<string[]>(() => getInitialActiveSections(resume));
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
   const [showAddSectionModal, setShowAddSectionModal] = useState(false);
   const [customSectionName, setCustomSectionName] = useState('');
   const atsResult = calculateATSScoreWithSuggestions(editedResume);
+
+  const handleCopyOriginalText = async () => {
+    try {
+      await navigator.clipboard.writeText(rawResumeText);
+      setCopyStatus('copied');
+    } catch (err) {
+      console.error('Failed to copy original resume text:', err);
+      setCopyStatus('failed');
+    }
+
+    setTimeout(() => setCopyStatus('idle'), 2000);
+  };
 
   // Generate preview whenever editedResume changes
   const regeneratePreview = useCallback(async () => {
@@ -1284,28 +1299,55 @@ function EditablePreviewModal({ resume, onClose, onDownload, onResumeChange, isD
             <EyeIcon />
             <h2 className="font-bold text-slate-900 text-lg">Live Preview</h2>
           </div>
-          <button
-            onClick={() => regeneratePreview()}
-            disabled={isLoadingPreview}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white rounded-lg text-xs font-medium transition-all"
-            title="Refresh preview">
-            {isLoadingPreview ? (
-              <>
-               <SpinnerIcon />
-               <span>Refreshing...</span>
-              </>
-            ) : (
-              <>
-               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                   d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-               </svg>
-               <span>Refresh</span>
-              </>
-           )}
-          </button>
+          <div className="flex items-center gap-2">
+            {rawResumeText.trim() && (
+              <button
+                onClick={() => setShowOriginalText(prev => !prev)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium transition-all"
+                title="Show original parsed resume text"
+              >
+                {showOriginalText ? 'Hide Original Text' : 'Show Original Resume Text'}
+              </button>
+            )}
+            <button
+              onClick={() => regeneratePreview()}
+              disabled={isLoadingPreview}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white rounded-lg text-xs font-medium transition-all"
+              title="Refresh preview">
+              {isLoadingPreview ? (
+                <>
+                <SpinnerIcon />
+                <span>Refreshing...</span>
+                </>
+              ) : (
+                <>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <span>Refresh</span>
+                </>
+            )}
+            </button>
+          </div>
         </div>
         <p className="text-xs text-slate-500">Updates automatically as you edit or reorder</p>
+        {showOriginalText && rawResumeText.trim() && (
+          <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Original Resume Text</p>
+              <button
+                onClick={handleCopyOriginalText}
+                className="px-2.5 py-1 rounded-md border border-slate-300 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors"
+              >
+                {copyStatus === 'copied' ? 'Copied!' : copyStatus === 'failed' ? 'Copy Failed' : 'Copy Text'}
+              </button>
+            </div>
+            <div className="max-h-40 overflow-auto rounded-md border border-slate-200 bg-white p-2.5">
+              <pre className="whitespace-pre-wrap break-words text-xs text-slate-700 font-mono">{rawResumeText}</pre>
+            </div>
+          </div>
+        )}
        </div>
 
         <div className="flex-1 overflow-auto p-6">
@@ -1389,6 +1431,7 @@ export default function HomePage() {
   const [generationType, setGenerationType] = useState<'resume' | 'coverletter'>('resume');
   const [coverLetter, setCoverLetter] = useState<string>('');
   const [showCoverLetterPreview, setShowCoverLetterPreview] = useState(false);
+  const [rawResumeText, setRawResumeText] = useState('');
 
   // ── Auth states ───────────────────────────────────────────────────────────
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -1405,6 +1448,7 @@ const saveStateBeforeLogin = () => {
     parsedResume,
     optimizedResume,
     coverLetter,
+    rawResumeText,
     uploadedFileName: uploadedFile?.name || null,
     inputMode,
     careerStage,
@@ -1435,6 +1479,7 @@ const restoreStateAfterLogin = () => {
     setParsedResume(state.parsedResume || null);
     setOptimizedResume(state.optimizedResume || null);
     setCoverLetter(state.coverLetter || '');
+    setRawResumeText(state.rawResumeText || '');
     setInputMode(state.inputMode || 'paste');
     setCareerStage(state.careerStage || 'experienced');
     setGenerationType(state.generationType || 'resume');
@@ -1540,7 +1585,7 @@ useEffect(() => {
       fd.append('careerStage', careerStage);
       const res = await fetch('/api/parse', { method: 'POST', body: fd });
       if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? 'Parse failed'); }
-      const d = await res.json();
+      const d = await res.json() as ParseResponse & { isDocxUpload?: boolean; originalDocx?: string };
 
       // Capture DOCX data if parse route returns it
       if (d.isDocxUpload && d.originalDocx) {
@@ -1554,7 +1599,8 @@ useEffect(() => {
         setIsDocxUpload(false);
       }
 
-      return d.resume as ResumeData;
+      setRawResumeText(d.rawText ?? '');
+      return d.resume;
     }
 
     const text = resumeText.trim();
@@ -1565,8 +1611,9 @@ useEffect(() => {
       body: JSON.stringify({ text, careerStage }),
     });
     if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? 'Parse failed'); }
-    const d = await res.json();
-    return d.resume as ResumeData;
+    const d = await res.json() as ParseResponse;
+    setRawResumeText(d.rawText ?? '');
+    return d.resume;
   };
 
   // ── Optimize ─────────────────────────────────────────────────────────────
@@ -1738,6 +1785,7 @@ useEffect(() => {
     setChanges([]);
     setKeywords([]);
     setCoverLetter('');
+    setRawResumeText('');
 
     try {
       // Parse resume first (needed for both)
@@ -1889,6 +1937,7 @@ useEffect(() => {
       {showPreview && optimizedResume && (
         <EditablePreviewModal
           resume={optimizedResume}
+          rawResumeText={rawResumeText}
           onClose={() => setShowPreview(false)}
           onDownload={handleDownloadPDF}
           onResumeChange={handleResumeChange}
