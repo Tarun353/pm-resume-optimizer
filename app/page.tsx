@@ -998,7 +998,7 @@ function EditablePreviewModal({ resume, rawResumeText, onClose, onDownload, onRe
               </div>
 
               {!selectedSection ? (
-                <div className="space-y-4">
+                <div className="space-y-4 xl:col-span-2">
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-semibold text-slate-900">Edit Content</h3>
                     <button
@@ -1061,7 +1061,7 @@ function EditablePreviewModal({ resume, rawResumeText, onClose, onDownload, onRe
                   )}
 
                   {selectedSection === 'education' && (
-                    <div className="space-y-4">
+                    <div className="space-y-4 xl:col-span-1">
                       {(editedResume.education || []).map((edu, index) => (
                         <div key={index} className="rounded-lg border border-slate-200 p-3 space-y-2">
                           <input value={edu.degree || ''} onChange={(e) => updateArrayEntry('education', index, 'degree', e.target.value)} placeholder="Degree" className="w-full rounded border p-2 text-sm" />
@@ -2143,21 +2143,17 @@ useEffect(() => {
           </div>
 
           {/* Two-column layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
 
             {/* ── LEFT: Inputs ── */}
-            <div className="space-y-4">
+            <div className="space-y-4 xl:col-span-2">
 
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
               {/* Resume input */}
               <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
                   <div>
                     <h2 className="font-semibold text-slate-900 text-sm">Your Resume</h2>
-                    <p className="text-xs text-slate-400 mt-0.5">
-                      {inputMode === 'upload' && uploadSubMode === 'docx'
-                        ? '✨ DOCX format will be preserved in output'
-                        : 'All sections preserved'}
-                    </p>
                   </div>
 
                   <div className="flex bg-slate-100 rounded-lg p-0.5">
@@ -2222,12 +2218,6 @@ useEffect(() => {
                     />
                   ) : (
                     <div className="space-y-3">
-                      {uploadSubMode === 'docx' && !uploadedFile && (
-                        <div className="mb-3 bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-blue-700">
-                          <strong>✨ DOCX Mode:</strong> Upload your Word file and we'll return a PDF that preserves your exact fonts, colors, and layout — only the content will change.
-                        </div>
-                      )}
-
                       <div
                         onDrop={handleDrop}
                         onDragOver={e => { e.preventDefault(); setIsDragOver(true); }}
@@ -2253,9 +2243,6 @@ useEffect(() => {
                               <p className="text-sm font-medium text-slate-900 truncate max-w-48">{uploadedFile.name}</p>
                               <p className="text-xs text-slate-400">
                                 {(uploadedFile.size / 1024).toFixed(0)} KB · Click to replace
-                                {fileIsDocx && (
-                                  <span className="text-blue-600 font-medium"> · Format preserved ✨</span>
-                                )}
                               </p>
                             </div>
                           </div>
@@ -2317,6 +2304,7 @@ useEffect(() => {
                     )}
                   </div>
                 </div>
+              </div>
               </div>
 
               {/* ✨ NEW: Generation Type Selection */}
@@ -2409,7 +2397,7 @@ useEffect(() => {
             </div>
 
             {/* ── RIGHT: Results ── */}
-            <div className="space-y-4">
+            <div className="space-y-4 xl:col-span-1">
 
               {/* Empty state */}
               {!parsedResume && !isLoading && (
