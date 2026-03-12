@@ -2207,7 +2207,7 @@ useEffect(() => {
                     <textarea
                       value={resumeText}
                       onChange={e => setResumeText(e.target.value)}
-                      placeholder="Paste your resume text here for best parsing results."
+                      placeholder="No need to paste resume text if uploaded the pdf"
                       className="w-full h-56 text-sm text-slate-700 placeholder-slate-300 bg-slate-50 border border-slate-200 rounded-xl p-3 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all font-mono"
                     />
                   ) : (
@@ -2267,7 +2267,7 @@ useEffect(() => {
                         <textarea
                           value={resumeText}
                           onChange={e => setResumeText(e.target.value)}
-                          placeholder="Paste your resume text here to prioritize text parsing over file parsing..."
+                          placeholder="No need to paste resume text if uploaded docx already"
                           className="w-full h-32 text-sm text-slate-700 placeholder-slate-300 bg-slate-50 border border-slate-200 rounded-xl p-3 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all"
                         />
                       </div>
@@ -2348,7 +2348,7 @@ The more detailed it is, the better the keyword matching.`}
                   {isLoading ? (
                     <><SpinnerIcon /><span className="ml-2">{loadingStep || 'Working...'}</span></>
                   ) : (
-                    'Optimize Resume'
+                    'Optimize Now'
                   )}
                 </button>
               </div>
@@ -2496,7 +2496,7 @@ The more detailed it is, the better the keyword matching.`}
         <button
           onClick={() => setAssistantOpen(true)}
           className="bg-purple-600 text-white px-5 py-3 rounded-full shadow-lg animate-pulse">
-          Hire Job Application Assistant
+          Hire PA to apply on behalf of you
         </button>
         <button
           onClick={() => setPmResumeOpen(true)}
