@@ -10,6 +10,7 @@ import { supabase } from '@/lib/supabase';
 import { Navbar } from '@/components/Navbar';
 import { calculateATSScoreWithSuggestions } from '@/lib/atsScore';
 import { useEffect } from 'react'; // Add useEffect if not already imported
+import { usePathname } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
@@ -1463,6 +1464,8 @@ function EditablePreviewModal({ resume, rawResumeText, onClose, onDownload, onRe
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function HomePage() {
+  const pathname = usePathname();
+  const isHomepage = pathname === '/';
   const [careerStage, setCareerStage]   = useState<CareerStage>('experienced');
   const [inputMode, setInputMode]       = useState<InputMode>('paste');
   const [resumeText, setResumeText]     = useState('');
@@ -2292,6 +2295,49 @@ The more detailed it is, the better the keyword matching.`}
                     )}
                   </div>
               </div>
+
+              <div className="bg-white rounded-xl shadow-md p-6">
+                <h2 className="font-semibold text-slate-900 text-lg mb-4">Choose Output</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <label className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                    generationType === 'resume'
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-slate-200 hover:border-slate-300 bg-white'
+                  }`}>
+                    <input
+                      type="radio"
+                      name="generationType"
+                      value="resume"
+                      checked={generationType === 'resume'}
+                      onChange={() => setGenerationType('resume')}
+                      className="mt-1"
+                    />
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">Resume</p>
+                      <p className="text-xs text-slate-500">ATS optimized</p>
+                    </div>
+                  </label>
+
+                  <label className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                    generationType === 'coverletter'
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-slate-200 hover:border-slate-300 bg-white'
+                  }`}>
+                    <input
+                      type="radio"
+                      name="generationType"
+                      value="coverletter"
+                      checked={generationType === 'coverletter'}
+                      onChange={() => setGenerationType('coverletter')}
+                      className="mt-1"
+                    />
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">Generate Cover Letter</p>
+                      <p className="text-xs text-slate-500">AI-generated</p>
+                    </div>
+                  </label>
+                </div>
+              </div>
               </div>
 
               <div className="flex justify-center mt-6">
@@ -2322,6 +2368,32 @@ The more detailed it is, the better the keyword matching.`}
             {/* ── RIGHT: Results ── */}
             {showRightPanel && (
             <div className="space-y-4">
+
+              {!parsedResume && !isLoading && (
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center">
+                  <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <span className="text-3xl">🎨</span>
+                  </div>
+                  <h3 className="font-semibold text-slate-900 mb-2">Full Control Over Your Documents</h3>
+                  <p className="text-sm text-slate-400 max-w-xs mx-auto mb-6">
+                    Optimize resumes · Generate cover letters · Edit content · Professional output guaranteed
+                  </p>
+                  <div className="grid grid-cols-2 gap-2.5 text-left">
+                    {[
+                      { icon: '📄', title: 'Resume', desc: 'ATS optimized' },
+                      { icon: '✉️', title: 'Cover Letter', desc: 'AI-generated' },
+                      { icon: '✏️', title: 'Edit', desc: 'Full control' },
+                      { icon: '🎯', title: 'Professional', desc: 'Download PDF' },
+                    ].map(f => (
+                      <div key={f.title} className="bg-slate-50 rounded-xl p-3">
+                        <div className="text-lg mb-1">{f.icon}</div>
+                        <p className="text-xs font-semibold text-slate-700">{f.title}</p>
+                        <p className="text-xs text-slate-400">{f.desc}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {isLoading && (
                 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center">
@@ -2419,6 +2491,7 @@ The more detailed it is, the better the keyword matching.`}
         </div>
       </div>
 
+      {isHomepage && (
       <div className="fixed right-6 top-40 z-50 flex flex-col gap-4">
         <button
           onClick={() => setAssistantOpen(true)}
@@ -2431,6 +2504,7 @@ The more detailed it is, the better the keyword matching.`}
           PM Resume Making Service
         </button>
       </div>
+      )}
 
       {assistantOpen && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setAssistantOpen(false)}>
