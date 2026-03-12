@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef } from 'react';
-import { ResumeData, InputMode, CareerStage } from '@/lib/types';
+import { ResumeData, InputMode, CareerStage, ParseResponse } from '@/lib/types';
 import { useAuth } from '@/lib/AuthContext';
 import { LoginModal } from '@/components/LoginModal';
 import { PaymentModal } from '@/components/PaymentModal';
@@ -385,6 +385,53 @@ function ResumeSectionSummary({ resume }: { resume: ResumeData }) {
           <SectionChip key={s.label} label={s.label} count={s.count} present={s.present} />
         ))}
       </div>
+    </div>
+  );
+}
+
+function OriginalResumeTextFallback({ rawText }: { rawText: string }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'failed'>('idle');
+
+  if (!rawText.trim()) return null;
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(rawText);
+      setCopyStatus('copied');
+    } catch (err) {
+      console.error('Failed to copy original resume text:', err);
+      setCopyStatus('failed');
+    }
+
+    setTimeout(() => setCopyStatus('idle'), 2000);
+  };
+
+  return (
+    <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-3">
+      <button
+        type="button"
+        onClick={() => setIsOpen(prev => !prev)}
+        className="w-full text-left text-sm font-semibold text-slate-800 hover:text-slate-950 transition-colors"
+      >
+        {isOpen ? 'Hide Original Resume Text' : 'Show Original Resume Text'}
+      </button>
+
+      {isOpen && (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Original Resume Text</p>
+          <div className="max-h-56 overflow-auto rounded-lg border border-slate-200 bg-slate-50 p-3">
+            <pre className="whitespace-pre-wrap break-words text-xs text-slate-700 font-mono">{rawText}</pre>
+          </div>
+          <button
+            type="button"
+            onClick={handleCopy}
+            className="px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors"
+          >
+            {copyStatus === 'copied' ? 'Copied!' : copyStatus === 'failed' ? 'Copy Failed' : 'Copy Text'}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -1389,6 +1436,7 @@ export default function HomePage() {
   const [generationType, setGenerationType] = useState<'resume' | 'coverletter'>('resume');
   const [coverLetter, setCoverLetter] = useState<string>('');
   const [showCoverLetterPreview, setShowCoverLetterPreview] = useState(false);
+  const [rawResumeText, setRawResumeText] = useState('');
 
   // ── Auth states ───────────────────────────────────────────────────────────
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -1405,6 +1453,7 @@ const saveStateBeforeLogin = () => {
     parsedResume,
     optimizedResume,
     coverLetter,
+    rawResumeText,
     uploadedFileName: uploadedFile?.name || null,
     inputMode,
     careerStage,
@@ -1435,6 +1484,7 @@ const restoreStateAfterLogin = () => {
     setParsedResume(state.parsedResume || null);
     setOptimizedResume(state.optimizedResume || null);
     setCoverLetter(state.coverLetter || '');
+    setRawResumeText(state.rawResumeText || '');
     setInputMode(state.inputMode || 'paste');
     setCareerStage(state.careerStage || 'experienced');
     setGenerationType(state.generationType || 'resume');
@@ -1540,7 +1590,7 @@ useEffect(() => {
       fd.append('careerStage', careerStage);
       const res = await fetch('/api/parse', { method: 'POST', body: fd });
       if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? 'Parse failed'); }
-      const d = await res.json();
+      const d = await res.json() as ParseResponse & { isDocxUpload?: boolean; originalDocx?: string };
 
       // Capture DOCX data if parse route returns it
       if (d.isDocxUpload && d.originalDocx) {
@@ -1554,7 +1604,8 @@ useEffect(() => {
         setIsDocxUpload(false);
       }
 
-      return d.resume as ResumeData;
+      setRawResumeText(d.rawText ?? '');
+      return d.resume;
     }
 
     const text = resumeText.trim();
@@ -1565,8 +1616,9 @@ useEffect(() => {
       body: JSON.stringify({ text, careerStage }),
     });
     if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? 'Parse failed'); }
-    const d = await res.json();
-    return d.resume as ResumeData;
+    const d = await res.json() as ParseResponse;
+    setRawResumeText(d.rawText ?? '');
+    return d.resume;
   };
 
   // ── Optimize ─────────────────────────────────────────────────────────────
@@ -1738,6 +1790,7 @@ useEffect(() => {
     setChanges([]);
     setKeywords([]);
     setCoverLetter('');
+    setRawResumeText('');
 
     try {
       // Parse resume first (needed for both)
@@ -2318,7 +2371,10 @@ useEffect(() => {
               )}
 
               {parsedResume && !optimizedResume && !coverLetter && !isLoading && (
-                <ResumeSectionSummary resume={parsedResume} />
+                <>
+                  <ResumeSectionSummary resume={parsedResume} />
+                  <OriginalResumeTextFallback rawText={rawResumeText} />
+                </>
               )}
 
               {/* Resume Results */}
@@ -2330,6 +2386,7 @@ useEffect(() => {
                   <KeywordBadges keywords={keywords} />
                   <ChangesList changes={changes} />
                   <ResumeSectionSummary resume={optimizedResume} />
+                  <OriginalResumeTextFallback rawText={rawResumeText} />
 
                   {isDocxUpload && (
                     <div className="bg-blue-50 border border-blue-200 rounded-xl p-3.5 flex items-start gap-3">
