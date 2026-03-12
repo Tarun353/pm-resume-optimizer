@@ -9,6 +9,7 @@ import { UserProfile } from '@/components/UserProfile';
 import { supabase } from '@/lib/supabase';
 import { Navbar } from '@/components/Navbar';
 import { calculateATSScoreWithSuggestions } from '@/lib/atsScore';
+import { detectMissingPMKeywords } from '@/lib/pmAnalyzer';
 import { useEffect } from 'react'; // Add useEffect if not already imported
 import { usePathname } from 'next/navigation';
 
@@ -1496,6 +1497,7 @@ export default function HomePage() {
   const [coverLetter, setCoverLetter] = useState<string>('');
   const [showCoverLetterPreview, setShowCoverLetterPreview] = useState(false);
   const [rawResumeText, setRawResumeText] = useState('');
+  const [pmProfile, setPmProfile] = useState('aspiring');
 
   // ── Auth states ───────────────────────────────────────────────────────────
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -1516,6 +1518,7 @@ const saveStateBeforeLogin = () => {
     uploadedFileName: uploadedFile?.name || null,
     inputMode,
     careerStage,
+    pmProfile,
     generationType,
     timestamp: Date.now(),
   };
@@ -1546,6 +1549,7 @@ const restoreStateAfterLogin = () => {
     setRawResumeText(state.rawResumeText || '');
     setInputMode(state.inputMode || 'paste');
     setCareerStage(state.careerStage || 'experienced');
+    setPmProfile(state.pmProfile || 'aspiring');
     setGenerationType(state.generationType || 'resume');
 
     // Clear saved state
@@ -1989,6 +1993,9 @@ useEffect(() => {
     !isLoading &&
     jobDescription.trim().length >= 20 &&
     (resumeText.trim().length > 10 || uploadedFile !== null);
+  const analyzedResumeText = rawResumeText || resumeText;
+  const pmAnalysis = detectMissingPMKeywords(analyzedResumeText);
+  const pmScore = Math.max(0, 100 - (pmAnalysis.missingKeywords.length * 5));
   const showRightPanel = isLoading || !!error || !!parsedResume || !!optimizedResume || !!coverLetter;
 
   const fileIsDocx = uploadedFile?.name.toLowerCase().endsWith('.docx') ?? false;
@@ -2106,37 +2113,11 @@ useEffect(() => {
           {/* Hero */}
           <div className="text-center mb-10">
             <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-3 tracking-tight">
-              Beat the ATS.{' '}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
-                Land the Interview.
-              </span>
+              Optimize Your Product Manager Resume in 60 Seconds
             </h1>
             <p className="text-slate-500 max-w-lg mx-auto">
-              Optimize your resume using AI, match it with job descriptions, and increase your chances of getting interviews.
+              Built for aspiring PMs, experienced product managers, and professionals transitioning into product roles.
             </p>
-          </div>
-
-          <div className="mt-8 mb-6 bg-white rounded-xl shadow-sm p-4">
-            <h2 className="font-semibold text-slate-900">Select Your Career Stage</h2>
-            <p className="text-sm text-gray-500">
-              This determines the professional section order in your final resume.
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3">
-              {CAREER_STAGES.map(stage => (
-                <button
-                  key={stage.value}
-                  onClick={() => setCareerStage(stage.value)}
-                  className={`text-left bg-gray-50 rounded-lg p-3 border cursor-pointer transition-colors hover:border-blue-500 ${
-                    careerStage === stage.value
-                      ? 'border-blue-600 bg-blue-50'
-                      : 'border-slate-200'
-                  }`}>
-                  <div className="text-lg mb-1">{stage.icon}</div>
-                  <p className="text-sm font-semibold text-slate-900">{stage.label}</p>
-                  <p className="text-xs text-slate-500 mt-0.5">{stage.description}</p>
-                </button>
-              ))}
-            </div>
           </div>
 
           {/* Two-column layout */}
@@ -2149,7 +2130,12 @@ useEffect(() => {
               {/* Resume input */}
               <div className="bg-white rounded-xl shadow-md p-6">
                 <div className="flex items-center justify-between mb-4">
-                <h2 className="font-semibold text-slate-900 text-lg">Your Resume</h2>
+                <div>
+                  <h2 className="font-semibold text-slate-900 text-lg">Your Resume</h2>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Upload your resume and match it against Product Manager job descriptions.
+                  </p>
+                </div>
                 <div className="flex bg-slate-100 rounded-lg p-0.5">
                     <button
                       onClick={() => {
@@ -2338,6 +2324,22 @@ The more detailed it is, the better the keyword matching.`}
                   </label>
                 </div>
               </div>
+
+              <div className="bg-white rounded-xl shadow-md p-6">
+                <label htmlFor="pmProfile" className="block text-sm font-semibold text-slate-900 mb-2">
+                  Select Your Profile
+                </label>
+                <select
+                  id="pmProfile"
+                  value={pmProfile}
+                  onChange={e => setPmProfile(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all"
+                >
+                  <option value="aspiring">Aspiring Product Manager (Student / Fresher)</option>
+                  <option value="transitioning">Transitioning Into Product Management</option>
+                  <option value="experienced">Experienced Product Manager</option>
+                </select>
+              </div>
               </div>
 
               <div className="flex justify-center mt-6">
@@ -2348,7 +2350,7 @@ The more detailed it is, the better the keyword matching.`}
                   {isLoading ? (
                     <><SpinnerIcon /><span className="ml-2">{loadingStep || 'Working...'}</span></>
                   ) : (
-                    'Optimize Now'
+                    'Optimize My PM Resume'
                   )}
                 </button>
               </div>
@@ -2426,6 +2428,17 @@ The more detailed it is, the better the keyword matching.`}
                 <>
                   <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3.5">
                     <p className="text-sm font-semibold text-emerald-800">ATS Resume Score: {calculateATSScoreWithSuggestions(optimizedResume).score}/100</p>
+                  </div>
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-3.5">
+                    <p className="text-sm font-semibold text-blue-800">PM Resume Score: {pmScore}/100</p>
+                  </div>
+                  <div className="mt-6">
+                    <h3 className="text-lg font-semibold text-slate-900">Missing PM Keywords</h3>
+                    <ul className="mt-2 space-y-1 text-sm text-slate-600">
+                      {pmAnalysis.missingKeywords.map((k, i) => (
+                        <li key={i}>• {k}</li>
+                      ))}
+                    </ul>
                   </div>
                   <KeywordBadges keywords={keywords} />
                   <ChangesList changes={changes} />
