@@ -1085,6 +1085,10 @@ function EditablePreviewModal({ resume, rawResumeText, onClose, onDownload, onRe
                       {(editedResume.experience || []).map((exp, expIndex) => (
                         <div key={expIndex} className="rounded-lg border border-slate-200 p-3">
                           <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <p className="text-sm font-medium text-slate-700">Experience {expIndex + 1}</p>
+                              <button onClick={() => deleteArrayEntry('experience', expIndex)} className="text-xs text-red-600">Delete Experience</button>
+                            </div>
                             <input value={exp.company || ''} onChange={(e) => updateArrayEntry('experience', expIndex, 'company', e.target.value)} placeholder="Company" className="w-full rounded border p-2 text-sm" />
                             <input value={exp.title || ''} onChange={(e) => updateArrayEntry('experience', expIndex, 'title', e.target.value)} placeholder="Role" className="w-full rounded border p-2 text-sm" />
                             <div className="grid grid-cols-2 gap-2">
@@ -1107,6 +1111,12 @@ function EditablePreviewModal({ resume, rawResumeText, onClose, onDownload, onRe
                           </div>
                         </div>
                       ))}
+                      <button
+                        onClick={() => addArrayEntry('experience', { company: '', title: '', startDate: '', endDate: '', bullets: [] })}
+                        className="text-sm text-blue-600"
+                      >
+                        + Add Work Experience
+                      </button>
                     </div>
                   )}
 
@@ -1624,6 +1634,24 @@ useEffect(() => {
 
   // ── Parse ────────────────────────────────────────────────────────────────
   const parseResume = async (): Promise<ResumeData> => {
+    const pastedText = resumeText.trim();
+
+    if (pastedText.length > 10) {
+      setLoadingStep('Parsing your pasted resume text...');
+      const res = await fetch('/api/parse', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: pastedText, careerStage }),
+      });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? 'Parse failed'); }
+      const d = await res.json() as ParseResponse;
+      setOriginalDocx(null);
+      setOriginalResume(null);
+      setIsDocxUpload(false);
+      setRawResumeText(d.rawText ?? '');
+      return d.resume;
+    }
+
     setLoadingStep('LlamaParse reading your resume (~20 seconds)...');
 
     if (inputMode === 'upload' && uploadedFile) {
@@ -1651,7 +1679,7 @@ useEffect(() => {
     }
 
     const text = resumeText.trim();
-    if (text.length < 10) throw new Error('Please enter your resume text.');
+    if (text.length < 10) throw new Error('Please upload your resume or paste resume text.');
     const res = await fetch('/api/parse', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1953,7 +1981,7 @@ useEffect(() => {
   const canOptimize =
     !isLoading &&
     jobDescription.trim().length >= 20 &&
-    (inputMode === 'paste' ? resumeText.trim().length > 10 : uploadedFile !== null);
+    (resumeText.trim().length > 10 || uploadedFile !== null);
 
   const fileIsDocx = uploadedFile?.name.toLowerCase().endsWith('.docx') ?? false;
   const fileIsPdf  = uploadedFile?.name.toLowerCase().endsWith('.pdf')  ?? false;
@@ -2180,7 +2208,11 @@ useEffect(() => {
                   </div>
                 </div>
 
-                <div className="p-4">
+                <div className="p-4 space-y-3">
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800">
+                    <strong>Tip:</strong> Resume parsing works best when you paste plain text instead of uploading PDF or DOCX. If sections appear incorrect, paste your resume text below.
+                  </div>
+
                   {inputMode === 'paste' ? (
                     <textarea
                       value={resumeText}
@@ -2189,7 +2221,7 @@ useEffect(() => {
                       className="w-full h-56 text-sm text-slate-700 placeholder-slate-300 bg-slate-50 border border-slate-200 rounded-xl p-3 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all font-mono"
                     />
                   ) : (
-                    <div>
+                    <div className="space-y-3">
                       {uploadSubMode === 'docx' && !uploadedFile && (
                         <div className="mb-3 bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-blue-700">
                           <strong>✨ DOCX Mode:</strong> Upload your Word file and we'll return a PDF that preserves your exact fonts, colors, and layout — only the content will change.
@@ -2246,6 +2278,18 @@ useEffect(() => {
                         onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
                         className="hidden"
                       />
+
+                      <div>
+                        <label className="block text-xs font-medium text-slate-600 mb-1">
+                          Optional: Paste resume text (recommended for best parsing)
+                        </label>
+                        <textarea
+                          value={resumeText}
+                          onChange={e => setResumeText(e.target.value)}
+                          placeholder="Paste your resume text here to prioritize text parsing over file parsing..."
+                          className="w-full h-32 text-sm text-slate-700 placeholder-slate-300 bg-slate-50 border border-slate-200 rounded-xl p-3 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all"
+                        />
+                      </div>
                     </div>
                   )}
                 </div>
