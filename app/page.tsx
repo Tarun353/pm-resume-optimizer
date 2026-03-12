@@ -2148,16 +2148,12 @@ useEffect(() => {
             {/* ── LEFT: Inputs ── */}
             <div className="space-y-4">
 
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
               {/* Resume input */}
               <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
                   <div>
                     <h2 className="font-semibold text-slate-900 text-sm">Your Resume</h2>
-                    <p className="text-xs text-slate-400 mt-0.5">
-                      {inputMode === 'upload' && uploadSubMode === 'docx'
-                        ? '✨ DOCX format will be preserved in output'
-                        : 'All sections preserved'}
-                    </p>
                   </div>
 
                   <div className="flex bg-slate-100 rounded-lg p-0.5">
@@ -2222,12 +2218,6 @@ useEffect(() => {
                     />
                   ) : (
                     <div className="space-y-3">
-                      {uploadSubMode === 'docx' && !uploadedFile && (
-                        <div className="mb-3 bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-blue-700">
-                          <strong>✨ DOCX Mode:</strong> Upload your Word file and we'll return a PDF that preserves your exact fonts, colors, and layout — only the content will change.
-                        </div>
-                      )}
-
                       <div
                         onDrop={handleDrop}
                         onDragOver={e => { e.preventDefault(); setIsDragOver(true); }}
@@ -2253,9 +2243,6 @@ useEffect(() => {
                               <p className="text-sm font-medium text-slate-900 truncate max-w-48">{uploadedFile.name}</p>
                               <p className="text-xs text-slate-400">
                                 {(uploadedFile.size / 1024).toFixed(0)} KB · Click to replace
-                                {fileIsDocx && (
-                                  <span className="text-blue-600 font-medium"> · Format preserved ✨</span>
-                                )}
                               </p>
                             </div>
                           </div>
@@ -2317,6 +2304,7 @@ useEffect(() => {
                     )}
                   </div>
                 </div>
+              </div>
               </div>
 
               {/* ✨ NEW: Generation Type Selection */}
