@@ -2294,48 +2294,6 @@ The more detailed it is, the better the keyword matching.`}
               </div>
               </div>
 
-              <div className="bg-white rounded-xl shadow-sm p-4">
-                <h3 className="font-semibold text-slate-900 text-sm">What would you like to generate?</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
-                  <label className={`flex items-start gap-2 p-3 rounded-lg border cursor-pointer transition-colors ${
-                    generationType === 'resume'
-                      ? 'border-blue-600 bg-blue-50'
-                      : 'border-slate-200 bg-slate-50 hover:border-blue-400'
-                  }`}>
-                    <input
-                      type="radio"
-                      name="generationType"
-                      value="resume"
-                      checked={generationType === 'resume'}
-                      onChange={() => setGenerationType('resume')}
-                      className="mt-1"
-                    />
-                    <div>
-                      <p className="text-sm font-semibold text-slate-900">Optimize Resume</p>
-                      <p className="text-xs text-slate-500">ATS-focused resume optimization</p>
-                    </div>
-                  </label>
-                  <label className={`flex items-start gap-2 p-3 rounded-lg border cursor-pointer transition-colors ${
-                    generationType === 'coverletter'
-                      ? 'border-blue-600 bg-blue-50'
-                      : 'border-slate-200 bg-slate-50 hover:border-blue-400'
-                  }`}>
-                    <input
-                      type="radio"
-                      name="generationType"
-                      value="coverletter"
-                      checked={generationType === 'coverletter'}
-                      onChange={() => setGenerationType('coverletter')}
-                      className="mt-1"
-                    />
-                    <div>
-                      <p className="text-sm font-semibold text-slate-900">Generate Cover Letter</p>
-                      <p className="text-xs text-slate-500">Tailored cover letter for the role</p>
-                    </div>
-                  </label>
-                </div>
-              </div>
-
               <div className="flex justify-center mt-6">
                 <button
                   onClick={handleGenerate}
@@ -2343,10 +2301,8 @@ The more detailed it is, the better the keyword matching.`}
                   className={`bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 mt-6 ${!canOptimize ? 'opacity-60 cursor-not-allowed hover:bg-blue-600' : ''}`}>
                   {isLoading ? (
                     <><SpinnerIcon /><span className="ml-2">{loadingStep || 'Working...'}</span></>
-                  ) : generationType === 'resume' ? (
-                    'Optimize Resume'
                   ) : (
-                    'Generate Cover Letter'
+                    'Optimize Resume'
                   )}
                 </button>
               </div>
