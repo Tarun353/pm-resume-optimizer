@@ -2509,7 +2509,7 @@ The more detailed it is, the better the keyword matching.`}
       {assistantOpen && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setAssistantOpen(false)}>
           <div className="bg-white rounded-xl p-8 max-w-lg shadow-xl mx-4" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-2xl font-bold">Hire a Job Application Assistant</h3>
+            <h3 className="text-2xl font-bold">Hire a Personal Assistant</h3>
             <p className="mt-3 text-slate-600">If you are tired of applying to jobs manually, hire a personal assistant to do it for you.</p>
             <p className="mt-4 font-semibold">Assistant responsibilities:</p>
             <ul className="mt-2 space-y-1 text-slate-700">
