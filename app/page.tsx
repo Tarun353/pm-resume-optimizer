@@ -236,6 +236,8 @@ function AIButton({
           </div>
         </div>
       )}
+
+
     </>
   );
 }
@@ -250,19 +252,19 @@ const CAREER_STAGES: Array<{
   {
     value: 'fresher',
     label: 'Fresh Graduate',
-    description: '<1 year experience · Education first',
+    description: '<1 year experience • Education first',
     icon: '🎓',
   },
   {
     value: 'experienced',
     label: 'Experienced Professional',
-    description: '2+ years experience · Experience first',
+    description: '2+ years experience • Experience first',
     icon: '💼',
   },
   {
     value: 'career-change',
     label: 'Career Transition',
-    description: 'Switching industries · Skills first',
+    description: 'Switching industries • Skills first',
     icon: '🔄',
   },
 ];
@@ -1476,6 +1478,8 @@ export default function HomePage() {
   const [isDragOver, setIsDragOver]     = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [showPreview, setShowPreview]   = useState(false);
+  const [assistantOpen, setAssistantOpen] = useState(false);
+  const [pmResumeOpen, setPmResumeOpen] = useState(false);
 
 
   // ── DOCX state ────────────────────────────────────────────────────────────
@@ -1982,6 +1986,7 @@ useEffect(() => {
     !isLoading &&
     jobDescription.trim().length >= 20 &&
     (resumeText.trim().length > 10 || uploadedFile !== null);
+  const showRightPanel = isLoading || !!error || !!parsedResume || !!optimizedResume || !!coverLetter;
 
   const fileIsDocx = uploadedFile?.name.toLowerCase().endsWith('.docx') ?? false;
   const fileIsPdf  = uploadedFile?.name.toLowerCase().endsWith('.pdf')  ?? false;
@@ -2094,7 +2099,7 @@ useEffect(() => {
           
   
 
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-10 pb-12">
+        <div className="max-w-7xl mx-auto px-6 py-10">
           {/* Hero */}
           <div className="text-center mb-10">
             <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-3 tracking-tight">
@@ -2104,59 +2109,45 @@ useEffect(() => {
               </span>
             </h1>
             <p className="text-slate-500 max-w-lg mx-auto">
-              AI optimization · Cover letters · Inline editing · Section reordering
+              Optimize your resume using AI, match it with job descriptions, and increase your chances of getting interviews.
             </p>
           </div>
 
-          {/* ── CAREER STAGE SELECTOR ── */}
-          <div className="max-w-3xl mx-auto mb-8">
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-lg">👤</span>
-                <h2 className="font-semibold text-slate-900 text-sm">Select Your Career Stage</h2>
-              </div>
-              <p className="text-xs text-slate-500 mb-4">
-                This determines the professional section order in your final resume
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {CAREER_STAGES.map(stage => (
-                  <button
-                    key={stage.value}
-                    onClick={() => setCareerStage(stage.value)}
-                    className={`relative p-4 rounded-xl border-2 text-left transition-all ${
-                      careerStage === stage.value
-                        ? 'border-blue-500 bg-blue-50 shadow-sm'
-                        : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
-                    }`}>
-                    <div className="text-2xl mb-2">{stage.icon}</div>
-                    <p className="font-semibold text-sm text-slate-900 mb-1">{stage.label}</p>
-                    <p className="text-xs text-slate-500">{stage.description}</p>
-                    {careerStage === stage.value && (
-                      <div className="absolute top-2 right-2">
-                        <CheckIcon className="w-4 h-4 text-blue-600" />
-                      </div>
-                    )}
-                  </button>
-                ))}
-              </div>
+          <div className="mt-8 mb-6 bg-white rounded-xl shadow-sm p-4">
+            <h2 className="font-semibold text-slate-900">Select Your Career Stage</h2>
+            <p className="text-sm text-gray-500">
+              This determines the professional section order in your final resume.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3">
+              {CAREER_STAGES.map(stage => (
+                <button
+                  key={stage.value}
+                  onClick={() => setCareerStage(stage.value)}
+                  className={`text-left bg-gray-50 rounded-lg p-3 border cursor-pointer transition-colors hover:border-blue-500 ${
+                    careerStage === stage.value
+                      ? 'border-blue-600 bg-blue-50'
+                      : 'border-slate-200'
+                  }`}>
+                  <div className="text-lg mb-1">{stage.icon}</div>
+                  <p className="text-sm font-semibold text-slate-900">{stage.label}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">{stage.description}</p>
+                </button>
+              ))}
             </div>
           </div>
 
           {/* Two-column layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+          <div className={`grid grid-cols-1 ${showRightPanel ? 'lg:grid-cols-2' : ''} gap-6 items-start`}>
 
             {/* ── LEFT: Inputs ── */}
             <div className="space-y-4">
 
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-10">
               {/* Resume input */}
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
-                  <div>
-                    <h2 className="font-semibold text-slate-900 text-sm">Your Resume</h2>
-                  </div>
-
-                  <div className="flex bg-slate-100 rounded-lg p-0.5">
+              <div className="bg-white rounded-xl shadow-md p-6">
+                <div className="flex items-center justify-between mb-4">
+                <h2 className="font-semibold text-slate-900 text-lg">Your Resume</h2>
+                <div className="flex bg-slate-100 rounded-lg p-0.5">
                     <button
                       onClick={() => {
                         setInputMode('paste');
@@ -2185,7 +2176,7 @@ useEffect(() => {
                           ? 'bg-white text-slate-900 shadow-sm'
                           : 'text-slate-500'
                       }`}>
-                      PDF
+                      Upload PDF
                     </button>
                     <button
                       onClick={() => {
@@ -2199,21 +2190,21 @@ useEffect(() => {
                           ? 'bg-white text-slate-900 shadow-sm'
                           : 'text-slate-500'
                       }`}>
-                      DOCX ✨
+                      Upload DOCX
                     </button>
                   </div>
                 </div>
 
                 <div className="p-4 space-y-3">
                   <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800">
-                    <strong>Tip:</strong> Resume parsing works best when you paste plain text instead of uploading PDF or DOCX. If sections appear incorrect, paste your resume text below.
+                    <strong>Tip:</strong> Resume parsing works best when you paste plain text instead of uploading PDF or DOCX.
                   </div>
 
                   {inputMode === 'paste' ? (
                     <textarea
                       value={resumeText}
                       onChange={e => setResumeText(e.target.value)}
-                      placeholder={`Paste your full resume here...\n\nTip: Include all sections:\n• Summary\n• Experience\n• Education\n• Skills\n• Certifications\n• Awards\n• Projects\n• etc.`}
+                      placeholder="Paste your resume text here for best parsing results."
                       className="w-full h-56 text-sm text-slate-700 placeholder-slate-300 bg-slate-50 border border-slate-200 rounded-xl p-3 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all font-mono"
                     />
                   ) : (
@@ -2283,16 +2274,13 @@ useEffect(() => {
               </div>
 
               {/* Job description */}
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                <div className="px-5 py-3.5 border-b border-slate-100">
-                  <h2 className="font-semibold text-slate-900 text-sm">Job Description</h2>
-                  <p className="text-xs text-slate-400 mt-0.5">Keywords extracted automatically</p>
-                </div>
-                <div className="p-4">
+              <div className="bg-white rounded-xl shadow-md p-6">
+                <h2 className="font-semibold text-slate-900 text-lg mb-4">Job Description</h2>
                   <textarea
                     value={jobDescription}
                     onChange={e => setJobDescription(e.target.value)}
-                    placeholder="Paste the full job description here — the more detail, the better the keyword matching..."
+                    placeholder={`Paste the job description here.
+The more detailed it is, the better the keyword matching.`}
                     className="w-full h-44 text-sm text-slate-700 placeholder-slate-300 bg-slate-50 border border-slate-200 rounded-xl p-3 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all"
                   />
                   <div className="flex items-center justify-between mt-1.5">
@@ -2303,23 +2291,16 @@ useEffect(() => {
                       </span>
                     )}
                   </div>
-                </div>
               </div>
               </div>
 
-              {/* ✨ NEW: Generation Type Selection */}
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                <div className="px-5 py-3.5 border-b border-slate-100">
-                  <h2 className="font-semibold text-slate-900 text-sm">What would you like to generate?</h2>
-                  <p className="text-xs text-slate-400 mt-0.5">Choose your output type</p>
-                </div>
-                
-                <div className="p-4 space-y-3">
-                  {/* Resume Option */}
-                  <label className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+              <div className="bg-white rounded-xl shadow-sm p-4">
+                <h3 className="font-semibold text-slate-900 text-sm">What would you like to generate?</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                  <label className={`flex items-start gap-2 p-3 rounded-lg border cursor-pointer transition-colors ${
                     generationType === 'resume'
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+                      ? 'border-blue-600 bg-blue-50'
+                      : 'border-slate-200 bg-slate-50 hover:border-blue-400'
                   }`}>
                     <input
                       type="radio"
@@ -2327,24 +2308,17 @@ useEffect(() => {
                       value="resume"
                       checked={generationType === 'resume'}
                       onChange={() => setGenerationType('resume')}
-                      className="mt-1 w-4 h-4 text-blue-600"
+                      className="mt-1"
                     />
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-lg">📄</span>
-                        <p className="font-semibold text-slate-900 text-sm">Optimize Resume</p>
-                      </div>
-                      <p className="text-xs text-slate-500">
-                        AI-optimized, ATS-friendly resume with keyword matching and professional formatting
-                      </p>
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">Optimize Resume</p>
+                      <p className="text-xs text-slate-500">ATS-focused resume optimization</p>
                     </div>
                   </label>
-
-                  {/* Cover Letter Option */}
-                  <label className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                  <label className={`flex items-start gap-2 p-3 rounded-lg border cursor-pointer transition-colors ${
                     generationType === 'coverletter'
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+                      ? 'border-blue-600 bg-blue-50'
+                      : 'border-slate-200 bg-slate-50 hover:border-blue-400'
                   }`}>
                     <input
                       type="radio"
@@ -2352,38 +2326,30 @@ useEffect(() => {
                       value="coverletter"
                       checked={generationType === 'coverletter'}
                       onChange={() => setGenerationType('coverletter')}
-                      className="mt-1 w-4 h-4 text-blue-600"
+                      className="mt-1"
                     />
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-lg">✉️</span>
-                        <p className="font-semibold text-slate-900 text-sm">Generate Cover Letter</p>
-                      </div>
-                      <p className="text-xs text-slate-500">
-                        Professional cover letter tailored to the job description and highlighting your strengths
-                      </p>
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">Generate Cover Letter</p>
+                      <p className="text-xs text-slate-500">Tailored cover letter for the role</p>
                     </div>
                   </label>
                 </div>
               </div>
 
-              {/* ✨ UPDATED: Generate button */}
-              <button
-                onClick={handleGenerate}
-                disabled={!canOptimize}
-                className={`w-full py-4 rounded-2xl text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${
-                  canOptimize
-                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/20'
-                    : 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                }`}>
-                {isLoading ? (
-                  <><SpinnerIcon /><span className="ml-1">{loadingStep || 'Working...'}</span></>
-                ) : generationType === 'resume' ? (
-                  <><span>✨</span> Optimize My Resume</>
-                ) : (
-                  <><span>✉️</span> Generate Cover Letter</>
-                )}
-              </button>
+              <div className="flex justify-center mt-6">
+                <button
+                  onClick={handleGenerate}
+                  disabled={!canOptimize}
+                  className={`bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 mt-6 ${!canOptimize ? 'opacity-60 cursor-not-allowed hover:bg-blue-600' : ''}`}>
+                  {isLoading ? (
+                    <><SpinnerIcon /><span className="ml-2">{loadingStep || 'Working...'}</span></>
+                  ) : generationType === 'resume' ? (
+                    'Optimize Resume'
+                  ) : (
+                    'Generate Cover Letter'
+                  )}
+                </button>
+              </div>
 
               {!canOptimize && !isLoading && (
                 <p className="text-xs text-center text-slate-400">
@@ -2394,37 +2360,12 @@ useEffect(() => {
                     : '② Add a job description (20+ chars)'}
                 </p>
               )}
+
             </div>
 
             {/* ── RIGHT: Results ── */}
+            {showRightPanel && (
             <div className="space-y-4">
-
-              {/* Empty state */}
-              {!parsedResume && !isLoading && (
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center">
-                  <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <span className="text-3xl">🎨</span>
-                  </div>
-                  <h3 className="font-semibold text-slate-900 mb-2">Full Control Over Your Documents</h3>
-                  <p className="text-sm text-slate-400 max-w-xs mx-auto mb-6">
-                    Optimize resumes · Generate cover letters · Edit content · Professional output guaranteed
-                  </p>
-                  <div className="grid grid-cols-2 gap-2.5 text-left">
-                    {[
-                      { icon: '📄', title: 'Resume', desc: 'ATS-optimized' },
-                      { icon: '✉️', title: 'Cover Letter', desc: 'AI-generated' },
-                      { icon: '✏️', title: 'Edit', desc: 'Full control' },
-                      { icon: '🎯', title: 'Professional', desc: 'Download PDF' },
-                    ].map(f => (
-                      <div key={f.title} className="bg-slate-50 rounded-xl p-3">
-                        <div className="text-lg mb-1">{f.icon}</div>
-                        <p className="text-xs font-semibold text-slate-700">{f.title}</p>
-                        <p className="text-xs text-slate-400">{f.desc}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
 
               {isLoading && (
                 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center">
@@ -2507,6 +2448,7 @@ useEffect(() => {
                 </div>
               )}
             </div>
+            )}
           </div>
 
           {/* Footer */}
@@ -2520,6 +2462,60 @@ useEffect(() => {
           </div>
         </div>
       </div>
+
+      <div className="fixed right-6 top-40 z-50 flex flex-col gap-4">
+        <button
+          onClick={() => setAssistantOpen(true)}
+          className="bg-purple-600 text-white px-5 py-3 rounded-full shadow-lg animate-pulse">
+          Hire Job Application Assistant
+        </button>
+        <button
+          onClick={() => setPmResumeOpen(true)}
+          className="bg-green-600 text-white px-5 py-3 rounded-full shadow-lg animate-pulse">
+          PM Resume Making Service
+        </button>
+      </div>
+
+      {assistantOpen && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setAssistantOpen(false)}>
+          <div className="bg-white rounded-xl p-8 max-w-lg shadow-xl mx-4" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-2xl font-bold">Hire a Job Application Assistant</h3>
+            <p className="mt-3 text-slate-600">If you are tired of applying to jobs manually, hire a personal assistant to do it for you.</p>
+            <p className="mt-4 font-semibold">Assistant responsibilities:</p>
+            <ul className="mt-2 space-y-1 text-slate-700">
+              <li>• Find relevant job roles</li><li>• Modify your CV based on job descriptions</li><li>• Apply to different jobs</li><li>• Maintain a record of applied jobs</li><li>• Inform you about shortlisting or interviews</li>
+            </ul>
+            <p className="mt-4 font-semibold text-purple-700">Average: 100 job applications per week</p>
+            <p className="mt-2 font-bold">₹1999 / week</p>
+            <p className="mt-2">Phone: +91 6200825883</p>
+            <div className="mt-6 flex gap-3 justify-end">
+              <button className="px-4 py-2 bg-purple-600 text-white rounded-lg">Contact Now</button>
+              <button onClick={() => setAssistantOpen(false)} className="px-4 py-2 border rounded-lg">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {pmResumeOpen && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setPmResumeOpen(false)}>
+          <div className="bg-white rounded-xl p-8 max-w-lg shadow-xl mx-4" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-2xl font-bold">Human Crafted Product Manager Resume</h3>
+            <p className="mt-3 text-slate-600">Detailed resume writing with human expertise specifically for Product Management roles.</p>
+            <p className="mt-4 font-semibold">Includes:</p>
+            <ul className="mt-2 space-y-1 text-slate-700">
+              <li>• Resume restructuring</li><li>• ATS keyword optimization</li><li>• Product storytelling</li><li>• Metrics driven bullet points</li>
+            </ul>
+            <p className="mt-4 font-bold">₹1999/-</p>
+            <p className="mt-2 text-slate-600">Currently available only for Product Management roles.<br />Other job role services coming soon.</p>
+            <p className="mt-2">Phone: +91 6200825883</p>
+            <div className="mt-6 flex gap-3 justify-end">
+              <button className="px-4 py-2 bg-green-600 text-white rounded-lg">Discuss Now</button>
+              <button onClick={() => setPmResumeOpen(false)} className="px-4 py-2 border rounded-lg">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </>
   );
 }
