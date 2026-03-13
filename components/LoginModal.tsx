@@ -62,6 +62,7 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
           </div>
           <button
             onClick={onClose}
+            aria-label="Close sign-in modal"
             className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
             <CloseIcon />
           </button>
@@ -99,7 +100,10 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
         </button>
 
         <p className="text-xs text-slate-400 text-center mt-4">
-          By continuing, you agree to our Terms of Service and Privacy Policy
+          By continuing, you agree to our{' '}
+          <a href="/terms" className="underline hover:text-slate-600">Terms of Service</a>
+          {' '}and{' '}
+          <a href="/privacy" className="underline hover:text-slate-600">Privacy Policy</a>
         </p>
       </div>
     </div>
