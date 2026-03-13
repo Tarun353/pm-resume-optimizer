@@ -24,6 +24,16 @@ function getSupabaseClients() {
   };
 }
 
+function isMissingUserRow(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+
+  const maybeCode = 'code' in error ? error.code : undefined;
+  const maybeMessage = 'message' in error && typeof error.message === 'string' ? error.message : '';
+
+  if (maybeCode === 'PGRST116') return true;
+  return maybeMessage.includes('JSON object requested, multiple (or no) rows returned');
+}
+
 export async function getAuthenticatedUserAndQuota(request: NextRequest): Promise<{
   userId: string;
   dbUser: DbUser;
@@ -51,6 +61,28 @@ export async function getAuthenticatedUserAndQuota(request: NextRequest): Promis
     .select('id,generations_used,generation_limit,subscription_type,subscription_expires_at')
     .eq('id', user.id)
     .single();
+
+  if (!dbUser && isMissingUserRow(userError)) {
+    // Recover only when profile row is actually missing; never overwrite existing paid users.
+    const { error: createError } = await serviceSupabase.from('users').insert({
+      id: user.id,
+      email: user.email ?? '',
+      subscription_type: 'free',
+      generations_used: 0,
+      generation_limit: 5,
+    });
+
+    if (!createError) {
+      const reloaded = await serviceSupabase
+        .from('users')
+        .select('id,generations_used,generation_limit,subscription_type,subscription_expires_at')
+        .eq('id', user.id)
+        .single();
+
+      dbUser = reloaded.data;
+      userError = reloaded.error;
+    }
+  }
 
   if (userError || !dbUser) {
     // Recover from manually deleted user profile rows by recreating defaults server-side.
