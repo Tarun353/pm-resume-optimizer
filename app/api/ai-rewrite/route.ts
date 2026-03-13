@@ -33,6 +33,7 @@ Rules:
 - Add specific context when appropriate
 - Only add metrics if clearly implied
 - Sound credible, not exaggerated
+- Always rewrite weak bullets to emphasize product impact and measurable outcomes
 - Follow the user's instruction exactly`,
 
   education: `You are a resume editor. Rewrite this education entry based on the user's instructions.
@@ -113,8 +114,82 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const sectionType = body.context?.sectionType || 'generic';
     const systemPrompt = SYSTEM_PROMPTS[sectionType] || SYSTEM_PROMPTS.generic;
 
+    let profileInstructions = '';
+
+    if ((body as any).pmProfile === 'aspiring') {
+      profileInstructions = `
+The user is an ASPIRING PRODUCT MANAGER (student or fresher).
+
+They may only have:
+
+* academic projects
+* internships
+* hackathons
+* prototype apps
+
+Focus on:
+• highlighting product thinking
+• user research
+• problem solving
+• project impact
+
+Help convert projects into strong product management resume bullets.
+`;
+    }
+
+    if ((body as any).pmProfile === 'transition') {
+      profileInstructions = `
+The user is transitioning into Product Management from another domain.
+
+They may have experience in:
+
+* engineering
+* marketing
+* consulting
+* operations
+* business analysis
+
+Focus on:
+• translating previous experience into product management language
+• highlighting cross-functional work
+• demonstrating customer problem solving
+• showing product ownership or initiative
+`;
+    }
+
+    if ((body as any).pmProfile === 'experienced') {
+      profileInstructions = `
+The user is an EXPERIENCED PRODUCT MANAGER.
+
+Focus on:
+• product metrics
+• scale
+• leadership
+• roadmap ownership
+• stakeholder management
+
+Encourage quantifiable results such as:
+retention increase
+revenue impact
+conversion improvement
+user growth
+`;
+    }
+
     // Build user message with context
-    let userMessage = `Original text:\n${body.text}\n\nUser's instruction: ${body.instruction}\n\n`;
+    let userMessage = `
+You are an expert product management resume reviewer.
+
+${profileInstructions}
+
+Original text:
+${body.text}
+
+User's instruction: ${body.instruction}
+
+Always rewrite weak resume bullets to emphasize product impact and measurable outcomes.
+
+`;
     // ⭐ NEW — provide resume context for intelligent rewriting
     if (body.context?.resumeContext) {
       userMessage += `Resume Context (use this to understand references like "my projects", "my internships", etc):\n${JSON.stringify(body.context.resumeContext).substring(0, 3000)}\n\n`;
