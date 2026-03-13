@@ -1873,12 +1873,17 @@ useEffect(() => {
 
 // ── Pre-check quota before expensive generation ───────────────────────────
   const canRunGeneration = async (): Promise<boolean> => {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      saveStateBeforeLogin();
+      setShowLoginModal(true);
+      return false;
+    }
+
     const { data: { session } } = await supabase.auth.getSession();
 
-    // Require both a user object AND a valid access token before calling the API.
-    // Previously only `session?.user` was checked, so a null/expired access_token
-    // produced a "Bearer undefined" header that made the server return 401/404.
-    if (!session?.user || !session?.access_token) {
+    if (!session?.access_token) {
       saveStateBeforeLogin();
       setShowLoginModal(true);
       return false;
@@ -1892,15 +1897,12 @@ useEffect(() => {
         },
       });
 
-      // 401 → token expired / invalid → re-prompt sign-in instead of showing
-      //       a raw "Unauthorized" error string to the user.
       if (quotaRes.status === 401) {
         saveStateBeforeLogin();
         setShowLoginModal(true);
         return false;
       }
 
-      // 403 → quota gate enforced by the API itself (belt-and-suspenders)
       if (quotaRes.status === 403) {
         setIsPreviewLocked(true);
         setShowPaymentModal(true);
@@ -1908,8 +1910,6 @@ useEffect(() => {
       }
 
       if (!quotaRes.ok) {
-        // Other server errors: show a neutral message so users never see
-        // raw API strings like "User not found".
         throw new Error('Unable to verify your account. Please refresh and try again.');
       }
 
@@ -1937,11 +1937,13 @@ useEffect(() => {
     }
 
     const checkQuota = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setIsPreviewLocked(false);
+        return;
+      }
 
-      // No token yet (Supabase session still loading, or user not signed in).
-      // Do NOT lock the preview — the canRunGeneration guard already handles
-      // unauthenticated users before the preview is ever shown.
+      const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
         setIsPreviewLocked(false);
         return;
@@ -1955,15 +1957,7 @@ useEffect(() => {
           },
         });
 
-        // 401 → token expired mid-session. Don't lock; user can still see the
-        // preview they just generated. The next action (download) will re-auth.
-        if (quotaRes.status === 401) {
-          setIsPreviewLocked(false);
-          return;
-        }
-
         if (!quotaRes.ok) {
-          // Transient server error — don't punish the user by locking the preview.
           setIsPreviewLocked(false);
           return;
         }
@@ -1973,7 +1967,6 @@ useEffect(() => {
         setIsPreviewLocked(locked);
         if (locked) setShowPaymentModal(true);
       } catch {
-        // Network failure — fail open so the preview remains usable.
         setIsPreviewLocked(false);
       }
     };
