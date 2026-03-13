@@ -2195,14 +2195,14 @@ useEffect(() => {
 
                 <div className="p-4 space-y-3">
                   <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800">
-                    <strong>Tip:</strong> Resume parsing works best when you paste plain text instead of uploading PDF or DOCX.
+                    <strong>Tip:</strong> For the highest parsing accuracy, paste your resume text. Upload PDF/DOCX if you want faster input.
                   </div>
 
                   {inputMode === 'paste' ? (
                     <textarea
                       value={resumeText}
                       onChange={e => setResumeText(e.target.value)}
-                      placeholder="No need to paste resume text if uploaded the pdf"
+                      placeholder="Paste your full resume text here (recommended for best accuracy)"
                       className="w-full h-56 text-sm text-slate-700 placeholder-slate-300 bg-slate-50 border border-slate-200 rounded-xl p-3 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all font-mono"
                     />
                   ) : (
@@ -2262,7 +2262,7 @@ useEffect(() => {
                         <textarea
                           value={resumeText}
                           onChange={e => setResumeText(e.target.value)}
-                          placeholder="No need to paste resume text if uploaded docx already"
+                          placeholder="Optional: paste resume text to improve parsing accuracy"
                           className="w-full h-32 text-sm text-slate-700 placeholder-slate-300 bg-slate-50 border border-slate-200 rounded-xl p-3 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all"
                         />
                       </div>
@@ -2422,6 +2422,11 @@ The more detailed it is, the better the keyword matching.`}
                 <div className="bg-red-50 border border-red-200 rounded-xl p-4">
                   <p className="text-sm font-semibold text-red-800">⚠️ Error</p>
                   <p className="text-sm text-red-600 mt-1">{error}</p>
+                  <ul className="mt-2 list-disc pl-5 text-xs text-red-700 space-y-0.5">
+                    <li>Try again in 20–30 seconds.</li>
+                    <li>If upload fails, switch to Paste Text mode for better reliability.</li>
+                    <li>If file parsing fails, confirm your file is under 10MB and in the selected format.</li>
+                  </ul>
                 </div>
               )}
 
@@ -2443,11 +2448,15 @@ The more detailed it is, the better the keyword matching.`}
                   </div>
                   <div className="mt-6">
                     <h3 className="text-lg font-semibold text-slate-900">Missing PM Keywords</h3>
-                    <ul className="mt-2 space-y-1 text-sm text-slate-600">
-                      {pmAnalysis.missingKeywords.map((k, i) => (
-                        <li key={i}>• {k}</li>
-                      ))}
-                    </ul>
+                    {pmAnalysis.missingKeywords.length > 0 ? (
+                      <ul className="mt-2 space-y-1 text-sm text-slate-600">
+                        {pmAnalysis.missingKeywords.map((k, i) => (
+                          <li key={i}>• {k}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="mt-2 text-sm text-emerald-700 font-medium">Great job — no major PM keywords appear to be missing.</p>
+                    )}
                   </div>
                   <KeywordBadges keywords={keywords} />
                   <ChangesList changes={changes} />
