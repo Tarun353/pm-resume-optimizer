@@ -2118,6 +2118,15 @@ useEffect(() => {
             <p className="text-slate-500 max-w-lg mx-auto">
               Built for aspiring PMs, experienced product managers, and professionals transitioning into product roles.
             </p>
+            <button
+              className="mt-4 bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-700 transition-colors"
+              onClick={() => setShowPaymentModal(true)}
+            >
+              Unlock Premium
+            </button>
+            <p className="text-sm text-gray-500 mt-2">
+              5 free resume optimizations included. Upgrade for unlimited access — unlock premium now to avoid interruptions before your next application.
+            </p>
           </div>
 
           {/* Two-column layout */}
