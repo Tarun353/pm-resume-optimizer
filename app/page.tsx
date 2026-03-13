@@ -1871,17 +1871,22 @@ useEffect(() => {
 };
 
 
-// ── Pre-check quota before expensive generation ───────────────────────────
-  const canRunGeneration = async (): Promise<boolean> => {
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-
-    if (userError || !user) {
+const canRunGeneration = async (): Promise<boolean> => {
+    // Use the user from AuthContext — this is what the UI already shows.
+    // Calling getUser() makes a network round-trip that can fail even when
+    // the user is genuinely signed in, causing false login prompts.
+    if (!user) {
       saveStateBeforeLogin();
       setShowLoginModal(true);
       return false;
     }
 
-    const { data: { session } } = await supabase.auth.getSession();
+    // Get session; if token is stale, try refreshing it once.
+    let { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      const { data: refreshed } = await supabase.auth.refreshSession();
+      session = refreshed.session;
+    }
 
     if (!session?.access_token) {
       saveStateBeforeLogin();
