@@ -35,6 +35,16 @@ function isMissingUserRow(error: unknown): boolean {
   return maybeMessage.includes('JSON object requested, multiple (or no) rows returned');
 }
 
+function isMissingColumnError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+
+  const maybeCode = 'code' in error ? error.code : undefined;
+  const maybeMessage = 'message' in error && typeof error.message === 'string' ? error.message : '';
+
+  if (maybeCode === '42703') return true;
+  return maybeMessage.includes('column') && maybeMessage.includes('does not exist');
+}
+
 export async function getAuthenticatedUserAndQuota(request: NextRequest): Promise<{
   userId: string;
   dbUser: DbUser;
