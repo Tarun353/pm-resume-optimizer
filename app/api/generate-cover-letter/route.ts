@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { groqChatCompletion } from '@/lib/groqClient';
 import { ResumeData } from '@/lib/types';
+import {
+  getAuthenticatedUserAndQuota,
+  hasExceededGenerationQuota,
+  incrementGenerationUsage,
+} from '@/lib/server/quota';
 
 const COVER_LETTER_SYSTEM = `You are an expert cover letter writer specializing in creating compelling, professional cover letters that highlight candidate strengths and align with job requirements.
 
@@ -31,6 +36,11 @@ interface CoverLetterRequest {
 
 export async function POST(req: NextRequest) {
   try {
+    const { userId, dbUser, serviceSupabase } = await getAuthenticatedUserAndQuota(req);
+    if (hasExceededGenerationQuota(dbUser)) {
+      return NextResponse.json({ error: 'quota_exceeded' }, { status: 403 });
+    }
+
     const body: CoverLetterRequest = await req.json();
     const { resume, jobDescription, companyName, hiringManager } = body;
 
@@ -105,9 +115,18 @@ Sincerely,
 
     console.log('[generate-cover-letter] Cover letter generated successfully');
 
+    await incrementGenerationUsage(serviceSupabase, userId, dbUser.generations_used ?? 0);
+
     return NextResponse.json({ coverLetter });
 
   } catch (error) {
+    if (error instanceof Error && error.message === 'UNAUTHORIZED') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && error.message === 'USER_NOT_FOUND') {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
     console.error('[generate-cover-letter] Error:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to generate cover letter' },
