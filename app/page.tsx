@@ -588,9 +588,11 @@ interface EditablePreviewModalProps {
   onResumeChange: (newResume: ResumeData) => void;
   isDownloading: boolean;
   isDocxUpload: boolean;
+  isLocked: boolean;
+  onUpgrade: () => void;
 }
 
-function EditablePreviewModal({ resume, rawResumeText, onClose, onDownload, onResumeChange, isDownloading, isDocxUpload }: EditablePreviewModalProps) {
+function EditablePreviewModal({ resume, rawResumeText, onClose, onDownload, onResumeChange, isDownloading, isDocxUpload, isLocked, onUpgrade }: EditablePreviewModalProps) {
   const [editedResume, setEditedResume] = useState<ResumeData>(JSON.parse(JSON.stringify(resume)));
   const [previewHTML, setPreviewHTML] = useState<string>('');
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
@@ -604,6 +606,8 @@ function EditablePreviewModal({ resume, rawResumeText, onClose, onDownload, onRe
   const atsResult = calculateATSScoreWithSuggestions(editedResume);
 
   const handleCopyOriginalText = async () => {
+    if (isLocked) return;
+
     try {
       await navigator.clipboard.writeText(rawResumeText);
       setCopyStatus('copied');
@@ -934,10 +938,19 @@ function EditablePreviewModal({ resume, rawResumeText, onClose, onDownload, onRe
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex bg-black/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex bg-black/60 backdrop-blur-sm relative">
+      {isLocked && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/65 backdrop-blur-sm">
+          <div className="rounded-xl border border-indigo-200 bg-white p-6 text-center shadow-lg">
+            <p className="text-sm font-semibold text-slate-900">Upgrade to unlock preview</p>
+            <p className="mt-1 text-xs text-slate-600">Generation quota exhausted.</p>
+            <button onClick={onUpgrade} className="mt-4 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Upgrade</button>
+          </div>
+        </div>
+      )}
 
       {/* LEFT PANEL: Editor */}
-      <div className="w-1/2 bg-white overflow-auto flex flex-col">
+      <div className={`w-1/2 bg-white overflow-auto flex flex-col ${isLocked ? 'blur-sm pointer-events-none select-none' : ''}`}>
         <div className="p-6 border-b border-slate-200">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -1446,7 +1459,7 @@ function EditablePreviewModal({ resume, rawResumeText, onClose, onDownload, onRe
             </button>
             <button
               onClick={onDownload}
-              disabled={isDownloading}
+              disabled={isDownloading || isLocked}
               className="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-slate-300 disabled:to-slate-400 text-white rounded-lg text-sm font-semibold transition-all shadow-lg shadow-blue-500/20 flex items-center gap-2">
               {isDownloading ? (
                 <><SpinnerIcon /><span className="ml-1">Generating...</span></>
@@ -1502,6 +1515,7 @@ export default function HomePage() {
   // ── Auth states ───────────────────────────────────────────────────────────
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [isPreviewLocked, setIsPreviewLocked] = useState(false);
   const { user, dbUser, refreshUser } = useAuth();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -1708,12 +1722,28 @@ useEffect(() => {
     const jd = jobDescription.trim();
     if (jd.length < 20) throw new Error('Please enter a job description (20+ characters).');
 
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) throw new Error('Please sign in to continue.');
+
     const res = await fetch('/api/optimize', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+      },
       body: JSON.stringify({ resume, jobDescription: jd }),
     });
-    if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? 'Optimization failed'); }
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      if (d.error === 'quota_exceeded') {
+        setIsPreviewLocked(true);
+        setShowPaymentModal(true);
+        throw new Error('quota_exceeded');
+      }
+      throw new Error(d.error ?? 'Optimization failed');
+    }
+    setIsPreviewLocked(false);
+
     return res.json() as Promise<{ optimizedResume: ResumeData; changes: string[]; keywordsInjected: string[] }>;
   };
 
@@ -1724,9 +1754,15 @@ useEffect(() => {
     setLoadingStep('Generating your cover letter (~15 seconds)...');
     
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error('Please sign in to continue.');
+
       const res = await fetch('/api/generate-cover-letter', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
         body: JSON.stringify({
           resume: parsedResume,
           jobDescription: jobDescription.trim(),
@@ -1734,15 +1770,24 @@ useEffect(() => {
       });
       
       if (!res.ok) {
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
+        if (data.error === 'quota_exceeded') {
+          setIsPreviewLocked(true);
+          setShowPaymentModal(true);
+          throw new Error('quota_exceeded');
+        }
         throw new Error(data.error ?? 'Failed to generate cover letter');
       }
+      setIsPreviewLocked(false);
       
       const data = await res.json();
       setCoverLetter(data.coverLetter);
       setShowCoverLetterPreview(true);
       
     } catch (err) {
+      if (err instanceof Error && err.message === 'quota_exceeded') {
+        return;
+      }
       setError(err instanceof Error ? err.message : 'Cover letter generation failed');
       throw err;
     }
@@ -1828,36 +1873,81 @@ useEffect(() => {
 
   // ── Pre-check quota before expensive generation ───────────────────────────
   const canRunGeneration = async (): Promise<boolean> => {
-    // Keep existing behavior for unauthenticated users.
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) return true;
+    if (!session?.user) {
+      saveStateBeforeLogin();
+      setShowLoginModal(true);
+      return false;
+    }
 
     try {
-      const statusRes = await fetch('/api/download/track', {
+      const quotaRes = await fetch('/api/quota/check', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
         },
       });
 
-      if (!statusRes.ok) {
-        const data = await statusRes.json().catch(() => ({}));
-        throw new Error(data.error || 'Failed to check download quota');
+      if (!quotaRes.ok) {
+        const data = await quotaRes.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to check generation quota');
       }
 
-      const status = await statusRes.json();
-      if (!status.canDownload) {
+      const status = await quotaRes.json();
+      if (status.quotaExceeded) {
+        setIsPreviewLocked(true);
         setShowPaymentModal(true);
         return false;
       }
 
+      setIsPreviewLocked(false);
       return true;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to check download quota');
+      setError(err instanceof Error ? err.message : 'Failed to check generation quota');
       return false;
     }
   };
 
+
+
+  useEffect(() => {
+    const shouldCheck = showPreview || showCoverLetterPreview;
+    if (!shouldCheck) {
+      setIsPreviewLocked(false);
+      return;
+    }
+
+    const checkQuota = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        setIsPreviewLocked(true);
+        return;
+      }
+
+      try {
+        const quotaRes = await fetch('/api/quota/check', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+        });
+
+        if (!quotaRes.ok) {
+          setIsPreviewLocked(true);
+          return;
+        }
+
+        const data = await quotaRes.json();
+        const locked = Boolean(data.quotaExceeded);
+        setIsPreviewLocked(locked);
+        if (locked) setShowPaymentModal(true);
+      } catch {
+        setIsPreviewLocked(true);
+      }
+    };
+
+    void checkQuota();
+  }, [showPreview, showCoverLetterPreview]);
 
   // ── ✨ UPDATED: Main handler - handles both resume and cover letter ──────
   const handleGenerate = async () => {
@@ -1889,6 +1979,9 @@ useEffect(() => {
         await handleGenerateCoverLetter();
       }
     } catch (err) {
+      if (err instanceof Error && err.message === 'quota_exceeded') {
+        return;
+      }
       setError(err instanceof Error ? err.message : 'Something went wrong.');
     } finally {
       setIsLoading(false);
@@ -2033,6 +2126,8 @@ useEffect(() => {
           onResumeChange={handleResumeChange}
           isDownloading={isDownloading}
           isDocxUpload={isDocxUpload}
+          isLocked={isPreviewLocked}
+          onUpgrade={() => setShowPaymentModal(true)}
         />
       )}
 
@@ -2058,22 +2153,34 @@ useEffect(() => {
 
             {/* Content */}
             <div className="flex-1 overflow-auto p-6">
-              <div className="max-w-3xl mx-auto bg-white shadow-lg p-12 rounded-lg">
+              <div className="relative max-w-3xl mx-auto bg-white shadow-lg p-12 rounded-lg">
+                {isPreviewLocked && (
+                  <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/70 backdrop-blur-sm">
+                    <div className="rounded-xl border border-indigo-200 bg-white p-6 text-center shadow-lg">
+                      <p className="text-sm font-semibold text-slate-900">Upgrade to unlock preview</p>
+                    </div>
+                  </div>
+                )}
+                <div className={isPreviewLocked ? 'blur-sm pointer-events-none select-none' : ''}>
                 <textarea
                   value={coverLetter}
                   onChange={(e) => setCoverLetter(e.target.value)}
+                  disabled={isPreviewLocked}
                   className="w-full min-h-[500px] text-sm border border-slate-200 rounded-lg p-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none font-mono"
                   style={{ lineHeight: '1.6' }}
                 />
                 {/* ✨ AI Rewrite Button for Cover Letter */}
-                <div className="flex justify-end mt-2">
-                  <AIButton
-                    text={coverLetter}
-                    onRewrite={(newText) => setCoverLetter(newText)}
-                    sectionType="generic"
-                  />
-                </div>
+                {!isPreviewLocked && (
+                  <div className="flex justify-end mt-2">
+                    <AIButton
+                      text={coverLetter}
+                      onRewrite={(newText) => setCoverLetter(newText)}
+                      sectionType="generic"
+                    />
+                  </div>
+                )}
               </div>
+            </div>
             </div>
 
             {/* Footer */}
@@ -2089,7 +2196,7 @@ useEffect(() => {
                 </button>
                 <button
                   onClick={handleDownloadCoverLetterPDF}
-                  disabled={isDownloading}
+                  disabled={isDownloading || isPreviewLocked}
                   className="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-slate-300 disabled:to-slate-400 text-white rounded-lg text-sm font-semibold transition-all shadow-lg shadow-blue-500/20 flex items-center gap-2">
                   {isDownloading ? (
                     <><SpinnerIcon /><span className="ml-1">Generating...</span></>

@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { optimizeResume } from '@/lib/resumeOptimizer';
+import {
+  getAuthenticatedUserAndQuota,
+  hasExceededGenerationQuota,
+  incrementGenerationUsage,
+} from '@/lib/server/quota';
 // Types defined inline since they aren't in lib/types
 interface OptimizeRequest {
   resume: import('@/lib/types').ResumeData;
@@ -17,6 +22,11 @@ export const maxDuration = 120;
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
+    const { userId, dbUser, serviceSupabase } = await getAuthenticatedUserAndQuota(request);
+    if (hasExceededGenerationQuota(dbUser)) {
+      return NextResponse.json({ error: 'quota_exceeded' }, { status: 403 });
+    }
+
     const body: OptimizeRequest = await request.json();
 
     if (!body.resume) {
@@ -44,8 +54,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       keywordsInjected,
     };
 
+    await incrementGenerationUsage(serviceSupabase, userId, dbUser.generations_used ?? 0);
+
     return NextResponse.json(response);
   } catch (error) {
+    if (error instanceof Error && error.message === 'UNAUTHORIZED') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && error.message === 'USER_NOT_FOUND') {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
     console.error('[optimize] Error:', error);
     const message =
       error instanceof Error ? error.message : 'Internal server error during optimization.';
