@@ -2504,7 +2504,7 @@ The more detailed it is, the better the keyword matching.`}
         </div>
       </div>
 
-      {isHomepage && (
+      {isHomepage && !showPreview && (
       <div className="fixed right-6 top-40 z-50 flex flex-col gap-4">
         <button
           onClick={() => setAssistantOpen(true)}
