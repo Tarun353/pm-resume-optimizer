@@ -17,14 +17,17 @@ export async function GET(req: NextRequest) {
     });
   } catch (error) {
     if (error instanceof Error && error.message === 'UNAUTHORIZED') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      // Return 401 so the frontend can handle it specifically (re-prompt login)
+      return NextResponse.json({ error: 'Please sign in to continue.' }, { status: 401 });
     }
 
     if (error instanceof Error && error.message === 'USER_NOT_FOUND') {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      // Profile row missing — treat as auth failure so the frontend shows
+      // a sign-in prompt rather than the raw "User not found" string.
+      return NextResponse.json({ error: 'Please sign in to continue.' }, { status: 401 });
     }
 
     console.error('[quota/check] Error:', error);
-    return NextResponse.json({ error: 'Failed to check quota' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to check quota. Please try again.' }, { status: 500 });
   }
 }
