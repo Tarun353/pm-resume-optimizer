@@ -3,6 +3,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 interface DbUser {
   id: string;
+  downloads_used?: number | null;
   generations_used?: number | null;
   generation_limit?: number | null;
   subscription_type?: string | null;
@@ -117,8 +118,8 @@ export async function getAuthenticatedUserAndQuota(request: NextRequest): Promis
 }
 
 export function hasExceededGenerationQuota(dbUser: DbUser): boolean {
-  const used = dbUser.generations_used ?? 0;
-  const limit = dbUser.generation_limit;
+  const used = dbUser.generations_used ?? dbUser.downloads_used ?? 0;
+  const limit = dbUser.generation_limit ?? 5;
 
   const hasActiveSubscription =
     dbUser.subscription_type === 'paid' &&
@@ -126,14 +127,23 @@ export function hasExceededGenerationQuota(dbUser: DbUser): boolean {
     new Date(dbUser.subscription_expires_at) > new Date();
 
   if (hasActiveSubscription) return false;
-  if (limit === null || limit === undefined) return false;
 
   return used >= limit;
 }
 
 export async function incrementGenerationUsage(serviceSupabase: SupabaseClient, userId: string, currentUsed: number) {
-  await serviceSupabase
+  const modernUpdate = await serviceSupabase
     .from('users')
     .update({ generations_used: currentUsed + 1 })
+    .eq('id', userId);
+
+  if (!modernUpdate.error || !isMissingColumnError(modernUpdate.error)) {
+    return;
+  }
+
+  // Legacy fallback: if generations_used column isn't present yet, keep behavior via downloads_used.
+  await serviceSupabase
+    .from('users')
+    .update({ downloads_used: currentUsed + 1 })
     .eq('id', userId);
 }
