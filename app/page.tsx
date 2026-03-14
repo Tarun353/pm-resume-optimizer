@@ -1494,7 +1494,6 @@ export default function HomePage() {
 
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [isPreviewLocked, setIsPreviewLocked] = useState(false);
   const { user, dbUser, refreshUser } = useAuth();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -1707,15 +1706,11 @@ export default function HomePage() {
     if (!res.ok) {
       const d = await res.json().catch(() => ({}));
       if (d.error === 'quota_exceeded') {
-        // Quota exceeded: blur the preview and show upgrade modal
-        setIsPreviewLocked(true);
         setShowPaymentModal(true);
         throw new Error('quota_exceeded');
       }
       throw new Error(d.error ?? 'Optimization failed');
     }
-    // Optimization succeeded — preview is NOT locked
-    setIsPreviewLocked(false);
 
     return res.json() as Promise<{ optimizedResume: ResumeData; changes: string[]; keywordsInjected: string[] }>;
   };
@@ -1746,13 +1741,11 @@ export default function HomePage() {
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         if (data.error === 'quota_exceeded') {
-          setIsPreviewLocked(true);
           setShowPaymentModal(true);
           throw new Error('quota_exceeded');
         }
         throw new Error(data.error ?? 'Failed to generate cover letter');
       }
-      setIsPreviewLocked(false);
 
       const data = await res.json();
       setCoverLetter(data.coverLetter);
@@ -2013,7 +2006,7 @@ export default function HomePage() {
           onResumeChange={handleResumeChange}
           isDownloading={isDownloading}
           isDocxUpload={isDocxUpload}
-          isLocked={isPreviewLocked}
+          isLocked={false}
           onUpgrade={() => setShowPaymentModal(true)}
         />
       )}
@@ -2037,30 +2030,20 @@ export default function HomePage() {
 
             <div className="flex-1 overflow-auto p-6">
               <div className="relative max-w-3xl mx-auto bg-white shadow-lg p-12 rounded-lg">
-                {isPreviewLocked && (
-                  <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/70 backdrop-blur-sm">
-                    <div className="rounded-xl border border-indigo-200 bg-white p-6 text-center shadow-lg">
-                      <p className="text-sm font-semibold text-slate-900">Upgrade to unlock preview</p>
-                    </div>
-                  </div>
-                )}
-                <div className={isPreviewLocked ? 'blur-sm pointer-events-none select-none' : ''}>
+                <div>
                   <textarea
                     value={coverLetter}
                     onChange={(e) => setCoverLetter(e.target.value)}
-                    disabled={isPreviewLocked}
                     className="w-full min-h-[500px] text-sm border border-slate-200 rounded-lg p-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none font-mono"
                     style={{ lineHeight: '1.6' }}
                   />
-                  {!isPreviewLocked && (
-                    <div className="flex justify-end mt-2">
-                      <AIButton
-                        text={coverLetter}
-                        onRewrite={(newText) => setCoverLetter(newText)}
-                        sectionType="generic"
-                      />
-                    </div>
-                  )}
+                  <div className="flex justify-end mt-2">
+                    <AIButton
+                      text={coverLetter}
+                      onRewrite={(newText) => setCoverLetter(newText)}
+                      sectionType="generic"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -2077,7 +2060,7 @@ export default function HomePage() {
                 </button>
                 <button
                   onClick={handleDownloadCoverLetterPDF}
-                  disabled={isDownloading || isPreviewLocked}
+                  disabled={isDownloading}
                   className="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-slate-300 disabled:to-slate-400 text-white rounded-lg text-sm font-semibold transition-all shadow-lg shadow-blue-500/20 flex items-center gap-2">
                   {isDownloading ? (
                     <><SpinnerIcon /><span className="ml-1">Generating...</span></>
