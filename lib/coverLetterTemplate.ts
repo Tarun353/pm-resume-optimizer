@@ -15,13 +15,19 @@ export function generateCoverLetterHTML(coverLetterText: string): string {
       .replace(/'/g, '&#39;');
   }
 
-  // Convert line breaks to paragraphs
-  const normalizedText = coverLetterText.replace(/\r\n/g, '\n');
+  // Normalize line endings
+  const normalizedText = coverLetterText.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
-  const paragraphs = coverLetterText
+  // Split on double newlines (paragraph breaks).
+  // Within each paragraph, convert single \n to <br/> so each line
+  // stays on its own line — fixes name/address/email all merging into one line.
+  const paragraphs = normalizedText
     .split(/\n{2,}/)
     .filter(p => p.trim().length > 0)
-    .map(p => `<p class="paragraph">${esc(p.trim())}</p>`)
+    .map(p => {
+      const withBreaks = esc(p.trim()).replace(/\n/g, '<br/>');
+      return `<p class="paragraph">${withBreaks}</p>`;
+    })
     .join('\n');
 
   return `<!DOCTYPE html>
