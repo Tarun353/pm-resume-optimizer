@@ -47,14 +47,12 @@ export async function getAuthenticatedUserAndQuota(request: NextRequest): Promis
     throw new Error('UNAUTHORIZED');
   }
 
-  // Use SELECT * to avoid errors if some columns don't exist in this database yet
   let { data: dbUser, error: userError } = await serviceSupabase
     .from('users')
     .select('*')
     .eq('id', user.id)
     .single();
 
-  // If user row is missing, create it
   if (!dbUser) {
     const { error: createError } = await serviceSupabase.from('users').insert({
       id: user.id,
@@ -64,27 +62,15 @@ export async function getAuthenticatedUserAndQuota(request: NextRequest): Promis
     });
 
     if (!createError) {
-      const reloaded = await serviceSupabase
-        .from('users')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-
+      const reloaded = await serviceSupabase.from('users').select('*').eq('id', user.id).single();
       dbUser = reloaded.data;
       userError = reloaded.error;
     } else {
-      // Try upsert as fallback
       await serviceSupabase.from('users').upsert(
         { id: user.id, email: user.email ?? '', subscription_type: 'free', downloads_used: 0 },
         { onConflict: 'id' }
       );
-
-      const reloaded = await serviceSupabase
-        .from('users')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-
+      const reloaded = await serviceSupabase.from('users').select('*').eq('id', user.id).single();
       dbUser = reloaded.data;
       userError = reloaded.error;
     }
@@ -98,21 +84,23 @@ export async function getAuthenticatedUserAndQuota(request: NextRequest): Promis
 }
 
 export function hasExceededGenerationQuota(dbUser: DbUser): boolean {
-  // Use downloads_used if generations_used column doesn't exist yet
-  const used = dbUser.generations_used ?? dbUser.downloads_used ?? 0;
-
-  // Use a safe default limit if generation_limit column doesn't exist
-  const limit = dbUser.generation_limit ?? 5;
-
   const hasActiveSubscription =
     dbUser.subscription_type === 'paid' &&
     dbUser.subscription_expires_at &&
     new Date(dbUser.subscription_expires_at) > new Date();
 
-  // Premium users are never blocked
   if (hasActiveSubscription) return false;
 
-  return used >= limit;
+  // FIX: Do NOT fall back to downloads_used.
+  // downloads_used is managed exclusively by /api/download/track.
+  // Falling back caused double-counting: optimize incremented downloads_used,
+  // then download/track incremented it again → quota hit after ~3 downloads instead of 5.
+  if (dbUser.generations_used == null) {
+    return false; // generations_used column not in DB yet — don't block
+  }
+
+  const limit = dbUser.generation_limit ?? 5;
+  return dbUser.generations_used >= limit;
 }
 
 export async function incrementGenerationUsage(
@@ -120,19 +108,10 @@ export async function incrementGenerationUsage(
   userId: string,
   currentUsed: number
 ) {
-  // Try generations_used first; if the column doesn't exist, fall back to downloads_used
-  const modernUpdate = await serviceSupabase
-    .from('users')
-    .update({ generations_used: currentUsed + 1 })
-    .eq('id', userId);
-
-  if (!modernUpdate.error) {
-    return;
-  }
-
-  // Column doesn't exist — use downloads_used as fallback
+  // FIX: Only touch generations_used. Never downloads_used.
+  // If column doesn't exist, silently fails — that's OK.
   await serviceSupabase
     .from('users')
-    .update({ downloads_used: currentUsed + 1 })
+    .update({ generations_used: currentUsed + 1 })
     .eq('id', userId);
 }
