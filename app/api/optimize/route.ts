@@ -5,7 +5,7 @@ import {
   hasExceededGenerationQuota,
   incrementGenerationUsage,
 } from '@/lib/server/quota';
-// Types defined inline since they aren't in lib/types
+
 interface OptimizeRequest {
   resume: import('@/lib/types').ResumeData;
   jobDescription: string;
@@ -23,6 +23,7 @@ export const maxDuration = 120;
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const { userId, dbUser, serviceSupabase } = await getAuthenticatedUserAndQuota(request);
+
     if (hasExceededGenerationQuota(dbUser)) {
       return NextResponse.json({ error: 'quota_exceeded' }, { status: 403 });
     }
@@ -54,7 +55,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       keywordsInjected,
     };
 
-    await incrementGenerationUsage(serviceSupabase, userId, dbUser.generations_used ?? 0);
+    await incrementGenerationUsage(serviceSupabase, userId, dbUser.generations_used ?? dbUser.downloads_used ?? 0);
 
     return NextResponse.json(response);
   } catch (error) {
@@ -62,7 +63,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     if (error instanceof Error && error.message === 'USER_NOT_FOUND') {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      // Return 401 (not 404) so the frontend knows to re-authenticate
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     console.error('[optimize] Error:', error);
     const message =
