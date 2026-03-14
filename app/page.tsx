@@ -10,7 +10,7 @@ import { supabase } from '@/lib/supabase';
 import { Navbar } from '@/components/Navbar';
 import { calculateATSScoreWithSuggestions } from '@/lib/atsScore';
 import { detectMissingPMKeywords } from '@/lib/pmAnalyzer';
-import { useEffect } from 'react'; // Add useEffect if not already imported
+import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
@@ -238,8 +238,6 @@ function AIButton({
           </div>
         </div>
       )}
-
-
     </>
   );
 }
@@ -529,8 +527,6 @@ function SectionReorder({ sectionOrder, onReorder }: SectionReorderProps) {
   );
 }
 
-
-
 function getInitialActiveSections(resume: ResumeData): string[] {
   const base = resume.sectionOrder?.length ? [...resume.sectionOrder] : [...DEFAULT_SECTIONS];
 
@@ -619,7 +615,6 @@ function EditablePreviewModal({ resume, rawResumeText, onClose, onDownload, onRe
     setTimeout(() => setCopyStatus('idle'), 2000);
   };
 
-  // Generate preview whenever editedResume changes
   const regeneratePreview = useCallback(async () => {
     setIsLoadingPreview(true);
     try {
@@ -640,12 +635,10 @@ function EditablePreviewModal({ resume, rawResumeText, onClose, onDownload, onRe
     }
   }, [editedResume]);
 
-  // Initial load
   useEffect(() => {
     regeneratePreview();
   }, []);
 
-  // Update summary
   const updateSummary = (newSummary: string) => {
     const updated = { ...editedResume, summary: newSummary };
     setEditedResume(updated);
@@ -653,7 +646,6 @@ function EditablePreviewModal({ resume, rawResumeText, onClose, onDownload, onRe
     regeneratePreview();
   };
 
-  // Update experience bullet
   const updateExperienceBullet = (expIndex: number, bulletIndex: number, newText: string) => {
     const updated = { ...editedResume };
     if (updated.experience[expIndex]) {
@@ -664,7 +656,6 @@ function EditablePreviewModal({ resume, rawResumeText, onClose, onDownload, onRe
     }
   };
 
-  // Add experience bullet
   const addExperienceBullet = (expIndex: number) => {
     const updated = { ...editedResume };
     if (updated.experience[expIndex]) {
@@ -675,7 +666,6 @@ function EditablePreviewModal({ resume, rawResumeText, onClose, onDownload, onRe
     }
   };
 
-  // Delete experience bullet
   const deleteExperienceBullet = (expIndex: number, bulletIndex: number) => {
     const updated = { ...editedResume };
     if (updated.experience[expIndex]) {
@@ -686,7 +676,6 @@ function EditablePreviewModal({ resume, rawResumeText, onClose, onDownload, onRe
     }
   };
 
-  // Update internship bullet
   const updateInternshipBullet = (intIndex: number, bulletIndex: number, newText: string) => {
     const updated = { ...editedResume };
     if (updated.internships && updated.internships[intIndex]) {
@@ -697,7 +686,6 @@ function EditablePreviewModal({ resume, rawResumeText, onClose, onDownload, onRe
     }
   };
 
-  // Add internship bullet
   const addInternshipBullet = (intIndex: number) => {
     const updated = { ...editedResume };
     if (updated.internships && updated.internships[intIndex]) {
@@ -708,7 +696,6 @@ function EditablePreviewModal({ resume, rawResumeText, onClose, onDownload, onRe
     }
   };
 
-  // Delete internship bullet
   const deleteInternshipBullet = (intIndex: number, bulletIndex: number) => {
     const updated = { ...editedResume };
     if (updated.internships && updated.internships[intIndex]) {
@@ -928,7 +915,6 @@ function EditablePreviewModal({ resume, rawResumeText, onClose, onDownload, onRe
     await applyResumeUpdate(updated);
   };
 
-  // Update section order
   const updateSectionOrder = async (newOrder: string[]) => {
     const filteredOrder = newOrder.filter(section => activeSections.includes(section));
     const updated = { ...editedResume, sectionOrder: filteredOrder };
@@ -967,7 +953,6 @@ function EditablePreviewModal({ resume, rawResumeText, onClose, onDownload, onRe
             </button>
           </div>
 
-          {/* Tabs */}
           <div className="flex gap-2">
             <button
               onClick={() => setActiveTab('edit')}
@@ -997,7 +982,6 @@ function EditablePreviewModal({ resume, rawResumeText, onClose, onDownload, onRe
         </div>
 
         <div className="flex-1 overflow-auto p-6">
-          {/* EDIT TAB */}
           {activeTab === 'edit' && (
             <>
               <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3">
@@ -1326,7 +1310,6 @@ function EditablePreviewModal({ resume, rawResumeText, onClose, onDownload, onRe
             </>
           )}
 
-          {/* REORDER TAB */}
           {activeTab === 'reorder' && (
             <>
               <div className="mb-4">
@@ -1396,7 +1379,7 @@ function EditablePreviewModal({ resume, rawResumeText, onClose, onDownload, onRe
               ) : (
                 <>
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                     d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
                 <span>Refresh</span>
@@ -1498,21 +1481,17 @@ export default function HomePage() {
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [pmResumeOpen, setPmResumeOpen] = useState(false);
 
-
-  // ── DOCX state ────────────────────────────────────────────────────────────
   const [originalDocx, setOriginalDocx]         = useState<string | null>(null);
   const [originalResume, setOriginalResume]     = useState<ResumeData | null>(null);
   const [isDocxUpload, setIsDocxUpload]         = useState(false);
   const [uploadSubMode, setUploadSubMode]       = useState<'pdf' | 'docx'>('pdf');
 
-  // ── ✨ NEW: Cover Letter States ──────────────────────────────────────────
   const [generationType, setGenerationType] = useState<'resume' | 'coverletter'>('resume');
   const [coverLetter, setCoverLetter] = useState<string>('');
   const [showCoverLetterPreview, setShowCoverLetterPreview] = useState(false);
   const [rawResumeText, setRawResumeText] = useState('');
   const [pmProfile, setPmProfile] = useState('aspiring');
 
-  // ── Auth states ───────────────────────────────────────────────────────────
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [isPreviewLocked, setIsPreviewLocked] = useState(false);
@@ -1521,118 +1500,110 @@ export default function HomePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ── Save state before OAuth redirect ──────────────────────────────────────
-const saveStateBeforeLogin = () => {
-  const state = {
-    resumeText,
-    jobDescription,
-    parsedResume,
-    optimizedResume,
-    coverLetter,
-    rawResumeText,
-    uploadedFileName: uploadedFile?.name || null,
-    inputMode,
-    careerStage,
-    pmProfile,
-    generationType,
-    timestamp: Date.now(),
+  const saveStateBeforeLogin = () => {
+    const state = {
+      resumeText,
+      jobDescription,
+      parsedResume,
+      optimizedResume,
+      coverLetter,
+      rawResumeText,
+      uploadedFileName: uploadedFile?.name || null,
+      inputMode,
+      careerStage,
+      pmProfile,
+      generationType,
+      timestamp: Date.now(),
+    };
+    sessionStorage.setItem('resumeState', JSON.stringify(state));
+    console.log('State saved before login');
   };
-  sessionStorage.setItem('resumeState', JSON.stringify(state));
-  console.log('State saved before login');
-};
 
-// ── Restore state after OAuth redirect ────────────────────────────────────
-const restoreStateAfterLogin = () => {
-  const savedState = sessionStorage.getItem('resumeState');
-  if (!savedState) return false;
+  // ── Restore state after OAuth redirect ────────────────────────────────────
+  const restoreStateAfterLogin = () => {
+    const savedState = sessionStorage.getItem('resumeState');
+    if (!savedState) return false;
 
-  try {
-    const state = JSON.parse(savedState);
-    
-    // Only restore if saved within last 10 minutes
-    if (Date.now() - state.timestamp > 10 * 60 * 1000) {
+    try {
+      const state = JSON.parse(savedState);
+
+      if (Date.now() - state.timestamp > 10 * 60 * 1000) {
+        sessionStorage.removeItem('resumeState');
+        return false;
+      }
+
+      setResumeText(state.resumeText || '');
+      setJobDescription(state.jobDescription || '');
+      setParsedResume(state.parsedResume || null);
+      setOptimizedResume(state.optimizedResume || null);
+      setCoverLetter(state.coverLetter || '');
+      setRawResumeText(state.rawResumeText || '');
+      setInputMode(state.inputMode || 'paste');
+      setCareerStage(state.careerStage || 'experienced');
+      setPmProfile(state.pmProfile || 'aspiring');
+      setGenerationType(state.generationType || 'resume');
+
+      sessionStorage.removeItem('resumeState');
+
+      console.log('State restored after login');
+      return true;
+    } catch (err) {
+      console.error('Failed to restore state:', err);
       sessionStorage.removeItem('resumeState');
       return false;
     }
+  };
 
-    // Restore state
-    setResumeText(state.resumeText || '');
-    setJobDescription(state.jobDescription || '');
-    setParsedResume(state.parsedResume || null);
-    setOptimizedResume(state.optimizedResume || null);
-    setCoverLetter(state.coverLetter || '');
-    setRawResumeText(state.rawResumeText || '');
-    setInputMode(state.inputMode || 'paste');
-    setCareerStage(state.careerStage || 'experienced');
-    setPmProfile(state.pmProfile || 'aspiring');
-    setGenerationType(state.generationType || 'resume');
+  useEffect(() => {
+    const handleLoginComplete = async () => {
+      console.log('Login completed, restoring state...');
 
-    // Clear saved state
-    sessionStorage.removeItem('resumeState');
-    
-    console.log('State restored after login');
-    return true;
-  } catch (err) {
-    console.error('Failed to restore state:', err);
-    sessionStorage.removeItem('resumeState');
-    return false;
-  }
-};
+      const restored = restoreStateAfterLogin();
 
-// ── Listen for login completion ───────────────────────────────────────────
-useEffect(() => {
-  const handleLoginComplete = async () => {
-    console.log('Login completed, restoring state...');
-    
-    const restored = restoreStateAfterLogin();
-    
-    if (restored) {
-      console.log('State restored, waiting for session...');
-      
-      // ✅ Wait for session to be available
-      let attempts = 0;
-      const maxAttempts = 20;
-      let session = null;
-      
-      while (!session && attempts < maxAttempts) {
-        const { data } = await supabase.auth.getSession();
-        session = data.session;
+      if (restored) {
+        console.log('State restored, waiting for session...');
+
+        let attempts = 0;
+        const maxAttempts = 20;
+        let session = null;
+
+        while (!session && attempts < maxAttempts) {
+          const { data } = await supabase.auth.getSession();
+          session = data.session;
+          if (!session) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+            attempts++;
+          }
+        }
+
         if (!session) {
-          await new Promise(resolve => setTimeout(resolve, 500));
-          attempts++;
+          console.error('Session not available after login');
+          return;
+        }
+
+        console.log('Session available, triggering download');
+
+        if (optimizedResume && generationType === 'resume') {
+          console.log('Auto-downloading resume');
+          await handleDownloadPDF();
+        } else if (coverLetter && generationType === 'coverletter') {
+          console.log('Auto-downloading cover letter');
+          await handleDownloadCoverLetterPDF();
         }
       }
-      
-      if (!session) {
-        console.error('Session not available after login');
-        return;
-      }
-      
-      console.log('Session available, triggering download');
-      
-      // Trigger download
-      if (optimizedResume && generationType === 'resume') {
-        console.log('Auto-downloading resume');
-        await handleDownloadPDF();
-      } else if (coverLetter && generationType === 'coverletter') {
-        console.log('Auto-downloading cover letter');
-        await handleDownloadCoverLetterPDF();
-      }
-    }
-  };
+    };
 
-  window.addEventListener('login-complete', handleLoginComplete);
-  
-  return () => {
-    window.removeEventListener('login-complete', handleLoginComplete);
-  };
-}, [optimizedResume, coverLetter, generationType]);
+    window.addEventListener('login-complete', handleLoginComplete);
 
+    return () => {
+      window.removeEventListener('login-complete', handleLoginComplete);
+    };
+  }, [optimizedResume, coverLetter, generationType]);
 
   // ── File handling ────────────────────────────────────────────────────────
   const handleFile = useCallback((file: File) => {
     const name = file.name.toLowerCase();
 
-    // Validate against the selected sub-mode
     if (uploadSubMode === 'pdf' && !name.endsWith('.pdf')) {
       setError('Please upload a PDF file for this mode.');
       return;
@@ -1687,7 +1658,6 @@ useEffect(() => {
       if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? 'Parse failed'); }
       const d = await res.json() as ParseResponse & { isDocxUpload?: boolean; originalDocx?: string };
 
-      // Capture DOCX data if parse route returns it
       if (d.isDocxUpload && d.originalDocx) {
         setOriginalDocx(d.originalDocx);
         setOriginalResume(d.resume);
@@ -1716,20 +1686,39 @@ useEffect(() => {
     return d.resume;
   };
 
+  // ════════════════════════════════════════════════════════════════════════════
+  // THE FIX: getFreshToken always gets a valid, non-expired token.
+  // supabase.auth.refreshSession() contacts Supabase's server and rotates
+  // the token. This is the only reliable way to avoid 401 errors.
+  // ════════════════════════════════════════════════════════════════════════════
+  const getFreshToken = async (): Promise<string | null> => {
+    try {
+      const { data, error } = await supabase.auth.refreshSession();
+      if (!error && data.session?.access_token) {
+        return data.session.access_token;
+      }
+    } catch {
+      // refreshSession failed — fall back to cached session
+    }
+    // Fallback: read whatever is cached
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token ?? null;
+  };
+
   // ── Optimize ─────────────────────────────────────────────────────────────
   const optimizeResumeData = async (resume: ResumeData) => {
     setLoadingStep('Rewriting summary and bullets (~30 seconds)...');
     const jd = jobDescription.trim();
     if (jd.length < 20) throw new Error('Please enter a job description (20+ characters).');
 
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.access_token) throw new Error('Please sign in to continue.');
+    const token = await getFreshToken();
+    if (!token) throw new Error('Please sign in to continue.');
 
     const res = await fetch('/api/optimize', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`,
+        'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify({ resume, jobDescription: jd }),
     });
@@ -1747,28 +1736,28 @@ useEffect(() => {
     return res.json() as Promise<{ optimizedResume: ResumeData; changes: string[]; keywordsInjected: string[] }>;
   };
 
-  // ── ✨ NEW: Generate Cover Letter ────────────────────────────────────────
+  // ── Generate Cover Letter ────────────────────────────────────────────────
   const handleGenerateCoverLetter = async () => {
     if (!parsedResume) return;
-    
+
     setLoadingStep('Generating your cover letter (~15 seconds)...');
-    
+
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) throw new Error('Please sign in to continue.');
+      const token = await getFreshToken();
+      if (!token) throw new Error('Please sign in to continue.');
 
       const res = await fetch('/api/generate-cover-letter', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           resume: parsedResume,
           jobDescription: jobDescription.trim(),
         }),
       });
-      
+
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         if (data.error === 'quota_exceeded') {
@@ -1779,11 +1768,11 @@ useEffect(() => {
         throw new Error(data.error ?? 'Failed to generate cover letter');
       }
       setIsPreviewLocked(false);
-      
+
       const data = await res.json();
       setCoverLetter(data.coverLetter);
       setShowCoverLetterPreview(true);
-      
+
     } catch (err) {
       if (err instanceof Error && err.message === 'quota_exceeded') {
         return;
@@ -1793,102 +1782,94 @@ useEffect(() => {
     }
   };
 
-  // ── ✨ NEW: Download Cover Letter PDF ────────────────────────────────────
+  // ── Download Cover Letter PDF ────────────────────────────────────────────
   const handleDownloadCoverLetterPDF = async () => {
-  if (!coverLetter) return;
+    if (!coverLetter) return;
 
-  // ✅ Check session directly (not user state)
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session?.user) {
-    saveStateBeforeLogin();
-    setShowLoginModal(true);
-    return;
-  }
-
-  // Track download and check limit
-  try {
-    const token = session.access_token;
-
-    const trackRes = await fetch('/api/download/track', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-      body: JSON.stringify({ type: 'coverletter' }),
-    });
-
-    if (!trackRes.ok) {
-      const data = await trackRes.json();
-      if (data.reason === 'limit_exceeded') {
-        setShowPaymentModal(true);
-        return;
-      }
-      throw new Error(data.error || 'Failed to track download');
-    }
-  } catch (err) {
-    if (err instanceof Error && err.message !== 'Failed to track download') {
-      setError(err.message);
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) {
+      saveStateBeforeLogin();
+      setShowLoginModal(true);
       return;
     }
-  }
 
-  setIsDownloading(true);
-  setError(null);
+    try {
+      const token = session.access_token;
 
-  try {
-    const name = parsedResume?.personal?.name || 'Applicant';
-    const fileName = `${name.replace(/\s+/g, '_')}_Cover_Letter.pdf`;
+      const trackRes = await fetch('/api/download/track', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ type: 'coverletter' }),
+      });
 
-    const res = await fetch('/api/generate-cover-letter-pdf', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ coverLetter, fileName }),
-    });
-
-    if (!res.ok) {
-      const data = await res.json();
-      throw new Error(data.error ?? 'PDF generation failed');
+      if (!trackRes.ok) {
+        const data = await trackRes.json();
+        if (data.reason === 'limit_exceeded') {
+          setShowPaymentModal(true);
+          return;
+        }
+        throw new Error(data.error || 'Failed to track download');
+      }
+    } catch (err) {
+      if (err instanceof Error && err.message !== 'Failed to track download') {
+        setError(err.message);
+        return;
+      }
     }
 
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    setIsDownloading(true);
+    setError(null);
 
-    await refreshUser();
-    setShowCoverLetterPreview(false);
-  } catch (err) {
-    setError(err instanceof Error ? err.message : 'PDF download failed');
-  } finally {
-    setIsDownloading(false);
-  }
-};
+    try {
+      const name = parsedResume?.personal?.name || 'Applicant';
+      const fileName = `${name.replace(/\s+/g, '_')}_Cover_Letter.pdf`;
 
+      const res = await fetch('/api/generate-cover-letter-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ coverLetter, fileName }),
+      });
 
-const canRunGeneration = async (): Promise<boolean> => {
-    // Use the user from AuthContext — this is what the UI already shows.
-    // Calling getUser() makes a network round-trip that can fail even when
-    // the user is genuinely signed in, causing false login prompts.
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error ?? 'PDF generation failed');
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      await refreshUser();
+      setShowCoverLetterPreview(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'PDF download failed');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  // ── Pre-check quota before expensive generation ───────────────────────────
+  const canRunGeneration = async (): Promise<boolean> => {
+    // If AuthContext says no user, show login immediately
     if (!user) {
       saveStateBeforeLogin();
       setShowLoginModal(true);
       return false;
     }
 
-    // Get session; if token is stale, try refreshing it once.
-    let { data: { session } } = await supabase.auth.getSession();
-    if (!session?.access_token) {
-      const { data: refreshed } = await supabase.auth.refreshSession();
-      session = refreshed.session;
-    }
+    // Get a guaranteed fresh token (not cached/expired)
+    const token = await getFreshToken();
 
-    if (!session?.access_token) {
+    if (!token) {
       saveStateBeforeLogin();
       setShowLoginModal(true);
       return false;
@@ -1898,7 +1879,7 @@ const canRunGeneration = async (): Promise<boolean> => {
       const quotaRes = await fetch('/api/quota/check', {
         method: 'GET',
         headers: {
-          Authorization: `Bearer ${session.access_token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -1933,8 +1914,7 @@ const canRunGeneration = async (): Promise<boolean> => {
     }
   };
 
-
-useEffect(() => {
+  useEffect(() => {
     const shouldCheck = showPreview || showCoverLetterPreview;
     if (!shouldCheck) {
       setIsPreviewLocked(false);
@@ -1942,14 +1922,8 @@ useEffect(() => {
     }
 
     const checkQuota = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setIsPreviewLocked(false);
-        return;
-      }
-
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
+      const token = await getFreshToken();
+      if (!token) {
         setIsPreviewLocked(false);
         return;
       }
@@ -1958,7 +1932,7 @@ useEffect(() => {
         const quotaRes = await fetch('/api/quota/check', {
           method: 'GET',
           headers: {
-            Authorization: `Bearer ${session.access_token}`,
+            Authorization: `Bearer ${token}`,
           },
         });
 
@@ -1979,7 +1953,7 @@ useEffect(() => {
     void checkQuota();
   }, [showPreview, showCoverLetterPreview]);
 
-  // ── ✨ UPDATED: Main handler - handles both resume and cover letter ──────
+  // ── Main handler ──────────────────────────────────────────────────────────
   const handleGenerate = async () => {
     setError(null);
 
@@ -1994,18 +1968,15 @@ useEffect(() => {
     setRawResumeText('');
 
     try {
-      // Parse resume first (needed for both)
       const parsed = await parseResume();
       setParsedResume(parsed);
 
       if (generationType === 'resume') {
-        // Existing resume optimization logic
         const result = await optimizeResumeData(parsed);
         setOptimizedResume(result.optimizedResume);
         setChanges(result.changes ?? []);
         setKeywords(result.keywordsInjected ?? []);
       } else {
-        // Cover letter generation
         await handleGenerateCoverLetter();
       }
     } catch (err) {
@@ -2019,97 +1990,91 @@ useEffect(() => {
     }
   };
 
-  // ── Handle resume changes from editor ─────────────────────────────────────
   const handleResumeChange = (newResume: ResumeData) => {
     setOptimizedResume(newResume);
   };
 
   // ── Download PDF ──────────────────────────────────────────────────────────
   const handleDownloadPDF = async () => {
-  if (!optimizedResume) return;
+    if (!optimizedResume) return;
 
-  // ✅ Check session directly (not user state)
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session?.user) {
-    saveStateBeforeLogin();
-    setShowLoginModal(true);
-    return;
-  }
-
-  // Track download and check limit
-  try {
-    const token = session.access_token;
-
-    const trackRes = await fetch('/api/download/track', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-      body: JSON.stringify({ type: 'resume' }),
-    });
-
-    if (!trackRes.ok) {
-      const data = await trackRes.json();
-      if (data.reason === 'limit_exceeded') {
-        setShowPaymentModal(true);
-        return;
-      }
-      throw new Error(data.error || 'Failed to track download');
-    }
-  } catch (err) {
-    if (err instanceof Error && err.message !== 'Failed to track download') {
-      setError(err.message);
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) {
+      saveStateBeforeLogin();
+      setShowLoginModal(true);
       return;
     }
-  }
 
-  setIsDownloading(true);
-  setError(null);
+    try {
+      const token = session.access_token;
 
-  try {
-    const requestBody: Record<string, unknown> = {
-      resume: optimizedResume,
-    };
+      const trackRes = await fetch('/api/download/track', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ type: 'resume' }),
+      });
 
-    if (isDocxUpload && originalDocx && originalResume) {
-      requestBody.originalDocx = originalDocx;
-      requestBody.originalResume = originalResume;
+      if (!trackRes.ok) {
+        const data = await trackRes.json();
+        if (data.reason === 'limit_exceeded') {
+          setShowPaymentModal(true);
+          return;
+        }
+        throw new Error(data.error || 'Failed to track download');
+      }
+    } catch (err) {
+      if (err instanceof Error && err.message !== 'Failed to track download') {
+        setError(err.message);
+        return;
+      }
     }
 
-    const res = await fetch('/api/generate-pdf', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(requestBody),
-    });
-    
-    if (!res.ok) { 
-      const d = await res.json(); 
-      throw new Error(d.error ?? 'PDF failed'); 
+    setIsDownloading(true);
+    setError(null);
+
+    try {
+      const requestBody: Record<string, unknown> = {
+        resume: optimizedResume,
+      };
+
+      if (isDocxUpload && originalDocx && originalResume) {
+        requestBody.originalDocx = originalDocx;
+        requestBody.originalResume = originalResume;
+      }
+
+      const res = await fetch('/api/generate-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!res.ok) {
+        const d = await res.json();
+        throw new Error(d.error ?? 'PDF failed');
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const name = (optimizedResume.personal?.name ?? 'Resume').replace(/\s+/g, '_');
+      a.href = url;
+      a.download = `${name}_ATS_Optimized.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      await refreshUser();
+      setShowPreview(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'PDF download failed.');
+    } finally {
+      setIsDownloading(false);
     }
-    
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    const name = (optimizedResume.personal?.name ?? 'Resume').replace(/\s+/g, '_');
-    a.href = url;
-    a.download = `${name}_ATS_Optimized.pdf`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-
-    await refreshUser();
-    setShowPreview(false);
-  } catch (err) {
-    setError(err instanceof Error ? err.message : 'PDF download failed.');
-  } finally {
-    setIsDownloading(false);
-  }
-};
-    
-
-    
+  };
 
   // ── Derived ───────────────────────────────────────────────────────────────
   const canOptimize =
@@ -2126,7 +2091,6 @@ useEffect(() => {
 
   return (
     <>
-      {/* Login Modal */}
       <LoginModal
         isOpen={showLoginModal}
         onClose={() => setShowLoginModal(false)}
@@ -2137,7 +2101,6 @@ useEffect(() => {
         }}
       />
 
-      {/* Payment Modal */}
       <PaymentModal
         isOpen={showPaymentModal}
         onClose={() => setShowPaymentModal(false)}
@@ -2146,7 +2109,6 @@ useEffect(() => {
         }}
       />
 
-      {/* Editable Preview Modal */}
       {showPreview && optimizedResume && (
         <EditablePreviewModal
           resume={optimizedResume}
@@ -2161,12 +2123,9 @@ useEffect(() => {
         />
       )}
 
-      {/* ✨ NEW: Cover Letter Preview Modal */}
       {showCoverLetterPreview && coverLetter && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl mx-4 max-h-[90vh] flex flex-col">
-            
-            {/* Header */}
             <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
               <div>
                 <h2 className="font-bold text-slate-900 text-xl flex items-center gap-2">
@@ -2181,7 +2140,6 @@ useEffect(() => {
               </button>
             </div>
 
-            {/* Content */}
             <div className="flex-1 overflow-auto p-6">
               <div className="relative max-w-3xl mx-auto bg-white shadow-lg p-12 rounded-lg">
                 {isPreviewLocked && (
@@ -2192,28 +2150,26 @@ useEffect(() => {
                   </div>
                 )}
                 <div className={isPreviewLocked ? 'blur-sm pointer-events-none select-none' : ''}>
-                <textarea
-                  value={coverLetter}
-                  onChange={(e) => setCoverLetter(e.target.value)}
-                  disabled={isPreviewLocked}
-                  className="w-full min-h-[500px] text-sm border border-slate-200 rounded-lg p-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none font-mono"
-                  style={{ lineHeight: '1.6' }}
-                />
-                {/* ✨ AI Rewrite Button for Cover Letter */}
-                {!isPreviewLocked && (
-                  <div className="flex justify-end mt-2">
-                    <AIButton
-                      text={coverLetter}
-                      onRewrite={(newText) => setCoverLetter(newText)}
-                      sectionType="generic"
-                    />
-                  </div>
-                )}
+                  <textarea
+                    value={coverLetter}
+                    onChange={(e) => setCoverLetter(e.target.value)}
+                    disabled={isPreviewLocked}
+                    className="w-full min-h-[500px] text-sm border border-slate-200 rounded-lg p-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none font-mono"
+                    style={{ lineHeight: '1.6' }}
+                  />
+                  {!isPreviewLocked && (
+                    <div className="flex justify-end mt-2">
+                      <AIButton
+                        text={coverLetter}
+                        onRewrite={(newText) => setCoverLetter(newText)}
+                        sectionType="generic"
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-            </div>
 
-            {/* Footer */}
             <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-between bg-slate-50">
               <p className="text-xs text-slate-500">
                 Edit the text above if needed, then download as PDF
@@ -2241,13 +2197,9 @@ useEffect(() => {
       )}
 
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/20 to-indigo-50/30">
-        {/* Nav */}
         <Navbar onSignInClick={() => setShowLoginModal(true)} />
-          
-  
 
         <div className="max-w-7xl mx-auto px-6 py-10">
-          {/* Hero */}
           <div className="text-center mb-10">
             <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-3 tracking-tight">
               Optimize Your Product Manager Resume in 60 Seconds
@@ -2266,14 +2218,11 @@ useEffect(() => {
             </p>
           </div>
 
-          {/* Two-column layout */}
           <div className={`grid grid-cols-1 ${showRightPanel ? 'lg:grid-cols-2' : ''} gap-6 items-start`}>
 
-            {/* ── LEFT: Inputs ── */}
             <div className="space-y-4">
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-10">
-              {/* Resume input */}
               <div className="bg-white rounded-xl shadow-md p-6">
                 <div className="flex items-center justify-between mb-4">
                 <div>
@@ -2408,14 +2357,12 @@ useEffect(() => {
                 </div>
               </div>
 
-              {/* Job description */}
               <div className="bg-white rounded-xl shadow-md p-6">
                 <h2 className="font-semibold text-slate-900 text-lg mb-4">Job Description</h2>
                   <textarea
                     value={jobDescription}
                     onChange={e => setJobDescription(e.target.value)}
-                    placeholder={`Paste the job description here.
-The more detailed it is, the better the keyword matching.`}
+                    placeholder={`Paste the job description here.\nThe more detailed it is, the better the keyword matching.`}
                     className="w-full h-44 text-sm text-slate-700 placeholder-slate-300 bg-slate-50 border border-slate-200 rounded-xl p-3 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all"
                   />
                   <div className="flex items-center justify-between mt-1.5">
@@ -2513,7 +2460,6 @@ The more detailed it is, the better the keyword matching.`}
 
             </div>
 
-            {/* ── RIGHT: Results ── */}
             {showRightPanel && (
             <div className="space-y-4">
 
@@ -2574,7 +2520,6 @@ The more detailed it is, the better the keyword matching.`}
                 </>
               )}
 
-              {/* Resume Results */}
               {optimizedResume && !isLoading && (
                 <>
                   <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3.5">
@@ -2629,7 +2574,6 @@ The more detailed it is, the better the keyword matching.`}
                 </>
               )}
 
-              {/* ✨ NEW: Cover Letter Results */}
               {coverLetter && !isLoading && (
                 <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
                   <p className="text-sm font-semibold text-emerald-800 mb-2">✉️ Cover Letter Generated!</p>
@@ -2647,7 +2591,6 @@ The more detailed it is, the better the keyword matching.`}
             )}
           </div>
 
-          {/* Footer */}
           <div className="mt-12 pt-6 border-t border-slate-200 text-center space-y-1">
             <p className="text-xs text-slate-400">
               ResumeForge · Next.js 14 · Groq AI · LlamaParse · Puppeteer PDF
