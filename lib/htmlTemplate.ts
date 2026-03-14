@@ -456,6 +456,9 @@ export function generateResumeHTML(resume: ResumeData): string {
     line-height: 1.35;
     margin-top: 3px;
     margin-bottom: 4px;
+    /* ✨ JUSTIFIED - project descriptions, award descriptions, etc */
+    text-align: justify;
+    text-justify: inter-word;
   }
   
   /* ─── SUMMARY - COMPACT ─────────────────────────────────────────────────── */
@@ -464,7 +467,9 @@ export function generateResumeHTML(resume: ResumeData): string {
     font-size: 9.5pt;
     line-height: 1.4;
     color: #1a1a1a;
-    text-align: left;
+    /* ✨ JUSTIFIED - professional summary */
+    text-align: justify;
+    text-justify: inter-word;
   }
   
   /* ─── BULLETS - TIGHT ───────────────────────────────────────────────────── */
@@ -482,6 +487,9 @@ export function generateResumeHTML(resume: ResumeData): string {
     margin-bottom: 3px;
     padding-left: 0;
     position: relative;
+    /* ✨ JUSTIFIED - experience/internship/project bullets */
+    text-align: justify;
+    text-justify: inter-word;
   }
   
   .bullet-list li:before {
