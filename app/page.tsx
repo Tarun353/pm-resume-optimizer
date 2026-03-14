@@ -1974,6 +1974,15 @@ export default function HomePage() {
   const pmScore = Math.max(0, 100 - (pmAnalysis.missingKeywords.length * 5));
   const showRightPanel = isLoading || !!error || !!parsedResume || !!optimizedResume || !!coverLetter;
 
+  // ── Preview lock: derived from dbUser already in memory — NO API call ──────
+  // If user has used all 5 free downloads and is not on a paid plan, blur the preview.
+  const now = new Date();
+  const hasActivePaidPlan =
+    dbUser?.subscription_type === 'paid' &&
+    dbUser?.subscription_expires_at &&
+    new Date(dbUser.subscription_expires_at) > now;
+  const isPreviewLocked = !!dbUser && !hasActivePaidPlan && (dbUser.downloads_used ?? 0) >= 5;
+
   const fileIsDocx = uploadedFile?.name.toLowerCase().endsWith('.docx') ?? false;
   const fileIsPdf  = uploadedFile?.name.toLowerCase().endsWith('.pdf')  ?? false;
 
@@ -2006,7 +2015,7 @@ export default function HomePage() {
           onResumeChange={handleResumeChange}
           isDownloading={isDownloading}
           isDocxUpload={isDocxUpload}
-          isLocked={false}
+          isLocked={isPreviewLocked}
           onUpgrade={() => setShowPaymentModal(true)}
         />
       )}
@@ -2030,20 +2039,32 @@ export default function HomePage() {
 
             <div className="flex-1 overflow-auto p-6">
               <div className="relative max-w-3xl mx-auto bg-white shadow-lg p-12 rounded-lg">
-                <div>
+                {isPreviewLocked && (
+                  <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/70 backdrop-blur-sm rounded-lg">
+                    <div className="rounded-xl border border-indigo-200 bg-white p-6 text-center shadow-lg">
+                      <p className="text-sm font-semibold text-slate-900">Upgrade to copy or download</p>
+                      <p className="mt-1 text-xs text-slate-600">You have used all 5 free downloads.</p>
+                      <button onClick={() => setShowPaymentModal(true)} className="mt-4 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Upgrade Now</button>
+                    </div>
+                  </div>
+                )}
+                <div className={isPreviewLocked ? 'blur-sm pointer-events-none select-none' : ''}>
                   <textarea
                     value={coverLetter}
                     onChange={(e) => setCoverLetter(e.target.value)}
+                    disabled={isPreviewLocked}
                     className="w-full min-h-[500px] text-sm border border-slate-200 rounded-lg p-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none font-mono"
                     style={{ lineHeight: '1.6' }}
                   />
-                  <div className="flex justify-end mt-2">
-                    <AIButton
-                      text={coverLetter}
-                      onRewrite={(newText) => setCoverLetter(newText)}
-                      sectionType="generic"
-                    />
-                  </div>
+                  {!isPreviewLocked && (
+                    <div className="flex justify-end mt-2">
+                      <AIButton
+                        text={coverLetter}
+                        onRewrite={(newText) => setCoverLetter(newText)}
+                        sectionType="generic"
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -2060,7 +2081,7 @@ export default function HomePage() {
                 </button>
                 <button
                   onClick={handleDownloadCoverLetterPDF}
-                  disabled={isDownloading}
+                  disabled={isDownloading || isPreviewLocked}
                   className="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-slate-300 disabled:to-slate-400 text-white rounded-lg text-sm font-semibold transition-all shadow-lg shadow-blue-500/20 flex items-center gap-2">
                   {isDownloading ? (
                     <><SpinnerIcon /><span className="ml-1">Generating...</span></>
