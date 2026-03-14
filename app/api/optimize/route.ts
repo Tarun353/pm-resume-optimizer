@@ -9,6 +9,7 @@ import {
 interface OptimizeRequest {
   resume: import('@/lib/types').ResumeData;
   jobDescription: string;
+  pmProfile?: string;
 }
 
 interface OptimizeResponse {
@@ -44,9 +45,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
+    const pmProfile = body.pmProfile || 'experienced';
+
     const { optimizedResume, changes, keywordsInjected } = await optimizeResume(
       body.resume,
-      body.jobDescription
+      body.jobDescription,
+      pmProfile
     );
 
     const response: OptimizeResponse = {
@@ -63,7 +67,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     if (error instanceof Error && error.message === 'USER_NOT_FOUND') {
-      // Return 401 (not 404) so the frontend knows to re-authenticate
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     console.error('[optimize] Error:', error);
