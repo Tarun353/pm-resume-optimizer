@@ -924,7 +924,7 @@ function EditablePreviewModal({ resume, rawResumeText, onClose, onDownload, onRe
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex bg-black/60 backdrop-blur-sm relative">
+    <div className="fixed inset-0 z-50 flex bg-black/60 backdrop-blur-sm">
       {isLocked && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/65 backdrop-blur-sm">
           <div className="rounded-xl border border-indigo-200 bg-white p-6 text-center shadow-lg">
