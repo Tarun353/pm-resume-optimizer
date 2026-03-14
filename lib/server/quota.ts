@@ -25,26 +25,6 @@ function getSupabaseClients() {
   };
 }
 
-function isMissingUserRow(error: unknown): boolean {
-  if (!error || typeof error !== 'object') return false;
-
-  const maybeCode = 'code' in error ? error.code : undefined;
-  const maybeMessage = 'message' in error && typeof error.message === 'string' ? error.message : '';
-
-  if (maybeCode === 'PGRST116') return true;
-  return maybeMessage.includes('JSON object requested, multiple (or no) rows returned');
-}
-
-function isMissingColumnError(error: unknown): boolean {
-  if (!error || typeof error !== 'object') return false;
-
-  const maybeCode = 'code' in error ? error.code : undefined;
-  const maybeMessage = 'message' in error && typeof error.message === 'string' ? error.message : '';
-
-  if (maybeCode === '42703') return true;
-  return maybeMessage.includes('column') && maybeMessage.includes('does not exist');
-}
-
 export async function getAuthenticatedUserAndQuota(request: NextRequest): Promise<{
   userId: string;
   dbUser: DbUser;
@@ -67,51 +47,41 @@ export async function getAuthenticatedUserAndQuota(request: NextRequest): Promis
     throw new Error('UNAUTHORIZED');
   }
 
+  // Use SELECT * to avoid errors if some columns don't exist in this database yet
   let { data: dbUser, error: userError } = await serviceSupabase
     .from('users')
-    .select('id,generations_used,generation_limit,subscription_type,subscription_expires_at')
+    .select('*')
     .eq('id', user.id)
     .single();
 
-  if (!dbUser && isMissingUserRow(userError)) {
-    // Recover only when profile row is actually missing; never overwrite existing paid users.
+  // If user row is missing, create it
+  if (!dbUser) {
     const { error: createError } = await serviceSupabase.from('users').insert({
       id: user.id,
       email: user.email ?? '',
       subscription_type: 'free',
-      generations_used: 0,
-      generation_limit: 5,
+      downloads_used: 0,
     });
 
     if (!createError) {
       const reloaded = await serviceSupabase
         .from('users')
-        .select('id,generations_used,generation_limit,subscription_type,subscription_expires_at')
+        .select('*')
         .eq('id', user.id)
         .single();
 
       dbUser = reloaded.data;
       userError = reloaded.error;
-    }
-  }
+    } else {
+      // Try upsert as fallback
+      await serviceSupabase.from('users').upsert(
+        { id: user.id, email: user.email ?? '', subscription_type: 'free', downloads_used: 0 },
+        { onConflict: 'id' }
+      );
 
-  if (userError || !dbUser) {
-    // Recover from manually deleted user profile rows by recreating defaults server-side.
-    const { error: createError } = await serviceSupabase.from('users').upsert(
-      {
-        id: user.id,
-        email: user.email ?? '',
-        subscription_type: 'free',
-        generations_used: 0,
-        generation_limit: 5,
-      },
-      { onConflict: 'id' }
-    );
-
-    if (!createError) {
       const reloaded = await serviceSupabase
         .from('users')
-        .select('id,generations_used,generation_limit,subscription_type,subscription_expires_at')
+        .select('*')
         .eq('id', user.id)
         .single();
 
@@ -128,7 +98,10 @@ export async function getAuthenticatedUserAndQuota(request: NextRequest): Promis
 }
 
 export function hasExceededGenerationQuota(dbUser: DbUser): boolean {
+  // Use downloads_used if generations_used column doesn't exist yet
   const used = dbUser.generations_used ?? dbUser.downloads_used ?? 0;
+
+  // Use a safe default limit if generation_limit column doesn't exist
   const limit = dbUser.generation_limit ?? 5;
 
   const hasActiveSubscription =
@@ -136,22 +109,28 @@ export function hasExceededGenerationQuota(dbUser: DbUser): boolean {
     dbUser.subscription_expires_at &&
     new Date(dbUser.subscription_expires_at) > new Date();
 
+  // Premium users are never blocked
   if (hasActiveSubscription) return false;
 
   return used >= limit;
 }
 
-export async function incrementGenerationUsage(serviceSupabase: SupabaseClient, userId: string, currentUsed: number) {
+export async function incrementGenerationUsage(
+  serviceSupabase: SupabaseClient,
+  userId: string,
+  currentUsed: number
+) {
+  // Try generations_used first; if the column doesn't exist, fall back to downloads_used
   const modernUpdate = await serviceSupabase
     .from('users')
     .update({ generations_used: currentUsed + 1 })
     .eq('id', userId);
 
-  if (!modernUpdate.error || !isMissingColumnError(modernUpdate.error)) {
+  if (!modernUpdate.error) {
     return;
   }
 
-  // Legacy fallback: if generations_used column isn't present yet, keep behavior via downloads_used.
+  // Column doesn't exist — use downloads_used as fallback
   await serviceSupabase
     .from('users')
     .update({ downloads_used: currentUsed + 1 })
