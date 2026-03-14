@@ -1735,6 +1735,7 @@ export default function HomePage() {
         body: JSON.stringify({
           resume: parsedResume,
           jobDescription: jobDescription.trim(),
+          userProfile: pmProfile,
         }),
       });
 
