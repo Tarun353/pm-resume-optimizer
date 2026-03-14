@@ -1725,12 +1725,14 @@ export default function HomePage() {
     if (!res.ok) {
       const d = await res.json().catch(() => ({}));
       if (d.error === 'quota_exceeded') {
+        // Quota exceeded: blur the preview and show upgrade modal
         setIsPreviewLocked(true);
         setShowPaymentModal(true);
         throw new Error('quota_exceeded');
       }
       throw new Error(d.error ?? 'Optimization failed');
     }
+    // Optimization succeeded — preview is NOT locked
     setIsPreviewLocked(false);
 
     return res.json() as Promise<{ optimizedResume: ResumeData; changes: string[]; keywordsInjected: string[] }>;
@@ -1857,108 +1859,18 @@ export default function HomePage() {
     }
   };
 
-  // ── Pre-check quota before expensive generation ───────────────────────────
-  const canRunGeneration = async (): Promise<boolean> => {
-    // If AuthContext says no user, show login immediately
-    if (!user) {
-      saveStateBeforeLogin();
-      setShowLoginModal(true);
-      return false;
-    }
-
-    // Get a guaranteed fresh token (not cached/expired)
-    const token = await getFreshToken();
-
-    if (!token) {
-      saveStateBeforeLogin();
-      setShowLoginModal(true);
-      return false;
-    }
-
-    try {
-      const quotaRes = await fetch('/api/quota/check', {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (quotaRes.status === 401) {
-        saveStateBeforeLogin();
-        setShowLoginModal(true);
-        return false;
-      }
-
-      if (quotaRes.status === 403) {
-        setIsPreviewLocked(true);
-        setShowPaymentModal(true);
-        return false;
-      }
-
-      if (!quotaRes.ok) {
-        throw new Error('Unable to verify your account. Please refresh and try again.');
-      }
-
-      const status = await quotaRes.json();
-      if (status.quotaExceeded) {
-        setIsPreviewLocked(true);
-        setShowPaymentModal(true);
-        return false;
-      }
-
-      setIsPreviewLocked(false);
-      return true;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to check generation quota');
-      return false;
-    }
-  };
-
-  useEffect(() => {
-    const shouldCheck = showPreview || showCoverLetterPreview;
-    if (!shouldCheck) {
-      setIsPreviewLocked(false);
-      return;
-    }
-
-    const checkQuota = async () => {
-      const token = await getFreshToken();
-      if (!token) {
-        setIsPreviewLocked(false);
-        return;
-      }
-
-      try {
-        const quotaRes = await fetch('/api/quota/check', {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (!quotaRes.ok) {
-          setIsPreviewLocked(false);
-          return;
-        }
-
-        const data = await quotaRes.json();
-        const locked = Boolean(data.quotaExceeded);
-        setIsPreviewLocked(locked);
-        if (locked) setShowPaymentModal(true);
-      } catch {
-        setIsPreviewLocked(false);
-      }
-    };
-
-    void checkQuota();
-  }, [showPreview, showCoverLetterPreview]);
-
   // ── Main handler ──────────────────────────────────────────────────────────
   const handleGenerate = async () => {
     setError(null);
 
-    const allowed = await canRunGeneration();
-    if (!allowed) return;
+    // Simple check: if not logged in, show login modal.
+    // We do NOT call /api/quota/check here — that's what was breaking everything.
+    // /api/optimize already handles quota internally and returns quota_exceeded if needed.
+    if (!user) {
+      saveStateBeforeLogin();
+      setShowLoginModal(true);
+      return;
+    }
 
     setIsLoading(true);
     setOptimizedResume(null);
