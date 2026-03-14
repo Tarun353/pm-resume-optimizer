@@ -1701,7 +1701,7 @@ export default function HomePage() {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${session.access_token}`,
       },
-      body: JSON.stringify({ resume, jobDescription: jd }),
+      body: JSON.stringify({ resume, jobDescription: jd, pmProfile }),
     });
     if (!res.ok) {
       const d = await res.json().catch(() => ({}));
