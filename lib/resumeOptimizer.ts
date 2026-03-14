@@ -1,72 +1,123 @@
 /**
- * resumeOptimizer.ts - FIXED VERSION
+ * resumeOptimizer.ts
  * 
- * CRITICAL: This optimizer ONLY modifies:
- * - summary (rewritten)
- * - experience[].bullets (rewritten)
- * - internships[].bullets (rewritten)
+ * Optimizes resume based on job description AND user's PM profile.
+ * Profiles: aspiring | transitioning | experienced
  * 
- * EVERYTHING ELSE is preserved EXACTLY as-is:
- * - personal, education, certifications, awards, publications, 
- *   projects, skills, softSkills, additionalSections, sectionOrder
- * 
- * NO SECTIONS ARE EVER REMOVED.
+ * ONLY modifies: summary, experience[].bullets, internships[].bullets
+ * NEVER removes or changes: education, skills, certifications, projects, etc.
  */
 
 import { ResumeData } from './types';
 import { groqChatCompletion } from './groqClient';
 
-// ─── Extract keywords from job description ────────────────────────────────────
+// ─── Profile-specific guidance ──────────────────────────────────────────────────
+
+const PROFILE_SUMMARY_GUIDANCE: Record<string, string> = {
+  aspiring: `
+The candidate is an ASPIRING PRODUCT MANAGER (student or fresher).
+RULES FOR SUMMARY:
+- Highlight academic projects, internships, hackathons, case competitions
+- Emphasize curiosity, product thinking, user empathy and eagerness to learn
+- Reframe any experience in PM language
+- Do NOT fake seniority — sound like an ambitious beginner, not a veteran
+- Tone: Enthusiastic, forward-looking, hungry to learn
+`,
+  transitioning: `
+The candidate is TRANSITIONING INTO PRODUCT MANAGEMENT from another domain.
+RULES FOR SUMMARY:
+- Reframe past experience using PM language: "led cross-functional teams", "drove user research"
+- Highlight WHY they are switching and what unique superpower their background gives them as a PM
+- Show they understand PM work: discovery, prioritization, stakeholder alignment, delivery
+- Tone: Confident, strategic, narrative-driven — tell a compelling pivot story
+`,
+  experienced: `
+The candidate is an EXPERIENCED PRODUCT MANAGER.
+RULES FOR SUMMARY:
+- Lead with specific product outcomes, business impact, and metrics
+- Highlight scope: team size, product scale, users impacted, ARR influenced
+- Show strategic thinking: roadmap ownership, vision, stakeholder management
+- Tone: Authoritative, results-driven, strategic
+`,
+};
+
+const PROFILE_BULLETS_GUIDANCE: Record<string, string> = {
+  aspiring: `
+The candidate is an ASPIRING PM (student/fresher).
+RULES FOR BULLETS:
+- Reframe any work in PM language: focus on the problem solved, user impact, process followed
+- Highlight product thinking: "identified user pain point", "prioritized features based on feedback"
+- Do NOT add fake senior metrics — keep it credible for a fresher
+- Tone: Enthusiastic, specific, shows potential
+`,
+  transitioning: `
+The candidate is TRANSITIONING INTO PM from another domain.
+RULES FOR BULLETS:
+- Translate previous job experience into PM language
+  * Engineer: "built X" → "led technical scoping and delivery of X"
+  * Marketer: "ran campaigns" → "drove go-to-market strategy for X"
+  * Consultant: "analyzed data" → "delivered insights that drove product decisions"
+- Highlight cross-functional work, stakeholder management, user focus, ownership
+- Tone: Confident, reframed, shows PM potential from past experience
+`,
+  experienced: `
+The candidate is an EXPERIENCED PM.
+RULES FOR BULLETS:
+- Lead every bullet with a strong power verb: Led, Drove, Launched, Scaled, Owned
+- Include specific metrics wherever possible: "increased retention by 18%", "drove $2M ARR"
+- Highlight scope: team size, product scale, number of users, revenue impact
+- Avoid vague bullets — every bullet should show clear ownership and measurable impact
+- Tone: Authoritative, data-driven, senior
+`,
+};
+
+// ─── Extract keywords from job description ──────────────────────────────────────
 
 export function extractJDKeywords(jd: string): string[] {
   const techPattern = /\b(react|angular|vue|next\.?js|node\.?js|python|java(?:script)?|typescript|c\+\+|c#|ruby|go|rust|swift|kotlin|php|scala|r\b|matlab|sql|nosql|postgresql|mysql|mongodb|redis|elasticsearch|kafka|rabbitmq|aws|gcp|azure|docker|kubernetes|k8s|terraform|ansible|jenkins|github|gitlab|ci\/cd|devops|agile|scrum|kanban|jira|confluence|rest|graphql|grpc|microservices|api|ml|ai|llm|nlp|deep.?learning|machine.?learning|data.?science|analytics|tableau|power.?bi|excel|salesforce|sap|linux|unix|bash|git|html|css|figma|sketch|ux|ui|spark|hadoop|airflow|dbt|snowflake|databricks)\b/gi;
   const techFound = Array.from(new Set((jd.match(techPattern) ?? []).map(t => t.toLowerCase())));
 
-  const tokens = jd
-    .toLowerCase()
-    .split(/\W+/)
-    .filter(w => w.length > 3);
-
+  const tokens = jd.toLowerCase().split(/\W+/).filter(w => w.length > 3);
   const freq: Record<string, number> = {};
-  for (const t of tokens) {
-    freq[t] = (freq[t] ?? 0) + 1;
-  }
+  for (const t of tokens) freq[t] = (freq[t] ?? 0) + 1;
 
   const sorted = Object.entries(freq)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 20)
     .map(([word]) => word);
 
-  const combined = [...new Set([...techFound, ...sorted])];
-  return combined.slice(0, 15);
+  return [...new Set([...techFound, ...sorted])].slice(0, 15);
 }
 
-// ─── Optimize summary ──────────────────────────────────────────────────────────
+// ─── Optimize summary ───────────────────────────────────────────────────────────
 
-const SUMMARY_SYSTEM = `You are a professional resume writer specializing in ATS optimization.
-
-Your task: Rewrite the professional summary to match the job description while maintaining authenticity.
-
-Requirements:
-- 3–4 sentences maximum
-- Naturally weave in 2–3 important keywords from the job description
-- Sound like a real person, not a robot
-- Highlight relevant skills and experience
-- Use power verbs (led, drove, architected, implemented, optimized)
-- Be specific but concise
-- Match the tone of the job description (technical, creative, managerial, etc.)
-
-DO NOT:
-- Use clichés ("results-driven", "team player", "passionate", "detail-oriented")
-- Over-stuff keywords
-- Make claims not supported by the experience
-- Sound generic or templated`;
-
-async function optimizeSummary(summary: string, jd: string, keywords: string[]): Promise<string> {
+async function optimizeSummary(
+  summary: string,
+  jd: string,
+  keywords: string[],
+  pmProfile: string
+): Promise<string> {
   if (!summary || summary.trim().length < 10) return summary;
 
+  const profileGuidance = PROFILE_SUMMARY_GUIDANCE[pmProfile] || PROFILE_SUMMARY_GUIDANCE['experienced'];
   const keywordList = keywords.slice(0, 5).join(', ');
-  const userMsg = `Rewrite this professional summary to match the job description below. Naturally include these keywords where appropriate: ${keywordList}
+
+  const SUMMARY_SYSTEM = `You are a professional resume writer specializing in Product Management resumes.
+
+Your task: Rewrite the professional summary to match the job description.
+
+${profileGuidance}
+
+GENERAL REQUIREMENTS:
+- 3–4 sentences maximum
+- Naturally weave in 2–3 keywords from the job description
+- Sound like a real person, not a robot
+- Use power verbs (led, drove, implemented, optimized)
+- Be specific but concise
+
+DO NOT use clichés like "results-driven", "team player", "passionate", "detail-oriented".`;
+
+  const userMsg = `Rewrite this professional summary. Naturally include these keywords where appropriate: ${keywordList}
 
 Original Summary:
 ${summary}
@@ -74,7 +125,7 @@ ${summary}
 Job Description:
 ${jd}
 
-Rewrite the summary (3-4 sentences, professional, authentic):`;
+Rewrite (3-4 sentences, authentic, matching the candidate profile):`;
 
   try {
     const rewritten = await groqChatCompletion(SUMMARY_SYSTEM, userMsg, 300, 0.5);
@@ -85,23 +136,27 @@ Rewrite the summary (3-4 sentences, professional, authentic):`;
   }
 }
 
-async function generateSummaryFromContext(resume: ResumeData, jd: string, keywords: string[]): Promise<string> {
+async function generateSummaryFromContext(
+  resume: ResumeData,
+  jd: string,
+  keywords: string[],
+  pmProfile: string
+): Promise<string> {
+  const profileGuidance = PROFILE_SUMMARY_GUIDANCE[pmProfile] || PROFILE_SUMMARY_GUIDANCE['experienced'];
   const keywordList = keywords.slice(0, 5).join(', ');
-  const experienceSnapshot = (resume.experience ?? [])
-    .slice(0, 3)
-    .map((exp) => {
-      const bullets = (exp.bullets ?? []).slice(0, 2).join('; ');
-      return `- ${exp.title} at ${exp.company}${bullets ? `: ${bullets}` : ''}`;
-    })
-    .join('\n');
 
-  const internshipSnapshot = (resume.internships ?? [])
-    .slice(0, 2)
-    .map((item) => {
-      const bullets = (item.bullets ?? []).slice(0, 2).join('; ');
-      return `- ${item.title} at ${item.company}${bullets ? `: ${bullets}` : ''}`;
-    })
-    .join('\n');
+  const experienceSnapshot = (resume.experience ?? []).slice(0, 3).map((exp) => {
+    const bullets = (exp.bullets ?? []).slice(0, 2).join('; ');
+    return `- ${exp.title} at ${exp.company}${bullets ? `: ${bullets}` : ''}`;
+  }).join('\n');
+
+  const internshipSnapshot = (resume.internships ?? []).slice(0, 2).map((item) => {
+    const bullets = (item.bullets ?? []).slice(0, 2).join('; ');
+    return `- ${item.title} at ${item.company}${bullets ? `: ${bullets}` : ''}`;
+  }).join('\n');
+
+  const SUMMARY_SYSTEM = `You are a professional resume writer specializing in Product Management resumes.
+${profileGuidance}`;
 
   const userMsg = `Create a professional resume summary for this candidate.
 Use their experience + internships + job description context.
@@ -116,7 +171,7 @@ ${internshipSnapshot || 'Not provided'}
 Job Description:
 ${jd}
 
-Output only the final summary in 3-4 concise ATS-friendly sentences.`;
+Output only the final summary in 3-4 concise ATS-friendly sentences:`;
 
   try {
     const generated = await groqChatCompletion(SUMMARY_SYSTEM, userMsg, 300, 0.4);
@@ -131,51 +186,39 @@ Output only the final summary in 3-4 concise ATS-friendly sentences.`;
   const companyContext = [primaryExp?.company, primaryInternship?.company].filter(Boolean).join(' and ');
   const fallbackKeywordText = keywords.slice(0, 3).join(', ');
 
-  return `Professional ${role} with hands-on experience${companyContext ? ` at ${companyContext}` : ''}, delivering impact through cross-functional execution and measurable outcomes. Brings practical internship and project exposure aligned to target role needs${fallbackKeywordText ? `, including ${fallbackKeywordText}` : ''}. Combines analytical thinking, ownership, and clear communication to drive high-quality results in fast-paced environments.`;
+  return `Product Management professional with hands-on experience${companyContext ? ` at ${companyContext}` : ''}, delivering impact through cross-functional execution and measurable outcomes. Brings practical exposure aligned to target role needs${fallbackKeywordText ? `, including ${fallbackKeywordText}` : ''}. Combines analytical thinking, ownership, and clear communication to drive results in fast-paced environments.`;
 }
 
-// ─── Optimize bullets ──────────────────────────────────────────────────────────
-
-const BULLETS_SYSTEM = `You are an expert resume writer. Your goal: strengthen bullet points for ATS and human readers.
-
-CONSERVATIVE EXAMPLES (notice the restraint):
-
-Before: "Worked on backend services"
-After: "Developed REST APIs for user authentication, reducing login time"
-
-Before: "Managed a team"  
-After: "Led cross-functional team of 5 engineers through Agile sprints"
-
-Before: "Improved deployment process"
-After: "Automated deployment pipeline using Jenkins and Docker"
-
-Rules:
-1. Start with power verbs: Led, Architected, Implemented, Optimized, Drove, Built, Designed, Launched
-2. Add specific context: technologies, scale, outcomes
-3. ONLY ADD [X%] or [N+] IF: The original bullet explicitly mentions a measurable outcome AND you are 80% confident
-4. KEEP IT CREDIBLE: don't exaggerate. Sound like a professional wrote it, not a sales pitch.
-5. MAINTAIN LENGTH: each bullet should be 1-2 lines, not a paragraph
-6. Inject 1-2 job description keywords per bullet where natural
-
-DO NOT:
-- Add fake metrics ([40%], [5x], etc.) unless clearly implied
-- Make the bullet 3+ lines long
-- Sound robotic with excessive [X%] everywhere
-- Use buzzwords without substance`;
+// ─── Optimize bullets ───────────────────────────────────────────────────────────
 
 async function rewriteBullets(
   bullets: string[],
   jd: string,
-  keywords: string[]
+  keywords: string[],
+  pmProfile: string
 ): Promise<string[]> {
   if (!bullets || bullets.length === 0) return bullets;
 
+  const profileGuidance = PROFILE_BULLETS_GUIDANCE[pmProfile] || PROFILE_BULLETS_GUIDANCE['experienced'];
   const keywordList = keywords.slice(0, 8).join(', ');
   const bulletsText = bullets.map((b, i) => `${i + 1}. ${b}`).join('\n');
 
-  const userMsg = `Rewrite these bullet points conservatively. Don't over-optimize. Sound like a real professional.
+  const BULLETS_SYSTEM = `You are an expert Product Management resume writer.
 
-Relevant keywords to naturally include (1-2 per bullet): ${keywordList}
+${profileGuidance}
+
+GENERAL RULES:
+1. Start with a strong power verb
+2. Add specific context: technologies, scale, outcomes
+3. ONLY add metrics if clearly implied by the original bullet — never invent them
+4. Keep it credible — do NOT exaggerate
+5. Each bullet should be 1-2 lines, not a paragraph
+6. Inject 1-2 job description keywords per bullet where natural`;
+
+  const userMsg = `Rewrite these resume bullets for a Product Management resume.
+Follow the candidate profile rules above carefully.
+
+Keywords to naturally include (1-2 per bullet): ${keywordList}
 
 Original Bullets:
 ${bulletsText}
@@ -187,7 +230,7 @@ Return ONLY the rewritten bullets, one per line, numbered:`;
 
   try {
     const result = await groqChatCompletion(BULLETS_SYSTEM, userMsg, 800, 0.35);
-    
+
     const lines = result
       .split('\n')
       .map(line => line.replace(/^\d+\.\s*/, '').trim())
@@ -205,53 +248,38 @@ Return ONLY the rewritten bullets, one per line, numbered:`;
   }
 }
 
-// ─── Main optimizer ────────────────────────────────────────────────────────────
+// ─── Main optimizer ─────────────────────────────────────────────────────────────
 
 export async function optimizeResume(
   resume: ResumeData,
-  jobDescription: string
+  jobDescription: string,
+  pmProfile: string = 'experienced'
 ): Promise<{
   optimizedResume: ResumeData;
   changes: string[];
   keywordsInjected: string[];
 }> {
-  console.log('[optimizeResume] Starting optimization...');
-  console.log('[optimizeResume] Input sections:', {
-    personal: !!resume.personal,
-    summary: !!resume.summary,
-    experience: resume.experience?.length ?? 0,
-    education: resume.education?.length ?? 0,
-    skills: resume.skills?.length ?? 0,
-    certifications: resume.certifications?.length ?? 0,
-    awards: resume.awards?.length ?? 0,
-    publications: resume.publications?.length ?? 0,
-    internships: resume.internships?.length ?? 0,
-    projects: resume.projects?.length ?? 0,
-    softSkills: resume.softSkills?.length ?? 0,
-    additionalSections: resume.additionalSections?.length ?? 0,
-    sectionOrder: resume.sectionOrder?.length ?? 0,
-  });
+  console.log('[optimizeResume] Starting optimization with profile:', pmProfile);
 
   const keywords = extractJDKeywords(jobDescription);
   const changes: string[] = [];
 
-  // CRITICAL: Make a COMPLETE deep copy of the entire resume
-  // This ensures NO data is lost
+  // Deep copy — ensures NO data is lost
   const optimizedResume: ResumeData = JSON.parse(JSON.stringify(resume));
 
   try {
-    // 1. Optimize or generate summary (always ensure one exists)
+    // 1. Optimize or generate summary
     if (resume.summary && resume.summary.trim().length > 10) {
       console.log('[optimizeResume] Optimizing summary...');
-      const newSummary = await optimizeSummary(resume.summary, jobDescription, keywords);
+      const newSummary = await optimizeSummary(resume.summary, jobDescription, keywords, pmProfile);
       if (newSummary !== resume.summary) {
         optimizedResume.summary = newSummary;
-        changes.push('Rewrote professional summary with JD-matched keywords and power verbs');
+        changes.push('Rewrote professional summary with profile-matched tone and JD keywords');
       }
     } else {
-      console.log('[optimizeResume] Generating missing summary from context...');
-      optimizedResume.summary = await generateSummaryFromContext(resume, jobDescription, keywords);
-      changes.push('Generated professional summary from experience, internships, and job description');
+      console.log('[optimizeResume] Generating summary from context...');
+      optimizedResume.summary = await generateSummaryFromContext(resume, jobDescription, keywords, pmProfile);
+      changes.push('Generated professional summary tailored to your profile and job description');
     }
 
     const currentSectionOrder = optimizedResume.sectionOrder ?? [];
@@ -259,75 +287,38 @@ export async function optimizeResume(
       optimizedResume.sectionOrder = ['summary', ...currentSectionOrder];
     }
 
-    // 2. Optimize experience bullets (if exists)
+    // 2. Optimize experience bullets
     if (resume.experience && resume.experience.length > 0) {
       console.log('[optimizeResume] Optimizing experience bullets...');
       for (let i = 0; i < resume.experience.length; i++) {
         const exp = resume.experience[i];
         if (exp && exp.bullets && exp.bullets.length > 0) {
-          const newBullets = await rewriteBullets(exp.bullets, jobDescription, keywords);
+          const newBullets = await rewriteBullets(exp.bullets, jobDescription, keywords, pmProfile);
           optimizedResume.experience[i]!.bullets = newBullets;
           changes.push(`Enhanced ${exp.bullets.length} bullet(s) for ${exp.title} at ${exp.company}`);
         }
       }
     }
 
-    // 3. Optimize internship bullets (if exists)
+    // 3. Optimize internship bullets
     if (resume.internships && resume.internships.length > 0) {
       console.log('[optimizeResume] Optimizing internship bullets...');
       for (let i = 0; i < resume.internships.length; i++) {
         const int = resume.internships[i];
         if (int && int.bullets && int.bullets.length > 0) {
-          const newBullets = await rewriteBullets(int.bullets, jobDescription, keywords);
+          const newBullets = await rewriteBullets(int.bullets, jobDescription, keywords, pmProfile);
           if (optimizedResume.internships) optimizedResume.internships[i]!.bullets = newBullets;
           changes.push(`Enhanced ${int.bullets.length} bullet(s) for ${int.title} at ${int.company}`);
         }
       }
     }
 
-    // VERIFICATION: Log what's in the optimized resume
-    console.log('[optimizeResume] Output sections:', {
-      personal: !!optimizedResume.personal,
-      summary: !!optimizedResume.summary,
-      experience: optimizedResume.experience?.length ?? 0,
-      education: optimizedResume.education?.length ?? 0,
-      skills: optimizedResume.skills?.length ?? 0,
-      certifications: optimizedResume.certifications?.length ?? 0,
-      awards: optimizedResume.awards?.length ?? 0,
-      publications: optimizedResume.publications?.length ?? 0,
-      internships: optimizedResume.internships?.length ?? 0,
-      projects: optimizedResume.projects?.length ?? 0,
-      softSkills: optimizedResume.softSkills?.length ?? 0,
-      additionalSections: optimizedResume.additionalSections?.length ?? 0,
-      sectionOrder: optimizedResume.sectionOrder?.length ?? 0,
-    });
+    console.log('[optimizeResume] Done. Profile:', pmProfile, '| Keywords:', keywords.length);
 
-    // CRITICAL CHECK: Verify no sections were lost
-    const inputSections = Object.keys(resume).filter(k => {
-      const val = resume[k as keyof ResumeData];
-      return Array.isArray(val) ? val.length > 0 : !!val;
-    });
+    return { optimizedResume, changes, keywordsInjected: keywords };
 
-    const outputSections = Object.keys(optimizedResume).filter(k => {
-      const val = optimizedResume[k as keyof ResumeData];
-      return Array.isArray(val) ? val.length > 0 : !!val;
-    });
-
-    if (outputSections.length < inputSections.length) {
-      console.error('[optimizeResume] CRITICAL: Sections were lost!');
-      console.error('[optimizeResume] Input had:', inputSections);
-      console.error('[optimizeResume] Output has:', outputSections);
-      console.error('[optimizeResume] Missing:', inputSections.filter(s => !outputSections.includes(s)));
-    }
-
-    return {
-      optimizedResume,
-      changes,
-      keywordsInjected: keywords,
-    };
   } catch (error) {
     console.error('[optimizeResume] Fatal error:', error);
-    // On error, return original resume unchanged
     return {
       optimizedResume: resume,
       changes: ['Optimization failed - returning original resume'],
