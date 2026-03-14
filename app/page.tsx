@@ -1686,39 +1686,21 @@ export default function HomePage() {
     return d.resume;
   };
 
-  // ════════════════════════════════════════════════════════════════════════════
-  // THE FIX: getFreshToken always gets a valid, non-expired token.
-  // supabase.auth.refreshSession() contacts Supabase's server and rotates
-  // the token. This is the only reliable way to avoid 401 errors.
-  // ════════════════════════════════════════════════════════════════════════════
-  const getFreshToken = async (): Promise<string | null> => {
-    try {
-      const { data, error } = await supabase.auth.refreshSession();
-      if (!error && data.session?.access_token) {
-        return data.session.access_token;
-      }
-    } catch {
-      // refreshSession failed — fall back to cached session
-    }
-    // Fallback: read whatever is cached
-    const { data: { session } } = await supabase.auth.getSession();
-    return session?.access_token ?? null;
-  };
-
   // ── Optimize ─────────────────────────────────────────────────────────────
   const optimizeResumeData = async (resume: ResumeData) => {
     setLoadingStep('Rewriting summary and bullets (~30 seconds)...');
     const jd = jobDescription.trim();
     if (jd.length < 20) throw new Error('Please enter a job description (20+ characters).');
 
-    const token = await getFreshToken();
-    if (!token) throw new Error('Please sign in to continue.');
+    // Use getSession() — this is exactly what worked before all these changes.
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) throw new Error('Please sign in to continue.');
 
     const res = await fetch('/api/optimize', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
+        'Authorization': `Bearer ${session.access_token}`,
       },
       body: JSON.stringify({ resume, jobDescription: jd }),
     });
@@ -1745,14 +1727,15 @@ export default function HomePage() {
     setLoadingStep('Generating your cover letter (~15 seconds)...');
 
     try {
-      const token = await getFreshToken();
-      if (!token) throw new Error('Please sign in to continue.');
+      // Use getSession() — same as the original working code
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error('Please sign in to continue.');
 
       const res = await fetch('/api/generate-cover-letter', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
           resume: parsedResume,
