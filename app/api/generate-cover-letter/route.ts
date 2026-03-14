@@ -7,7 +7,52 @@ import {
   incrementGenerationUsage,
 } from '@/lib/server/quota';
 
-const COVER_LETTER_SYSTEM = `You are an expert cover letter writer specializing in creating compelling, professional cover letters that highlight candidate strengths and align with job requirements.
+// Profile-specific writing instructions
+const PROFILE_GUIDANCE: Record<string, string> = {
+  aspiring: `
+CANDIDATE PROFILE: ASPIRING PRODUCT MANAGER (Student / Fresher)
+This person is trying to break into Product Management for the first time.
+
+FOCUS ON:
+- Academic projects, internships, hackathons, case competitions, side projects
+- Eagerness to learn and passion for building products
+- Transferable skills: analytical thinking, communication, leadership in college
+- Any PM-adjacent experience (research, user interviews, prototype building)
+- Highlight POTENTIAL over experience — they are early in their career
+
+TONE: Enthusiastic, hungry to learn, forward-looking. Don't apologize for lack of experience — reframe it as a fresh perspective.
+`,
+
+  transitioning: `
+CANDIDATE PROFILE: TRANSITIONING INTO PRODUCT MANAGEMENT
+This person is moving into PM from another domain (engineering, marketing, consulting, operations, etc.)
+
+FOCUS ON:
+- Reframe past experience in PM language (e.g. "led cross-functional teams", "drove user research", "owned delivery end-to-end")
+- Highlight WHY they are switching and what UNIQUE PERSPECTIVE their background gives them as a PM
+- Connect their domain expertise as a superpower (e.g. an engineer-turned-PM understands technical tradeoffs deeply)
+- Show they understand what PM work actually involves — discovery, prioritization, stakeholder alignment
+- Tell a compelling career PIVOT STORY
+
+TONE: Confident, strategic, narrative-driven. The letter should explain the transition clearly and make it sound intentional.
+`,
+
+  experienced: `
+CANDIDATE PROFILE: EXPERIENCED PRODUCT MANAGER
+This person has worked as a PM before and is applying for a senior or equivalent PM role.
+
+FOCUS ON:
+- Specific product outcomes, metrics, and business impact (retention, revenue, conversion, user growth)
+- Leadership of teams, roadmaps, and product strategy
+- Cross-functional collaboration and stakeholder management at scale
+- Highlight scope of products managed (number of users, ARR, team size)
+- Demonstrate strategic thinking, not just execution
+
+TONE: Authoritative, results-driven, strategic. Should sound like a senior professional, not someone proving themselves.
+`,
+};
+
+const BASE_COVER_LETTER_SYSTEM = `You are an expert cover letter writer specializing in Product Management roles.
 
 CRITICAL GUIDELINES:
 1. Write in first person (I, my, me)
@@ -20,9 +65,9 @@ CRITICAL GUIDELINES:
 8. Focus on what you can offer, not just what you want
 
 STRUCTURE:
-1. Opening: Hook that shows you understand the role and company
+1. Opening: Strong hook that shows you understand the role and company
 2. Body 1: Highlight most relevant experience with specific achievements
-3. Body 2: Connect skills to job requirements, show value you'll bring
+3. Body 2: Connect skills to job requirements, show value you will bring
 4. Closing: Express enthusiasm and clear call-to-action
 
 Return ONLY the cover letter text. No JSON. No extra formatting. Just the letter.`;
@@ -32,6 +77,7 @@ interface CoverLetterRequest {
   jobDescription: string;
   companyName?: string;
   hiringManager?: string;
+  userProfile?: string;
 }
 
 export async function POST(req: NextRequest) {
@@ -42,7 +88,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body: CoverLetterRequest = await req.json();
-    const { resume, jobDescription, companyName, hiringManager } = body;
+    const { resume, jobDescription, companyName, hiringManager, userProfile } = body;
 
     if (!resume || !jobDescription) {
       return NextResponse.json(
@@ -51,10 +97,21 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Pick the right profile guidance (default to experienced if not provided)
+    const profileKey = userProfile && PROFILE_GUIDANCE[userProfile] ? userProfile : 'experienced';
+    const profileGuidance = PROFILE_GUIDANCE[profileKey];
+
+    // Build the full system prompt with profile guidance injected
+    const COVER_LETTER_SYSTEM = `${BASE_COVER_LETTER_SYSTEM}
+
+${profileGuidance}`;
+
     // Build resume summary for context
     const resumeSummary = buildResumeSummary(resume);
-    
+
     const userMessage = `Generate a professional cover letter for this job application.
+
+CANDIDATE PROFILE TYPE: ${profileKey.toUpperCase()}
 
 CANDIDATE INFORMATION:
 Name: ${resume.personal?.name || 'Candidate'}
@@ -82,6 +139,7 @@ Generate a compelling cover letter that:
 - Ends with a clear call-to-action
 - Is professional, specific, and personable
 - Length: 300-400 words
+- Tone and focus must match the CANDIDATE PROFILE TYPE above
 
 Format:
 [Your Name]
@@ -100,13 +158,13 @@ Dear [Hiring Manager Name],
 Sincerely,
 [Your Name]`;
 
-    console.log('[generate-cover-letter] Calling Groq API...');
-    
+    console.log('[generate-cover-letter] Calling Groq API with profile:', profileKey);
+
     const coverLetter = await groqChatCompletion(
       COVER_LETTER_SYSTEM,
       userMessage,
       2000,
-      0.7 // Slightly higher temperature for more creative writing
+      0.7
     );
 
     if (!coverLetter || coverLetter.trim().length < 100) {
@@ -140,7 +198,7 @@ function buildResumeSummary(resume: ResumeData): string {
 
   // Experience
   if (resume.experience && resume.experience.length > 0) {
-    const exp = resume.experience.slice(0, 2); // Top 2 most recent
+    const exp = resume.experience.slice(0, 2);
     exp.forEach(e => {
       parts.push(`\n${e.title} at ${e.company} (${e.startDate} - ${e.endDate})`);
       if (e.bullets && e.bullets.length > 0) {
@@ -148,6 +206,28 @@ function buildResumeSummary(resume: ResumeData): string {
           parts.push(`  • ${b}`);
         });
       }
+    });
+  }
+
+  // Internships (important for fresher/aspiring profile)
+  if (resume.internships && resume.internships.length > 0) {
+    const internships = resume.internships.slice(0, 2);
+    internships.forEach(e => {
+      parts.push(`\n${e.title} at ${e.company} (Internship)`);
+      if (e.bullets && e.bullets.length > 0) {
+        e.bullets.slice(0, 3).forEach(b => {
+          parts.push(`  • ${b}`);
+        });
+      }
+    });
+  }
+
+  // Projects (important for fresher profile)
+  if (resume.projects && resume.projects.length > 0) {
+    const projects = resume.projects.slice(0, 2);
+    projects.forEach(p => {
+      parts.push(`\nProject: ${p.name}`);
+      if (p.description) parts.push(`  ${p.description}`);
     });
   }
 
