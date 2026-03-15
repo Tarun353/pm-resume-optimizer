@@ -1479,7 +1479,7 @@ function FeedbackForm() {
     if (!text.trim()) return;
     setStatus('sending');
     try {
-      await fetch('https://formspree.io/f/xpwzgkqr', {
+      await fetch('https://formspree.io/f/mkoqvkrr', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: text }),
