@@ -2111,20 +2111,31 @@ export default function HomePage() {
 
         <div className="max-w-7xl mx-auto px-6 py-10">
           <div className="text-center mb-10">
+            <div className="inline-flex items-center gap-2 bg-blue-50 border border-blue-200 text-blue-700 text-xs font-semibold px-3 py-1.5 rounded-full mb-4">
+              🎯 Built exclusively for Product Managers
+            </div>
             <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-3 tracking-tight">
-              Optimize Your Product Manager Resume in 60 Seconds
+              PM Resume Optimizer
             </h1>
-            <p className="text-slate-500 max-w-lg mx-auto">
-              Built for aspiring PMs, experienced product managers, and professionals transitioning into product roles.
+            <p className="text-lg text-slate-600 max-w-xl mx-auto mb-2 font-medium">
+              Stop spending hours tailoring your resume for every job.
             </p>
+            <p className="text-slate-500 max-w-lg mx-auto">
+              Paste your resume + any PM job description → get an ATS-optimized, keyword-matched resume in 60 seconds. Apply faster. Land more interviews.
+            </p>
+            <div className="flex flex-wrap justify-center gap-3 mt-4 text-xs text-slate-500">
+              <span className="flex items-center gap-1">✅ Aspiring PMs breaking in</span>
+              <span className="flex items-center gap-1">✅ PMs switching companies</span>
+              <span className="flex items-center gap-1">✅ Professionals transitioning to PM</span>
+            </div>
             <button
-              className="mt-4 bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-700 transition-colors"
+              className="mt-5 bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-700 transition-colors"
               onClick={() => setShowPaymentModal(true)}
             >
-              Unlock Premium
+              Unlock Premium — Unlimited Resumes
             </button>
             <p className="text-sm text-gray-500 mt-2">
-              5 free resume optimizations included. Upgrade for unlimited access — unlock premium now to avoid interruptions before your next application.
+              5 free optimizations included · No credit card needed to start
             </p>
           </div>
 
@@ -2503,7 +2514,7 @@ export default function HomePage() {
 
           <div className="mt-12 pt-6 border-t border-slate-200 text-center space-y-1">
             <p className="text-xs text-slate-400">
-              ResumeForge · Next.js 14 · Groq AI · LlamaParse · Puppeteer PDF
+              PM Resume Optimizer · Next.js 14 · Groq AI · LlamaParse · Puppeteer PDF
             </p>
             <p className="text-xs text-slate-300">
               Resume data is processed server-side only and never stored.
