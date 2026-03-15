@@ -899,7 +899,7 @@ function EditablePreviewModal({ resume, rawResumeText, onClose, onDownload, onRe
     setShowAddSectionModal(false);
   };
 
-  const removeSection = async (sectionName: string) => {
+    const removeSection = async (sectionName: string) => {
     if (REQUIRED_SECTIONS.includes(sectionName)) return;
     if (!window.confirm('Remove this section from the resume?')) return;
 
@@ -911,6 +911,16 @@ function EditablePreviewModal({ resume, rawResumeText, onClose, onDownload, onRe
       ...editedResume,
       sectionOrder: editedResume.sectionOrder.filter(s => s !== sectionName),
     };
+
+    if (sectionName.startsWith('additional:')) {
+      const heading = sectionName.replace(/^additional:/, '').trim();
+      updated.additionalSections = (updated.additionalSections ?? []).filter(
+        s => s.heading.trim() !== heading
+      );
+    }
+
+    await applyResumeUpdate(updated);
+  };
 
     await applyResumeUpdate(updated);
   };
