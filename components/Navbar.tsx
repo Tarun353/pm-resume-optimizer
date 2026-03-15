@@ -24,12 +24,19 @@ export function Navbar({ onSignInClick }: NavbarProps) {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
         {/* Logo */}
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
-            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-          </div>
+          <svg width="36" height="36" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <rect width="100" height="100" rx="22" fill="#2563eb"/>
+            <rect x="24" y="18" width="45" height="56" rx="4" fill="white"/>
+            <polygon points="56,18 69,18 69,31" fill="#93c5fd"/>
+            <polygon points="56,18 56,31 69,31" fill="#dbeafe"/>
+            <rect x="29" y="36" width="32" height="4" rx="2" fill="#2563eb" opacity="0.22"/>
+            <rect x="29" y="44" width="24" height="4" rx="2" fill="#2563eb" opacity="0.16"/>
+            <rect x="29" y="54" width="32" height="3" rx="1.5" fill="#2563eb" opacity="0.16"/>
+            <rect x="29" y="61" width="26" height="3" rx="1.5" fill="#2563eb" opacity="0.16"/>
+            <rect x="29" y="68" width="30" height="3" rx="1.5" fill="#2563eb" opacity="0.16"/>
+            <circle cx="70" cy="72" r="16" fill="#fbbf24"/>
+            <text x="70" y="79" textAnchor="middle" fontSize="17" fontWeight="700" fontFamily="sans-serif" fill="#1e3a8a">✦</text>
+          </svg>
           <div>
             <h1 className="font-bold text-slate-900 tracking-tight text-lg">PM Resume Optimizer</h1>
             <p className="text-xs text-slate-500">AI-Powered · ATS-Optimized</p>
