@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Blue rounded background -->
+  <rect width="100" height="100" rx="22" fill="#2563eb"/>
+  <!-- White document -->
+  <rect x="24" y="18" width="45" height="56" rx="4" fill="white"/>
+  <!-- Folded corner -->
+  <polygon points="56,18 69,18 69,31" fill="#93c5fd"/>
+  <polygon points="56,18 56,31 69,31" fill="#dbeafe"/>
+  <!-- Resume lines -->
+  <rect x="29" y="36" width="32" height="4" rx="2" fill="#2563eb" opacity="0.22"/>
+  <rect x="29" y="44" width="24" height="4" rx="2" fill="#2563eb" opacity="0.16"/>
+  <rect x="29" y="54" width="32" height="3" rx="1.5" fill="#2563eb" opacity="0.16"/>
+  <rect x="29" y="61" width="26" height="3" rx="1.5" fill="#2563eb" opacity="0.16"/>
+  <rect x="29" y="68" width="30" height="3" rx="1.5" fill="#2563eb" opacity="0.16"/>
+  <!-- Gold AI spark badge -->
+  <circle cx="70" cy="72" r="16" fill="#fbbf24"/>
+  <text x="70" y="79" text-anchor="middle" font-size="17" font-weight="700" font-family="sans-serif" fill="#1e3a8a">✦</text>
+</svg>
