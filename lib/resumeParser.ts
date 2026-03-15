@@ -1,22 +1,27 @@
 /**
- * resumeParser.ts - FIXED: Preserves ALL bullets, handles subsections
+ * resumeParser.ts - Preserves ALL sections from user's original resume
  * 
- * Changes:
- * 1. Explicit instructions to preserve bullet structure
- * 2. Handle Responsibilities/Achievements/Environment subsections
- * 3. Increased character and token limits
+ * KEY PRINCIPLE:
+ * - Parse EVERYTHING from the user's resume, nothing dropped
+ * - sectionOrder reflects what's actually IN the resume
+ * - Career stage only affects the ORDER of sections, not which ones appear
+ * - Optimizer only touches: summary, experience bullets, internship bullets
+ * - The edit window shows exactly what the resume had
  */
 
 import { ResumeData, PersonalInfo, CareerStage } from './types';
 import { groqChatCompletion } from './groqClient';
 import { parseWithLlamaParse } from './llamaParseClient';
 
-// ─── Professional Section Orders ──────────────────────────────────────────────
+// ─── All known named sections ─────────────────────────────────────────────────
+// These are ordered by priority for each career stage.
+// ANY section with content is always included — career stage just sets the order.
 
-const PROFESSIONAL_ORDERS: Record<CareerStage, string[]> = {
+const PREFERRED_ORDERS: Record<CareerStage, string[]> = {
   experienced: [
     'summary',
     'experience',
+    'internships',
     'skills',
     'education',
     'certifications',
@@ -32,6 +37,7 @@ const PROFESSIONAL_ORDERS: Record<CareerStage, string[]> = {
     'internships',
     'projects',
     'skills',
+    'experience',
     'certifications',
     'awards',
     'publications',
@@ -42,6 +48,7 @@ const PROFESSIONAL_ORDERS: Record<CareerStage, string[]> = {
     'summary',
     'skills',
     'experience',
+    'internships',
     'education',
     'projects',
     'certifications',
@@ -51,22 +58,71 @@ const PROFESSIONAL_ORDERS: Record<CareerStage, string[]> = {
   ],
 };
 
+// Every named section we know about
+const ALL_KNOWN_SECTIONS = [
+  'summary',
+  'experience',
+  'internships',
+  'education',
+  'skills',
+  'projects',
+  'certifications',
+  'awards',
+  'publications',
+  'softSkills',
+];
+
+function checkSectionHasContent(resume: Partial<ResumeData>, key: string): boolean {
+  switch (key) {
+    case 'summary':        return !!resume.summary && resume.summary.trim().length > 0;
+    case 'experience':     return Array.isArray(resume.experience) && resume.experience.length > 0;
+    case 'internships':    return Array.isArray(resume.internships) && resume.internships.length > 0;
+    case 'education':      return Array.isArray(resume.education) && resume.education.length > 0;
+    case 'certifications': return Array.isArray(resume.certifications) && resume.certifications.length > 0;
+    case 'awards':         return Array.isArray(resume.awards) && resume.awards.length > 0;
+    case 'publications':   return Array.isArray(resume.publications) && resume.publications.length > 0;
+    case 'projects':       return Array.isArray(resume.projects) && resume.projects.length > 0;
+    case 'skills':         return Array.isArray(resume.skills) && resume.skills.length > 0;
+    case 'softSkills':     return Array.isArray(resume.softSkills) && resume.softSkills.length > 0;
+    default:               return false;
+  }
+}
+
+/**
+ * Build section order that:
+ * 1. Includes EVERY section that has content in the resume (nothing dropped)
+ * 2. Ordered by career stage preference
+ * 3. All additionalSections appended at the end
+ */
 function buildProfessionalOrder(
   resume: Partial<ResumeData>,
   careerStage: CareerStage
 ): string[] {
-  const baseOrder = PROFESSIONAL_ORDERS[careerStage];
+  const preferredOrder = PREFERRED_ORDERS[careerStage];
   const finalOrder: string[] = [];
+  const added = new Set<string>();
 
-  for (const key of baseOrder) {
-    const hasContent = checkSectionHasContent(resume, key);
-    if (hasContent) {
+  // First: add preferred-order sections that have content
+  for (const key of preferredOrder) {
+    if (checkSectionHasContent(resume, key)) {
       finalOrder.push(key);
+      added.add(key);
     }
   }
 
+  // Second: add ANY remaining known section with content that wasn't in preferred order
+  // (shouldn't happen with current setup, but future-proof)
+  for (const key of ALL_KNOWN_SECTIONS) {
+    if (!added.has(key) && checkSectionHasContent(resume, key)) {
+      finalOrder.push(key);
+      added.add(key);
+    }
+  }
+
+  // Third: add all additionalSections (Career Highlights, Languages, etc.)
+  // These come from anything the parser put into additionalSections[]
   for (const addl of resume.additionalSections ?? []) {
-    if (addl.heading) {
+    if (addl.heading?.trim()) {
       finalOrder.push(`additional:${addl.heading}`);
     }
   }
@@ -75,33 +131,6 @@ function buildProfessionalOrder(
   console.log(`[buildProfessionalOrder] Final order:`, finalOrder);
 
   return finalOrder;
-}
-
-function checkSectionHasContent(resume: Partial<ResumeData>, key: string): boolean {
-  switch (key) {
-    case 'summary':
-      return !!resume.summary && resume.summary.trim().length > 0;
-    case 'experience':
-      return Array.isArray(resume.experience) && resume.experience.length > 0;
-    case 'internships':
-      return Array.isArray(resume.internships) && resume.internships.length > 0;
-    case 'education':
-      return Array.isArray(resume.education) && resume.education.length > 0;
-    case 'certifications':
-      return Array.isArray(resume.certifications) && resume.certifications.length > 0;
-    case 'awards':
-      return Array.isArray(resume.awards) && resume.awards.length > 0;
-    case 'publications':
-      return Array.isArray(resume.publications) && resume.publications.length > 0;
-    case 'projects':
-      return Array.isArray(resume.projects) && resume.projects.length > 0;
-    case 'skills':
-      return Array.isArray(resume.skills) && resume.skills.length > 0;
-    case 'softSkills':
-      return Array.isArray(resume.softSkills) && resume.softSkills.length > 0;
-    default:
-      return false;
-  }
 }
 
 // ─── Safe JSON parser ─────────────────────────────────────────────────────────
@@ -140,10 +169,10 @@ export function safeParseJSON<T>(raw: string, fallback: T): T {
   return fallback;
 }
 
-// ─── Groq structuring prompt - FIXED ──────────────────────────────────────────
+// ─── Groq structuring prompt ──────────────────────────────────────────────────
 
 const STRUCTURE_SYSTEM = `You are a precise resume data extractor.
-Extract ALL fields into JSON.
+Extract ALL fields into JSON. Preserve EVERYTHING from the resume.
 
 CRITICAL RULES FOR COMPLETE BULLET EXTRACTION:
 1. Extract EVERY SINGLE bullet point as a SEPARATE array item - do not merge, summarize, or combine
@@ -156,8 +185,9 @@ EXPERIENCE SUBSECTIONS HANDLING:
 - Combine bullets from Responsibilities, Achievements, and any other subsections into ONE bullets[] array
 - Preserve the Environment line separately if it's a tech stack (not bullets)
 
-CAREER HIGHLIGHTS / KEY ACHIEVEMENTS:
-- If you see a section like "Career Highlights" or "Key Achievements" with multiple bullets
+CAREER HIGHLIGHTS / KEY ACHIEVEMENTS / ANY OTHER SECTION:
+- If you see a section like "Career Highlights", "Key Achievements", "Languages", "Volunteer Work", etc.
+- These go into additionalSections[] with the EXACT heading from the resume
 - Extract EACH bullet as a SEPARATE item in the items[] array
 - Do NOT combine them into one long paragraph
 
@@ -179,8 +209,7 @@ SECTION KEY MAPPING:
 - Projects → "projects"
 - Skills/Technical Skills → "skills"
 - Soft Skills/Core Competencies → "softSkills"
-- Career Highlights/Key Achievements → additionalSections with heading "Career Highlights"
-- Anything else → "additional:EXACT_HEADING"
+- Anything else (Career Highlights, Languages, Volunteer, Hobbies, etc.) → additionalSections with EXACT heading
 
 Return ONLY valid JSON. No markdown. No explanation.
 
@@ -301,34 +330,29 @@ function ensureResumeShape(raw: Partial<ResumeData>, careerStage: CareerStage): 
       items: Array.isArray(s.items) ? s.items.filter(i => typeof i === 'string' && i.trim()) : [],
     })) : [],
 
+    // Build sectionOrder from what's actually IN the resume — nothing dropped
     sectionOrder: buildProfessionalOrder(deduplicated, careerStage),
   };
 
   console.log('[ensureResumeShape] Experience:', resume.experience.length, 'entries');
-  if (resume.experience.length > 0) {
-    console.log('[ensureResumeShape] First experience bullets:', resume.experience[0]?.bullets.length);
-  }
+  console.log('[ensureResumeShape] Internships:', resume.internships?.length ?? 0, 'entries');
   console.log('[ensureResumeShape] Additional sections:', resume.additionalSections?.length ?? 0);
-  if (resume.additionalSections && resume.additionalSections.length > 0) {
-    console.log('[ensureResumeShape] Additional section items:', resume.additionalSections[0]?.items?.length ?? 0);
-  }
+  console.log('[ensureResumeShape] Section order:', resume.sectionOrder);
 
   return resume;
 }
 
-// ─── LLM structurer - INCREASED LIMITS ────────────────────────────────────────
+// ─── LLM structurer ───────────────────────────────────────────────────────────
 
 async function structureWithGroq(markdown: string, careerStage: CareerStage): Promise<ResumeData> {
-  // INCREASED: 14000 → 25000 chars
   const truncated = markdown.length > 25000
     ? markdown.substring(0, 20000) + '\n\n[...truncated...]\n\n' + markdown.substring(markdown.length - 3000)
     : markdown;
 
-  const userMessage = `Extract resume data. Preserve EVERY bullet point as separate array items.\n\nResume:\n\n${truncated}`;
+  const userMessage = `Extract resume data. Preserve EVERY section and EVERY bullet point as separate array items.\n\nResume:\n\n${truncated}`;
 
   let raw = '';
   try {
-    // INCREASED: 6000 → 8000 tokens
     raw = await groqChatCompletion(STRUCTURE_SYSTEM, userMessage, 8000, 0.1);
   } catch (err) {
     console.error('[structureWithGroq] Groq failed:', err);
