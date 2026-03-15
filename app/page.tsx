@@ -912,6 +912,17 @@ function EditablePreviewModal({ resume, rawResumeText, onClose, onDownload, onRe
       sectionOrder: editedResume.sectionOrder.filter(s => s !== sectionName),
     };
 
+    // ── FIX: Also remove from additionalSections data so the htmlTemplate
+    // fallback loop doesn't re-render it. Without this, htmlTemplate renders
+    // any additionalSection entry that isn't in sectionOrder — which is
+    // exactly the deleted section, causing it to persist in the preview.
+    if (sectionName.startsWith('additional:')) {
+      const heading = sectionName.replace(/^additional:/, '').trim();
+      updated.additionalSections = (updated.additionalSections ?? []).filter(
+        s => s.heading.trim() !== heading
+      );
+    }
+
     await applyResumeUpdate(updated);
   };
 
@@ -1701,7 +1712,7 @@ export default function HomePage() {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${session.access_token}`,
       },
-      body: JSON.stringify({ resume, jobDescription: jd, pmProfile }),
+      body: JSON.stringify({ resume, jobDescription: jd }),
     });
     if (!res.ok) {
       const d = await res.json().catch(() => ({}));
@@ -1735,7 +1746,6 @@ export default function HomePage() {
         body: JSON.stringify({
           resume: parsedResume,
           jobDescription: jobDescription.trim(),
-          userProfile: pmProfile,
         }),
       });
 
