@@ -176,7 +176,7 @@ function AIButton({
       <button
         onClick={openRewriteModal}
         className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"
-        title="Rewrite with AI">
+        title="rewrite with AI">
         ✨
       </button>
 
