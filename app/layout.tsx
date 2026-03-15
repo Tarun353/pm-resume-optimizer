@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   description: "Free AI-powered resume optimizer built for Product Managers. Paste your resume + any PM job description and get an ATS-optimized, keyword-matched resume instantly. For aspiring PMs, experienced PMs, and career switchers.",
   keywords: "PM resume optimizer, product manager resume, ATS resume optimizer, resume for product manager, PM job application, product manager resume builder",
   verification: {
-    google: "c465aef619b83605",
+    google: "a9CGHtLZZJlKEJZkwjLQcBCGCyp9oR3d9SRLfJ4XXxI",
   },
   openGraph: {
     title: "PM Resume Optimizer",
