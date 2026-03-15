@@ -31,8 +31,8 @@ export function Navbar({ onSignInClick }: NavbarProps) {
             </svg>
           </div>
           <div>
-            <h1 className="font-bold text-slate-900 tracking-tight text-lg">ResumeForge</h1>
-            <p className="text-xs text-slate-500">AI Resume Optimizer</p>
+            <h1 className="font-bold text-slate-900 tracking-tight text-lg">PM Resume Optimizer</h1>
+            <p className="text-xs text-slate-500">AI-Powered · ATS-Optimized</p>
           </div>
         </div>
 
@@ -88,7 +88,7 @@ export function Navbar({ onSignInClick }: NavbarProps) {
                       </p>
                     </div>
 
-                    {/* Sign Out - ✅ FIXED */}
+                    {/* Sign Out */}
                     <button
                       onClick={async () => {
                         await signOut();
