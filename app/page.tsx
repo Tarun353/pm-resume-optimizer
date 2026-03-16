@@ -821,6 +821,30 @@ function EditablePreviewModal({ resume, rawResumeText, onClose, onDownload, onRe
     await updateField('projects', projects);
   };
 
+  const deleteProjectBullet = async (projectIndex: number, bulletIndex: number) => {
+    const projects = ([...(((editedResume.projects as unknown as Record<string, unknown>[]) ?? []))]);
+    const project = { ...(projects[projectIndex] ?? {}) };
+    const bullets = Array.isArray(project.bullets)
+      ? [...(project.bullets as string[])]
+      : [];
+    bullets.splice(bulletIndex, 1);
+    project.bullets = bullets;
+    projects[projectIndex] = project;
+    await updateField('projects', projects);
+  };
+
+  const addProjectBullet = async (projectIndex: number) => {
+    const projects = ([...(((editedResume.projects as unknown as Record<string, unknown>[]) ?? []))]);
+    const project = { ...(projects[projectIndex] ?? {}) };
+    const bullets = Array.isArray(project.bullets)
+      ? [...(project.bullets as string[])]
+      : [];
+    bullets.push('New bullet point - click to edit');
+    project.bullets = bullets;
+    projects[projectIndex] = project;
+    await updateField('projects', projects);
+  };
+
   const handleSectionUpdate = async (section: string, rawValue: string) => {
     const updated: ResumeData = { ...editedResume };
 
@@ -912,10 +936,6 @@ function EditablePreviewModal({ resume, rawResumeText, onClose, onDownload, onRe
       sectionOrder: editedResume.sectionOrder.filter(s => s !== sectionName),
     };
 
-    // ── FIX: Also remove from additionalSections data so the htmlTemplate
-    // fallback loop doesn't re-render it. Without this, htmlTemplate renders
-    // any additionalSection entry that isn't in sectionOrder — which is
-    // exactly the deleted section, causing it to persist in the preview.
     if (sectionName.startsWith('additional:')) {
       const heading = sectionName.replace(/^additional:/, '').trim();
       updated.additionalSections = (updated.additionalSections ?? []).filter(
@@ -1052,6 +1072,7 @@ function EditablePreviewModal({ resume, rawResumeText, onClose, onDownload, onRe
                     )}
                   </div>
 
+                  {/* ── SUMMARY ── */}
                   {selectedSection === 'summary' && (
                     <div className="flex items-start gap-2">
                       <textarea value={editedResume.summary} onChange={(e) => updateSummary(e.target.value)} className="w-full min-h-[120px] rounded-lg border border-slate-300 p-3 text-sm" />
@@ -1063,6 +1084,7 @@ function EditablePreviewModal({ resume, rawResumeText, onClose, onDownload, onRe
                     </div>
                   )}
 
+                  {/* ── SKILLS ── */}
                   {selectedSection === 'skills' && (
                     <textarea
                       value={(editedResume.skills || []).join('\n')}
@@ -1072,10 +1094,15 @@ function EditablePreviewModal({ resume, rawResumeText, onClose, onDownload, onRe
                     />
                   )}
 
+                  {/* ── EDUCATION ── */}
                   {selectedSection === 'education' && (
                     <div className="space-y-4">
                       {(editedResume.education || []).map((edu, index) => (
                         <div key={index} className="rounded-lg border border-slate-200 p-3 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm font-medium text-slate-700">Education {index + 1}</p>
+                            <button onClick={() => deleteArrayEntry('education', index)} className="text-xs text-red-600 hover:text-red-800">Delete Education</button>
+                          </div>
                           <input value={edu.degree || ''} onChange={(e) => updateArrayEntry('education', index, 'degree', e.target.value)} placeholder="Degree" className="w-full rounded border p-2 text-sm" />
                           <input value={edu.institution || ''} onChange={(e) => updateArrayEntry('education', index, 'institution', e.target.value)} placeholder="Institution" className="w-full rounded border p-2 text-sm" />
                           <input value={edu.location || ''} onChange={(e) => updateArrayEntry('education', index, 'location', e.target.value)} placeholder="Location" className="w-full rounded border p-2 text-sm" />
@@ -1085,13 +1112,13 @@ function EditablePreviewModal({ resume, rawResumeText, onClose, onDownload, onRe
                           </div>
                           <input value={edu.gpa || ''} onChange={(e) => updateArrayEntry('education', index, 'gpa', e.target.value)} placeholder="GPA" className="w-full rounded border p-2 text-sm" />
                           <input value={edu.notes || ''} onChange={(e) => updateArrayEntry('education', index, 'notes', e.target.value)} placeholder="Notes" className="w-full rounded border p-2 text-sm" />
-                          <button onClick={() => deleteArrayEntry('education', index)} className="text-xs text-red-600">Delete Entry</button>
                         </div>
                       ))}
-                      <button onClick={() => addArrayEntry('education', { degree: '', institution: '', bullets: [] })} className="text-sm text-blue-600">Add Education Entry</button>
+                      <button onClick={() => addArrayEntry('education', { degree: '', institution: '', startDate: '', endDate: '', gpa: '', notes: '', bullets: [] })} className="text-sm text-blue-600">+ Add Education Entry</button>
                     </div>
                   )}
 
+                  {/* ── EXPERIENCE ── */}
                   {selectedSection === 'experience' && (
                     <div className="space-y-4">
                       {(editedResume.experience || []).map((exp, expIndex) => (
@@ -1099,7 +1126,7 @@ function EditablePreviewModal({ resume, rawResumeText, onClose, onDownload, onRe
                           <div className="space-y-2">
                             <div className="flex items-center justify-between">
                               <p className="text-sm font-medium text-slate-700">Experience {expIndex + 1}</p>
-                              <button onClick={() => deleteArrayEntry('experience', expIndex)} className="text-xs text-red-600">Delete Experience</button>
+                              <button onClick={() => deleteArrayEntry('experience', expIndex)} className="text-xs text-red-600 hover:text-red-800">Delete Experience</button>
                             </div>
                             <input value={exp.company || ''} onChange={(e) => updateArrayEntry('experience', expIndex, 'company', e.target.value)} placeholder="Company" className="w-full rounded border p-2 text-sm" />
                             <input value={exp.title || ''} onChange={(e) => updateArrayEntry('experience', expIndex, 'title', e.target.value)} placeholder="Role" className="w-full rounded border p-2 text-sm" />
@@ -1132,12 +1159,22 @@ function EditablePreviewModal({ resume, rawResumeText, onClose, onDownload, onRe
                     </div>
                   )}
 
+                  {/* ── INTERNSHIPS ── */}
                   {selectedSection === 'internships' && (
                     <div className="space-y-4">
                       {(editedResume.internships || []).map((item, intIndex) => (
                         <div key={intIndex} className="rounded-lg border border-slate-200 p-3 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm font-medium text-slate-700">Internship {intIndex + 1}</p>
+                            <button onClick={() => deleteArrayEntry('internships', intIndex)} className="text-xs text-red-600 hover:text-red-800">Delete Internship</button>
+                          </div>
                           <input value={item.company || ''} onChange={(e) => updateArrayEntry('internships', intIndex, 'company', e.target.value)} placeholder="Company" className="w-full rounded border p-2 text-sm" />
                           <input value={item.title || ''} onChange={(e) => updateArrayEntry('internships', intIndex, 'title', e.target.value)} placeholder="Role" className="w-full rounded border p-2 text-sm" />
+                          <div className="grid grid-cols-2 gap-2">
+                            <input value={item.startDate || ''} onChange={(e) => updateArrayEntry('internships', intIndex, 'startDate', e.target.value)} placeholder="Start Date" className="w-full rounded border p-2 text-sm" />
+                            <input value={item.endDate || ''} onChange={(e) => updateArrayEntry('internships', intIndex, 'endDate', e.target.value)} placeholder="End Date" className="w-full rounded border p-2 text-sm" />
+                          </div>
+                          <p className="text-sm font-medium text-slate-700">Responsibilities</p>
                           {(item.bullets || []).map((bullet, bulletIndex) => (
                             <div key={bulletIndex} className="flex items-center gap-2">
                               <input value={bullet} onChange={(e) => updateInternshipBullet(intIndex, bulletIndex, e.target.value)} className="flex-1 rounded border p-2 text-sm" />
@@ -1152,15 +1189,26 @@ function EditablePreviewModal({ resume, rawResumeText, onClose, onDownload, onRe
                           <button onClick={() => addInternshipBullet(intIndex)} className="text-sm text-blue-600">Add bullet</button>
                         </div>
                       ))}
+                      <button
+                        onClick={() => addArrayEntry('internships', { company: '', title: '', startDate: '', endDate: '', bullets: [] })}
+                        className="text-sm text-blue-600"
+                      >
+                        + Add Internship
+                      </button>
                     </div>
                   )}
 
+                  {/* ── CERTIFICATIONS ── */}
                   {selectedSection === 'certifications' && (
                     <div className="space-y-3">
                       {(editedResume.certifications || []).map((cert, index) => (
                         <div key={index} className="rounded-lg border border-slate-200 p-3 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm font-medium text-slate-700">Certification {index + 1}</p>
+                            <button onClick={() => deleteArrayEntry('certifications', index)} className="text-xs text-red-600 hover:text-red-800">Delete Certification</button>
+                          </div>
                           <div className="flex items-center gap-2">
-                            <input value={getEntryText(cert, ['name', 'title'])} onChange={(e) => updateAliasedArrayEntry('certifications', index, 'name', ['title'], e.target.value)} placeholder="Certification" className="w-full rounded border p-2 text-sm" />
+                            <input value={getEntryText(cert, ['name', 'title'])} onChange={(e) => updateAliasedArrayEntry('certifications', index, 'name', ['title'], e.target.value)} placeholder="Certification Name" className="w-full rounded border p-2 text-sm" />
                             <AIButton
                               text={getEntryText(cert, ['name', 'title'])}
                               onRewrite={(newText) => { void updateAliasedArrayEntry('certifications', index, 'name', ['title'], newText); }}
@@ -1168,15 +1216,27 @@ function EditablePreviewModal({ resume, rawResumeText, onClose, onDownload, onRe
                             />
                           </div>
                           <input value={cert.issuer || ''} onChange={(e) => updateArrayEntry('certifications', index, 'issuer', e.target.value)} placeholder="Issuer" className="w-full rounded border p-2 text-sm" />
+                          <input value={cert.date || ''} onChange={(e) => updateArrayEntry('certifications', index, 'date', e.target.value)} placeholder="Date" className="w-full rounded border p-2 text-sm" />
                         </div>
                       ))}
+                      <button
+                        onClick={() => addArrayEntry('certifications', { name: '', issuer: '', date: '' })}
+                        className="text-sm text-blue-600"
+                      >
+                        + Add Certification
+                      </button>
                     </div>
                   )}
 
+                  {/* ── AWARDS ── */}
                   {selectedSection === 'awards' && (
                     <div className="space-y-3">
                       {(editedResume.awards || []).map((award, index) => (
                         <div key={index} className="rounded-lg border border-slate-200 p-3 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm font-medium text-slate-700">Award {index + 1}</p>
+                            <button onClick={() => deleteArrayEntry('awards', index)} className="text-xs text-red-600 hover:text-red-800">Delete Award</button>
+                          </div>
                           <input value={getEntryText(award, ['title', 'name'])} onChange={(e) => updateAliasedArrayEntry('awards', index, 'title', ['name'], e.target.value)} placeholder="Award Title" className="w-full rounded border p-2 text-sm" />
                           <input value={award.issuer || ''} onChange={(e) => updateArrayEntry('awards', index, 'issuer', e.target.value)} placeholder="Issuer" className="w-full rounded border p-2 text-sm" />
                           <input value={award.date || ''} onChange={(e) => updateArrayEntry('awards', index, 'date', e.target.value)} placeholder="Date" className="w-full rounded border p-2 text-sm" />
@@ -1190,13 +1250,24 @@ function EditablePreviewModal({ resume, rawResumeText, onClose, onDownload, onRe
                           </div>
                         </div>
                       ))}
+                      <button
+                        onClick={() => addArrayEntry('awards', { title: '', issuer: '', date: '', description: '' })}
+                        className="text-sm text-blue-600"
+                      >
+                        + Add Award
+                      </button>
                     </div>
                   )}
 
+                  {/* ── PUBLICATIONS ── */}
                   {selectedSection === 'publications' && (
                     <div className="space-y-3">
                       {(editedResume.publications || []).map((publication, index) => (
                         <div key={index} className="rounded-lg border border-slate-200 p-3 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm font-medium text-slate-700">Publication {index + 1}</p>
+                            <button onClick={() => deleteArrayEntry('publications', index)} className="text-xs text-red-600 hover:text-red-800">Delete Publication</button>
+                          </div>
                           <input value={getEntryText(publication, ['title', 'name'])} onChange={(e) => updateAliasedArrayEntry('publications', index, 'title', ['name'], e.target.value)} placeholder="Publication Title" className="w-full rounded border p-2 text-sm" />
                           <input value={publication.publisher || ''} onChange={(e) => updateArrayEntry('publications', index, 'publisher', e.target.value)} placeholder="Publisher" className="w-full rounded border p-2 text-sm" />
                           <input value={publication.date || ''} onChange={(e) => updateArrayEntry('publications', index, 'date', e.target.value)} placeholder="Date" className="w-full rounded border p-2 text-sm" />
@@ -1211,14 +1282,26 @@ function EditablePreviewModal({ resume, rawResumeText, onClose, onDownload, onRe
                           </div>
                         </div>
                       ))}
+                      <button
+                        onClick={() => addArrayEntry('publications', { title: '', publisher: '', date: '', description: '', link: '' })}
+                        className="text-sm text-blue-600"
+                      >
+                        + Add Publication
+                      </button>
                     </div>
                   )}
 
+                  {/* ── PROJECTS ── */}
                   {selectedSection === 'projects' && (
                     <div className="space-y-3">
                       {(editedResume.projects || []).map((project, index) => (
                         <div key={index} className="rounded-lg border border-slate-200 p-3 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm font-medium text-slate-700">Project {index + 1}</p>
+                            <button onClick={() => deleteArrayEntry('projects', index)} className="text-xs text-red-600 hover:text-red-800">Delete Project</button>
+                          </div>
                           <input value={getEntryText(project, ['name', 'title'])} onChange={(e) => updateAliasedArrayEntry('projects', index, 'name', ['title'], e.target.value)} placeholder="Project Name" className="w-full rounded border p-2 text-sm" />
+                          <input value={project.link || ''} onChange={(e) => updateArrayEntry('projects', index, 'link', e.target.value)} placeholder="Project Link (optional)" className="w-full rounded border p-2 text-sm" />
                           <div className="flex items-start gap-2">
                             <textarea value={project.description || ''} onChange={(e) => updateArrayEntry('projects', index, 'description', e.target.value)} placeholder="Description" className="w-full rounded border p-2 text-sm" />
                             <AIButton
@@ -1227,6 +1310,7 @@ function EditablePreviewModal({ resume, rawResumeText, onClose, onDownload, onRe
                               sectionType="project-description"
                             />
                           </div>
+                          <p className="text-sm font-medium text-slate-700">Bullets</p>
                           {(project.bullets || []).map((bullet, bulletIndex) => (
                             <div key={bulletIndex} className="flex items-start gap-2">
                               <textarea value={bullet} onChange={(e) => updateProjectBullet(index, bulletIndex, e.target.value)} className="w-full rounded border p-2 text-sm" placeholder={`Bullet ${bulletIndex + 1}`} />
@@ -1235,13 +1319,22 @@ function EditablePreviewModal({ resume, rawResumeText, onClose, onDownload, onRe
                                 onRewrite={(newText) => { void updateProjectBullet(index, bulletIndex, newText); }}
                                 sectionType="project-bullet"
                               />
+                              <button onClick={() => deleteProjectBullet(index, bulletIndex)} className="text-xs text-red-600 mt-1 shrink-0">Delete</button>
                             </div>
                           ))}
+                          <button onClick={() => addProjectBullet(index)} className="text-sm text-blue-600">Add bullet</button>
                         </div>
                       ))}
+                      <button
+                        onClick={() => addArrayEntry('projects', { name: '', description: '', technologies: [], bullets: [], link: '' })}
+                        className="text-sm text-blue-600"
+                      >
+                        + Add Project
+                      </button>
                     </div>
                   )}
 
+                  {/* ── SOFT SKILLS ── */}
                   {selectedSection === 'softSkills' && (
                     <textarea
                       value={(editedResume.softSkills || []).join('\n')}
@@ -1251,6 +1344,7 @@ function EditablePreviewModal({ resume, rawResumeText, onClose, onDownload, onRe
                     />
                   )}
 
+                  {/* ── ADDITIONAL SECTIONS ── */}
                   {selectedSection.startsWith('additional:') && (
                     <div className="space-y-2">
                       {getAdditionalSectionItems(selectedSection).map((item, itemIndex) => (
@@ -1563,7 +1657,6 @@ export default function HomePage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // ── Save state before OAuth redirect ──────────────────────────────────────
   const saveStateBeforeLogin = () => {
     const state = {
       resumeText,
@@ -1583,7 +1676,6 @@ export default function HomePage() {
     console.log('State saved before login');
   };
 
-  // ── Restore state after OAuth redirect ────────────────────────────────────
   const restoreStateAfterLogin = () => {
     const savedState = sessionStorage.getItem('resumeState');
     if (!savedState) return false;
@@ -1608,7 +1700,6 @@ export default function HomePage() {
       setGenerationType(state.generationType || 'resume');
 
       sessionStorage.removeItem('resumeState');
-
       console.log('State restored after login');
       return true;
     } catch (err) {
@@ -1664,7 +1755,6 @@ export default function HomePage() {
     };
   }, [optimizedResume, coverLetter, generationType]);
 
-  // ── File handling ────────────────────────────────────────────────────────
   const handleFile = useCallback((file: File) => {
     const name = file.name.toLowerCase();
 
@@ -1692,7 +1782,6 @@ export default function HomePage() {
     if (file) handleFile(file);
   }, [handleFile]);
 
-  // ── Parse ────────────────────────────────────────────────────────────────
   const parseResume = async (): Promise<ResumeData> => {
     const pastedText = resumeText.trim();
 
@@ -1750,13 +1839,11 @@ export default function HomePage() {
     return d.resume;
   };
 
-  // ── Optimize ─────────────────────────────────────────────────────────────
   const optimizeResumeData = async (resume: ResumeData) => {
     setLoadingStep('Rewriting summary and bullets (~30 seconds)...');
     const jd = jobDescription.trim();
     if (jd.length < 20) throw new Error('Please enter a job description (20+ characters).');
 
-    // Use getSession() — this is exactly what worked before all these changes.
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.access_token) throw new Error('Please sign in to continue.');
 
@@ -1780,14 +1867,12 @@ export default function HomePage() {
     return res.json() as Promise<{ optimizedResume: ResumeData; changes: string[]; keywordsInjected: string[] }>;
   };
 
-  // ── Generate Cover Letter ────────────────────────────────────────────────
   const handleGenerateCoverLetter = async () => {
     if (!parsedResume) return;
 
     setLoadingStep('Generating your cover letter (~15 seconds)...');
 
     try {
-      // Use getSession() — same as the original working code
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error('Please sign in to continue.');
 
@@ -1825,7 +1910,6 @@ export default function HomePage() {
     }
   };
 
-  // ── Download Cover Letter PDF ────────────────────────────────────────────
   const handleDownloadCoverLetterPDF = async () => {
     if (!coverLetter) return;
 
@@ -1900,13 +1984,9 @@ export default function HomePage() {
     }
   };
 
-  // ── Main handler ──────────────────────────────────────────────────────────
   const handleGenerate = async () => {
     setError(null);
 
-    // Simple check: if not logged in, show login modal.
-    // We do NOT call /api/quota/check here — that's what was breaking everything.
-    // /api/optimize already handles quota internally and returns quota_exceeded if needed.
     if (!user) {
       saveStateBeforeLogin();
       setShowLoginModal(true);
@@ -1947,7 +2027,6 @@ export default function HomePage() {
     setOptimizedResume(newResume);
   };
 
-  // ── Download PDF ──────────────────────────────────────────────────────────
   const handleDownloadPDF = async () => {
     if (!optimizedResume) return;
 
@@ -2029,7 +2108,6 @@ export default function HomePage() {
     }
   };
 
-  // ── Derived ───────────────────────────────────────────────────────────────
   const canOptimize =
     !isLoading &&
     jobDescription.trim().length >= 20 &&
@@ -2039,8 +2117,6 @@ export default function HomePage() {
   const pmScore = Math.max(0, 100 - (pmAnalysis.missingKeywords.length * 5));
   const showRightPanel = isLoading || !!error || !!parsedResume || !!optimizedResume || !!coverLetter;
 
-  // ── Preview lock: derived from dbUser already in memory — NO API call ──────
-  // If user has used all 5 free downloads and is not on a paid plan, blur the preview.
   const now = new Date();
   const hasActivePaidPlan =
     dbUser?.subscription_type === 'paid' &&
@@ -2569,7 +2645,6 @@ export default function HomePage() {
           {/* ── FEEDBACK + FOOTER ─────────────────────────────────────────── */}
           <div className="mt-16 border-t border-slate-200">
 
-            {/* Coming soon banner */}
             <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl px-6 py-5 mt-10 mb-10">
               <div className="flex items-start gap-4">
                 <div className="text-2xl">🚀</div>
@@ -2582,17 +2657,14 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Feedback + Contact row */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
 
-              {/* Feedback box */}
               <div className="bg-white rounded-2xl border border-slate-200 p-5">
                 <h3 className="text-sm font-semibold text-slate-800 mb-1">Share your feedback</h3>
                 <p className="text-xs text-slate-400 mb-3">Facing an issue? Got a suggestion? We read every message.</p>
                 <FeedbackForm />
               </div>
 
-              {/* Contact support */}
               <div className="bg-white rounded-2xl border border-slate-200 p-5 flex flex-col justify-between">
                 <div>
                   <h3 className="text-sm font-semibold text-slate-800 mb-1">Contact support</h3>
@@ -2626,7 +2698,6 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Footer bottom bar */}
             <div className="border-t border-slate-100 pt-6 pb-8">
               <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400">
                 <div className="flex items-center gap-2">
