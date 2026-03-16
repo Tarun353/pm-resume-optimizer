@@ -43,6 +43,24 @@ export default function RootLayout({
             `,
           }}
         />
+
+        {/* Google Analytics GA4 */}
+        <Script
+          strategy="afterInteractive"
+          src="https://www.googletagmanager.com/gtag/js?id=G-36X2BWZGEP"
+        />
+        <Script
+          id="google-analytics"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', 'G-36X2BWZGEP');
+            `,
+          }}
+        />
       </head>
       <body className={inter.className}>
         <AuthProvider>
