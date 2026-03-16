@@ -45,7 +45,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const pmProfile = body.pmProfile || 'experienced';
+    // Validate persona — default to 'experienced' if missing or invalid
+    const validPersonas = ['aspiring', 'transitioning', 'experienced'];
+    const pmProfile = validPersonas.includes(body.pmProfile ?? '')
+      ? body.pmProfile!
+      : 'experienced';
 
     const { optimizedResume, changes, keywordsInjected } = await optimizeResume(
       body.resume,
@@ -59,7 +63,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       keywordsInjected,
     };
 
-    await incrementGenerationUsage(serviceSupabase, userId, dbUser.generations_used ?? dbUser.downloads_used ?? 0);
+    await incrementGenerationUsage(
+      serviceSupabase,
+      userId,
+      dbUser.generations_used ?? dbUser.downloads_used ?? 0
+    );
 
     return NextResponse.json(response);
   } catch (error) {
@@ -69,9 +77,23 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (error instanceof Error && error.message === 'USER_NOT_FOUND') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
     console.error('[optimize] Error:', error);
+
     const message =
       error instanceof Error ? error.message : 'Internal server error during optimization.';
+
+    // All AI providers (Groq → Gemini → Mistral → Cohere → HuggingFace) exhausted
+    if (message.toLowerCase().includes('all ai providers exhausted')) {
+      return NextResponse.json(
+        {
+          error:
+            'All AI providers are currently rate-limited. Please wait a few seconds and try again.',
+        },
+        { status: 503 }
+      );
+    }
+
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
