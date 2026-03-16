@@ -9,7 +9,7 @@
  */
 
 import { ResumeData } from './types';
-import { groqChatCompletion } from './groqClient';
+import { groqChatCompletion } from './aiClient';
 
 // ─── Profile-specific guidance ──────────────────────────────────────────────────
 
