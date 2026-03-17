@@ -1015,19 +1015,7 @@ function EditablePreviewModal({ resume, rawResumeText, onClose, onDownload, onRe
         <div className="flex-1 overflow-auto p-6">
           {activeTab === 'edit' && (
             <>
-              <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3">
-                <p className="text-sm font-semibold text-emerald-800">ATS Resume Score: {atsResult.score}/100</p>
-                {atsResult.suggestions.length > 0 && (
-                  <div className="mt-2">
-                    <p className="text-xs font-semibold text-emerald-900">Improve your score:</p>
-                    <ul className="mt-1 space-y-1 text-xs text-emerald-800">
-                      {atsResult.suggestions.map((suggestion) => (
-                        <li key={suggestion}>• {suggestion}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
+             
 
               {!selectedSection ? (
                 <div className="space-y-4">
