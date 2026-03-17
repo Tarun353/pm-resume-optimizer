@@ -8,7 +8,6 @@ import { PaymentModal } from '@/components/PaymentModal';
 import { UserProfile } from '@/components/UserProfile';
 import { supabase } from '@/lib/supabase';
 import { Navbar } from '@/components/Navbar';
-import { calculateATSScoreWithSuggestions } from '@/lib/atsScore';
 import { detectMissingPMKeywords } from '@/lib/pmAnalyzer';
 import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
@@ -599,7 +598,7 @@ function EditablePreviewModal({ resume, rawResumeText, onClose, onDownload, onRe
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
   const [showAddSectionModal, setShowAddSectionModal] = useState(false);
   const [customSectionName, setCustomSectionName] = useState('');
-  const atsResult = calculateATSScoreWithSuggestions(editedResume);
+ 
 
   const handleCopyOriginalText = async () => {
     if (isLocked) return;
@@ -2561,9 +2560,7 @@ export default function HomePage() {
 
               {optimizedResume && !isLoading && (
                 <>
-                  <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3.5">
-                    <p className="text-sm font-semibold text-emerald-800">ATS Resume Score: {calculateATSScoreWithSuggestions(optimizedResume).score}/100</p>
-                  </div>
+                 
                   <div className="bg-blue-50 border border-blue-200 rounded-xl p-3.5">
                     <p className="text-sm font-semibold text-blue-800">PM Resume Score: {pmScore}/100</p>
                   </div>
