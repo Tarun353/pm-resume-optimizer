@@ -93,6 +93,7 @@ export function extractJDKeywords(jd: string): string[] {
 
 async function optimizeSummary(
   summary: string,
+  resume: ResumeData,
   jd: string,
   keywords: string[],
   pmProfile: string
@@ -100,24 +101,28 @@ async function optimizeSummary(
   if (!summary || summary.trim().length < 10) return summary;
 
   const profileGuidance = PROFILE_SUMMARY_GUIDANCE[pmProfile] || PROFILE_SUMMARY_GUIDANCE['experienced'];
-  const keywordList = keywords.slice(0, 5).join(', ');
+  const keywordList = keywords.slice(0, 3).join(', ');
+
+  const experienceContext = [
+    ...(resume.experience ?? []).slice(0, 2).map(e => `${e.title} at ${e.company}`),
+    ...(resume.internships ?? []).slice(0, 1).map(e => `${e.title} at ${e.company}`),
+  ].join(', ');
 
   const SUMMARY_SYSTEM = `You are a professional resume writer specializing in Product Management resumes.
 
-Your task: Rewrite the professional summary to match the job description.
-
 ${profileGuidance}
 
-GENERAL REQUIREMENTS:
-- 3–4 sentences maximum
-- Naturally weave in 2–3 keywords from the job description
-- Sound like a real person, not a robot
-- Use power verbs (led, drove, implemented, optimized)
-- Be specific but concise
+CRITICAL RULES:
+- 3 lines MAXIMUM. No exceptions.
+- Must reference the candidate's ACTUAL job titles or companies from their experience.
+- Naturally weave in 1-2 keywords from the job description.
+- No clichés: "results-driven", "team player", "passionate", "detail-oriented".
+- DO NOT write a generic summary that could apply to anyone.`;
 
-DO NOT use clichés like "results-driven", "team player", "passionate", "detail-oriented".`;
+  const userMsg = `Rewrite this professional summary in 3 lines MAX.
 
-  const userMsg = `Rewrite this professional summary. Naturally include these keywords where appropriate: ${keywordList}
+Candidate's actual experience: ${experienceContext || 'not provided'}
+Keywords to include (1-2 naturally): ${keywordList}
 
 Original Summary:
 ${summary}
@@ -125,10 +130,10 @@ ${summary}
 Job Description:
 ${jd}
 
-Rewrite (3-4 sentences, authentic, matching the candidate profile):`;
+3-line rewrite (specific to their background, no fluff):`;
 
   try {
-    const rewritten = await groqChatCompletion(SUMMARY_SYSTEM, userMsg, 300, 0.5);
+    const rewritten = await groqChatCompletion(SUMMARY_SYSTEM, userMsg, 200, 0.5);
     return rewritten.trim() || summary;
   } catch (err) {
     console.error('[optimizeSummary] Error:', err);
@@ -143,7 +148,7 @@ async function generateSummaryFromContext(
   pmProfile: string
 ): Promise<string> {
   const profileGuidance = PROFILE_SUMMARY_GUIDANCE[pmProfile] || PROFILE_SUMMARY_GUIDANCE['experienced'];
-  const keywordList = keywords.slice(0, 5).join(', ');
+  const keywordList = keywords.slice(0, 3).join(', ');
 
   const experienceSnapshot = (resume.experience ?? []).slice(0, 3).map((exp) => {
     const bullets = (exp.bullets ?? []).slice(0, 2).join('; ');
@@ -156,11 +161,15 @@ async function generateSummaryFromContext(
   }).join('\n');
 
   const SUMMARY_SYSTEM = `You are a professional resume writer specializing in Product Management resumes.
-${profileGuidance}`;
+${profileGuidance}
 
-  const userMsg = `Create a professional resume summary for this candidate.
-Use their experience + internships + job description context.
-Naturally include relevant terms from: ${keywordList}
+CRITICAL RULES:
+- 3 lines MAXIMUM. No exceptions.
+- Must reference the candidate's ACTUAL job titles or companies.
+- No clichés. No generic fluff.`;
+
+  const userMsg = `Create a 3-line professional summary for this candidate using their actual experience.
+Keywords to include naturally: ${keywordList}
 
 Experience:
 ${experienceSnapshot || 'Not provided'}
@@ -171,10 +180,10 @@ ${internshipSnapshot || 'Not provided'}
 Job Description:
 ${jd}
 
-Output only the final summary in 3-4 concise ATS-friendly sentences:`;
+3-line summary only:`;
 
   try {
-    const generated = await groqChatCompletion(SUMMARY_SYSTEM, userMsg, 300, 0.4);
+    const generated = await groqChatCompletion(SUMMARY_SYSTEM, userMsg, 200, 0.4);
     if (generated.trim().length > 20) return generated.trim();
   } catch (err) {
     console.error('[generateSummaryFromContext] Error:', err);
@@ -182,11 +191,10 @@ Output only the final summary in 3-4 concise ATS-friendly sentences:`;
 
   const primaryExp = resume.experience?.[0];
   const primaryInternship = resume.internships?.[0];
-  const role = primaryExp?.title || primaryInternship?.title || 'professional';
   const companyContext = [primaryExp?.company, primaryInternship?.company].filter(Boolean).join(' and ');
-  const fallbackKeywordText = keywords.slice(0, 3).join(', ');
+  const fallbackKeywordText = keywords.slice(0, 2).join(', ');
 
-  return `Product Management professional with hands-on experience${companyContext ? ` at ${companyContext}` : ''}, delivering impact through cross-functional execution and measurable outcomes. Brings practical exposure aligned to target role needs${fallbackKeywordText ? `, including ${fallbackKeywordText}` : ''}. Combines analytical thinking, ownership, and clear communication to drive results in fast-paced environments.`;
+  return `Product Management professional with hands-on experience${companyContext ? ` at ${companyContext}` : ''}, delivering impact through cross-functional execution and measurable outcomes. Brings practical exposure aligned to target role needs${fallbackKeywordText ? `, including ${fallbackKeywordText}` : ''}.`;
 }
 
 // ─── Optimize bullets ───────────────────────────────────────────────────────────
@@ -271,7 +279,7 @@ export async function optimizeResume(
     // 1. Optimize or generate summary
     if (resume.summary && resume.summary.trim().length > 10) {
       console.log('[optimizeResume] Optimizing summary...');
-      const newSummary = await optimizeSummary(resume.summary, jobDescription, keywords, pmProfile);
+      const newSummary = await optimizeSummary(resume.summary, resume, jobDescription, keywords, pmProfile);
       if (newSummary !== resume.summary) {
         optimizedResume.summary = newSummary;
         changes.push('Rewrote professional summary with profile-matched tone and JD keywords');
