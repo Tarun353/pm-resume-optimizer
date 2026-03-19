@@ -7,7 +7,7 @@ import { LoginModal } from '@/components/LoginModal';
 import { PaymentModal } from '@/components/PaymentModal';
 import { supabase } from '@/lib/supabase';
 import { Navbar } from '@/components/Navbar';
-import { ATSScoreFunnel } from '@/components/ats/ATSScoreFunnel';
+import { RealATSChecker } from '@/components/ats/RealATSChecker';
 import { detectMissingPMKeywords } from '@/lib/pmAnalyzer';
 
 export const dynamic = 'force-dynamic';
@@ -1343,7 +1343,8 @@ export default function HomePage() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   const { user, dbUser, refreshUser } = useAuth();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef  = useRef<HTMLInputElement>(null);
+  const optimizerRef  = useRef<HTMLDivElement>(null);
 
   // ── State persistence ────────────────────────────────────────────────────────
   const saveStateBeforeLogin = () => {
@@ -1397,6 +1398,21 @@ export default function HomePage() {
     window.addEventListener('login-complete', handleLoginComplete);
     return () => window.removeEventListener('login-complete', handleLoginComplete);
   }, [optimizedResume, coverLetter]);
+
+  // ── ATS Checker prefill → scroll to optimizer ────────────────────────────────
+  const handlePrefillAndOptimize = (
+    prefillResume: string,
+    prefillJD: string,
+    prefillProfile: string,
+  ) => {
+    setResumeText(prefillResume);
+    setJobDescription(prefillJD);
+    setPmProfile(prefillProfile);
+    setInputMode('paste');
+    setTimeout(() => {
+      optimizerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  };
 
   // ── File handling ────────────────────────────────────────────────────────────
   const handleFile = useCallback((file: File) => {
@@ -1763,14 +1779,15 @@ export default function HomePage() {
             </p>
           </div>
 
-          {/* ── ATS Score Funnel ── */}
-          <ATSScoreFunnel
+          {/* ── ATS Checker ── */}
+          <RealATSChecker
             isLoggedIn={!!user}
             onLogin={() => setShowLoginModal(true)}
-            onOptimize={() => setShowPaymentModal(true)}
+            onPrefillAndOptimize={handlePrefillAndOptimize}
           />
 
           {/* ── Main Form + Results ── */}
+          <div ref={optimizerRef} className="scroll-mt-6">
           <div className={`grid grid-cols-1 ${showRightPanel ? 'lg:grid-cols-2' : ''} gap-6 items-start`}>
 
             {/* LEFT: Inputs */}
@@ -2082,6 +2099,7 @@ export default function HomePage() {
               </div>
             )}
           </div>
+          </div>{/* end scroll-mt wrapper */}
 
           {/* ── Footer ── */}
           <div className="mt-16 border-t border-slate-200">
