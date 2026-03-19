@@ -16,10 +16,16 @@ import { createClient } from '@supabase/supabase-js';
 import { groqChatCompletion } from '@/lib/aiClient';
 import { scoreResume } from '@/lib/atsScorer';
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+function getSupabaseAdmin() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!url || !serviceRoleKey) {
+    throw new Error('Supabase credentials not configured');
+  }
+
+  return createClient(url, serviceRoleKey);
+}
 
 const FREE_ANALYSIS_LIMIT = 5;
 
@@ -232,6 +238,7 @@ export async function POST(req: NextRequest) {
     }
 
     const token = authHeader.replace('Bearer ', '');
+    const supabaseAdmin = getSupabaseAdmin();
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
     if (authError || !user) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
