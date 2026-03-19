@@ -8,6 +8,7 @@ import { PaymentModal } from '@/components/PaymentModal';
 import { UserProfile } from '@/components/UserProfile';
 import { supabase } from '@/lib/supabase';
 import { Navbar } from '@/components/Navbar';
+import { ATSScoreFunnel } from '@/components/ats/ATSScoreFunnel';
 import { detectMissingPMKeywords } from '@/lib/pmAnalyzer';
 import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
@@ -2255,6 +2256,12 @@ export default function HomePage() {
               5 free optimizations included · No credit card needed to start
             </p>
           </div>
+
+          <ATSScoreFunnel
+            isLoggedIn={!!user}
+            onLogin={() => setShowLoginModal(true)}
+            onOptimize={() => setShowPaymentModal(true)}
+          />
 
           <div className={`grid grid-cols-1 ${showRightPanel ? 'lg:grid-cols-2' : ''} gap-6 items-start`}>
 
