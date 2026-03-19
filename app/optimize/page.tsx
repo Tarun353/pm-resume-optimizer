@@ -548,7 +548,6 @@ function EditablePreviewModal({
   const [showAddSectionModal, setShowAddSectionModal] = useState(false);
   const [customSectionName, setCustomSectionName] = useState('');
 
-  // Debounce ref for preview regeneration
   const previewDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleCopyOriginalText = async () => {
@@ -578,7 +577,6 @@ function EditablePreviewModal({
     }
   }, [editedResume]);
 
-  // Debounced version for onChange handlers
   const debouncedRegeneratePreview = useCallback(() => {
     if (previewDebounceRef.current) clearTimeout(previewDebounceRef.current);
     previewDebounceRef.current = setTimeout(() => { regeneratePreview(); }, 1200);
@@ -807,7 +805,7 @@ function EditablePreviewModal({
     const filteredOrder = newOrder.filter(section => activeSections.includes(section));
     const updated = { ...editedResume, sectionOrder: filteredOrder };
     setEditedResume(updated); onResumeChange(updated);
-    regeneratePreview(); // Not debounced — intentional drag action
+    regeneratePreview();
   };
 
   return (
@@ -900,7 +898,6 @@ function EditablePreviewModal({
                     </h3>
                   </div>
 
-                  {/* Summary */}
                   {selectedSection === 'summary' && (
                     <div className="flex items-start gap-2">
                       <textarea value={editedResume.summary} onChange={(e) => updateSummary(e.target.value)}
@@ -909,7 +906,6 @@ function EditablePreviewModal({
                     </div>
                   )}
 
-                  {/* Skills */}
                   {selectedSection === 'skills' && (
                     <textarea value={(editedResume.skills || []).join('\n')}
                       onChange={(e) => updateField('skills', e.target.value.split('\n').map(v => v.trim()).filter(Boolean))}
@@ -917,7 +913,6 @@ function EditablePreviewModal({
                       placeholder="One skill per line" />
                   )}
 
-                  {/* Soft Skills */}
                   {selectedSection === 'softSkills' && (
                     <textarea value={(editedResume.softSkills || []).join('\n')}
                       onChange={(e) => updateField('softSkills', e.target.value.split('\n').map(v => v.trim()).filter(Boolean))}
@@ -925,7 +920,6 @@ function EditablePreviewModal({
                       placeholder="One competency per line" />
                   )}
 
-                  {/* Education */}
                   {selectedSection === 'education' && (
                     <div className="space-y-4">
                       {(editedResume.education || []).map((edu, index) => (
@@ -951,7 +945,6 @@ function EditablePreviewModal({
                     </div>
                   )}
 
-                  {/* Experience */}
                   {selectedSection === 'experience' && (
                     <div className="space-y-4">
                       {(editedResume.experience || []).map((exp, expIndex) => (
@@ -987,7 +980,6 @@ function EditablePreviewModal({
                     </div>
                   )}
 
-                  {/* Internships */}
                   {selectedSection === 'internships' && (
                     <div className="space-y-4">
                       {(editedResume.internships || []).map((item, intIndex) => (
@@ -1023,7 +1015,6 @@ function EditablePreviewModal({
                     </div>
                   )}
 
-                  {/* Certifications */}
                   {selectedSection === 'certifications' && (
                     <div className="space-y-3">
                       {(editedResume.certifications || []).map((cert, index) => (
@@ -1047,7 +1038,6 @@ function EditablePreviewModal({
                     </div>
                   )}
 
-                  {/* Awards */}
                   {selectedSection === 'awards' && (
                     <div className="space-y-3">
                       {(editedResume.awards || []).map((award, index) => (
@@ -1073,7 +1063,6 @@ function EditablePreviewModal({
                     </div>
                   )}
 
-                  {/* Projects */}
                   {selectedSection === 'projects' && (
                     <div className="space-y-3">
                       {(editedResume.projects || []).map((project, index) => (
@@ -1107,7 +1096,6 @@ function EditablePreviewModal({
                     </div>
                   )}
 
-                  {/* Additional sections */}
                   {selectedSection.startsWith('additional:') && (
                     <div className="space-y-2">
                       {getAdditionalSectionItems(selectedSection).map((item, itemIndex) => (
@@ -1124,7 +1112,6 @@ function EditablePreviewModal({
                 </div>
               )}
 
-              {/* Add section modal */}
               {showAddSectionModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
                   <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl animate-scaleIn">
@@ -1353,7 +1340,6 @@ export default function HomePage() {
       const state = JSON.parse(saved) as {
         resumeText?: string; jdText?: string; profile?: string; timestamp?: number;
       };
-      // Only restore if < 30 minutes old
       if (state.timestamp && Date.now() - state.timestamp > 30 * 60 * 1000) {
         sessionStorage.removeItem('optimizeState'); return;
       }
@@ -1366,6 +1352,7 @@ export default function HomePage() {
       sessionStorage.removeItem('optimizeState');
     }
   }, []);
+
   const saveStateBeforeLogin = () => {
     const state = {
       resumeText, jobDescription, parsedResume, optimizedResume,
@@ -1417,21 +1404,6 @@ export default function HomePage() {
     window.addEventListener('login-complete', handleLoginComplete);
     return () => window.removeEventListener('login-complete', handleLoginComplete);
   }, [optimizedResume, coverLetter]);
-
-  // ── ATS Checker prefill → scroll to optimizer ────────────────────────────────
-  const handlePrefillAndOptimize = (
-    prefillResume: string,
-    prefillJD: string,
-    prefillProfile: string,
-  ) => {
-    setResumeText(prefillResume);
-    setJobDescription(prefillJD);
-    setPmProfile(prefillProfile);
-    setInputMode('paste');
-    setTimeout(() => {
-      optimizerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 100);
-  };
 
   // ── File handling ────────────────────────────────────────────────────────────
   const handleFile = useCallback((file: File) => {
@@ -1514,17 +1486,24 @@ export default function HomePage() {
     return res.json() as Promise<{ optimizedResume: ResumeData; changes: string[]; keywordsInjected: string[] }>;
   };
 
-  // ── Cover Letter ─────────────────────────────────────────────────────────────
+  // ── Cover Letter — now self-contained, works without optimizing first ────────
   const handleGenerateCoverLetter = async () => {
-    if (!parsedResume) return;
-
     if (!user) { saveStateBeforeLogin(); setShowLoginModal(true); return; }
 
     setIsLoading(true);
     setError(null);
-    setLoadingStep('Generating your cover letter (~15 seconds)...');
+    setLoadingStep('Generating your cover letter (~20 seconds)...');
 
     try {
+      // Parse resume first if not already done (user skipped optimization)
+      let resume = parsedResume;
+      if (!resume) {
+        setLoadingStep('Reading your resume...');
+        resume = await parseResume();
+        setParsedResume(resume);
+        setLoadingStep('Generating your cover letter (~20 seconds)...');
+      }
+
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error('Please sign in to continue.');
 
@@ -1535,7 +1514,7 @@ export default function HomePage() {
           'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
-          resume: parsedResume,
+          resume,
           jobDescription: jobDescription.trim(),
           userProfile: pmProfile,
         }),
@@ -1778,7 +1757,6 @@ export default function HomePage() {
             </a>
             <button
               onClick={() => {
-                /* Save current state so /score can pre-fill */
                 if (resumeText.trim() || jobDescription.trim()) {
                   sessionStorage.setItem('scoreState', JSON.stringify({
                     resumeText,
@@ -1797,7 +1775,6 @@ export default function HomePage() {
 
           {/* ── Hero ── */}
           <div className="text-center mb-10 animate-fadeInUp">
-            <div />
             <span className="inline-flex items-center gap-2 bg-blue-50 border border-blue-200 text-blue-700 text-xs font-semibold px-4 py-2 rounded-full mb-5">
               <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
               Built exclusively for Product Managers
@@ -1810,7 +1787,7 @@ export default function HomePage() {
 
             <p className="text-lg text-slate-600 max-w-xl mx-auto mb-4 font-medium">
               Paste your resume + any PM job description.<br />
-              AI rewrites summary + bullets. Download PDF in 60 seconds.
+              AI rewrites summary + bullets, or generates a cover letter. Download in 60 seconds.
             </p>
 
             <div className="flex flex-wrap justify-center gap-4 mt-4 text-sm text-slate-500">
@@ -1820,16 +1797,15 @@ export default function HomePage() {
             </div>
 
             <p className="text-xs text-slate-400 mt-4">
-              5 free optimizations · No credit card required · Results in under 60 seconds
+              5 free actions · No credit card required · Results in under 60 seconds
             </p>
           </div>
-
 
           {/* ── Main Form + Results ── */}
           <div className={`grid grid-cols-1 ${showRightPanel ? 'lg:grid-cols-2' : ''} gap-6 items-start`}>
 
             {/* LEFT: Inputs */}
-            <div className="space-y-4 animate-fadeInUp stagger-3">
+            <div className="space-y-4 animate-fadeInUp stagger-3" ref={optimizerRef}>
 
               {/* Resume + JD side by side */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1965,23 +1941,52 @@ export default function HomePage() {
                 </p>
               </div>
 
-              {/* Optimize CTA */}
+              {/* ── DUAL CTA — Optimize + Cover Letter side by side ── */}
               <div className="flex flex-col items-center gap-3">
-                <button onClick={handleGenerate} disabled={!canOptimize}
-                  className={`w-full py-4 rounded-2xl text-sm font-bold transition-all duration-200 flex items-center justify-center gap-2 btn-press ${
-                    canOptimize
-                      ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-xl shadow-blue-500/25 glow-blue'
-                      : 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                  }`}>
-                  {isLoading ? (
-                    <>
-                      <SpinnerIcon />
-                      <span className="ml-2">{loadingStep || 'Working...'}</span>
-                    </>
-                  ) : (
-                    <>✨ Optimize My Resume for This Role</>
-                  )}
-                </button>
+
+                {isLoading ? (
+                  /* Loading state — full width spinner */
+                  <div className="w-full py-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-bold flex items-center justify-center gap-2 shadow-xl shadow-blue-500/25">
+                    <SpinnerIcon />
+                    <span className="ml-2">{loadingStep || 'Working...'}</span>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3 w-full">
+
+                    {/* Optimize Resume */}
+                    <button
+                      onClick={handleGenerate}
+                      disabled={!canOptimize}
+                      className={`py-5 rounded-2xl text-sm font-bold transition-all duration-200 flex flex-col items-center justify-center gap-1.5 btn-press ${
+                        canOptimize
+                          ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-xl shadow-blue-500/25 glow-blue'
+                          : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                      }`}>
+                      <span className="text-xl">✨</span>
+                      <span>Optimize Resume</span>
+                      <span className={`text-xs font-normal ${canOptimize ? 'text-blue-200' : 'text-slate-400'}`}>
+                        AI rewrites every bullet
+                      </span>
+                    </button>
+
+                    {/* Generate Cover Letter — works independently */}
+                    <button
+                      onClick={handleGenerateCoverLetter}
+                      disabled={!canOptimize}
+                      className={`py-5 rounded-2xl text-sm font-bold transition-all duration-200 flex flex-col items-center justify-center gap-1.5 btn-press border-2 ${
+                        canOptimize
+                          ? 'border-blue-300 bg-white hover:bg-blue-50 hover:border-blue-500 text-blue-700 shadow-sm'
+                          : 'border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed'
+                      }`}>
+                      <span className="text-xl">✉️</span>
+                      <span>Cover Letter</span>
+                      <span className={`text-xs font-normal ${canOptimize ? 'text-blue-400' : 'text-slate-400'}`}>
+                        No optimization needed
+                      </span>
+                    </button>
+
+                  </div>
+                )}
 
                 {!canOptimize && !isLoading && (
                   <p className="text-xs text-slate-400 text-center">
@@ -1992,6 +1997,10 @@ export default function HomePage() {
                       : '② Add a job description (20+ characters)'}
                   </p>
                 )}
+
+                <p className="text-xs text-slate-400 text-center">
+                  Both use your resume + JD · 5 free actions · No card needed
+                </p>
               </div>
             </div>
 
@@ -2034,7 +2043,7 @@ export default function HomePage() {
                       <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin absolute inset-0" />
                       <div className="absolute inset-0 flex items-center justify-center text-xl">✨</div>
                     </div>
-                    <p className="font-semibold text-slate-900 mb-1">AI is optimizing your resume...</p>
+                    <p className="font-semibold text-slate-900 mb-1">AI is working on your document...</p>
                     <p className="text-sm text-slate-400 mb-4">{loadingStep}</p>
                     <div className="flex justify-center gap-1.5">
                       <span className="dot-bounce w-2 h-2 bg-blue-600 rounded-full inline-block" />
@@ -2105,7 +2114,7 @@ export default function HomePage() {
                       Edit, Reorder & Preview Resume
                     </button>
 
-                    {/* Cover Letter upsell */}
+                    {/* Cover Letter — still available after optimization */}
                     {!coverLetter && (
                       <button onClick={handleGenerateCoverLetter} disabled={isLoading}
                         className="w-full py-3.5 bg-white border-2 border-blue-300 hover:border-blue-500 hover:bg-blue-50 text-blue-700 rounded-2xl text-sm font-semibold transition-all flex items-center justify-center gap-2 animate-fadeInUp stagger-2 btn-press">
@@ -2137,93 +2146,81 @@ export default function HomePage() {
               </div>
             )}
           </div>
+        </div>
+
+        {/* ── Footer ── */}
+        <div className="mt-16 border-t border-slate-200 max-w-7xl mx-auto px-6">
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl px-6 py-5 mt-10 mb-10 animate-fadeInUp">
+            <div className="flex items-start gap-4">
+              <div className="text-2xl">🚀</div>
+              <div>
+                <p className="text-sm font-semibold text-slate-800 mb-1">More features coming soon</p>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  LinkedIn profile optimizer · Interview prep questions · Resume score benchmarking · ATS keyword density checker · Multi-language support
+                </p>
+              </div>
+            </div>
           </div>
 
-          {/* ── Footer ── */}
-          <div className="mt-16 border-t border-slate-200">
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl px-6 py-5 mt-10 mb-10 animate-fadeInUp">
-              <div className="flex items-start gap-4">
-                <div className="text-2xl">🚀</div>
-                <div>
-                  <p className="text-sm font-semibold text-slate-800 mb-1">More features coming soon</p>
-                  <p className="text-xs text-slate-500 leading-relaxed">
-                    LinkedIn profile optimizer · Interview prep questions · Resume score benchmarking · ATS keyword density checker · Multi-language support
-                  </p>
-                </div>
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+            <div className="bg-white rounded-2xl border border-slate-200 p-5">
+              <h3 className="text-sm font-semibold text-slate-800 mb-1">Share your feedback</h3>
+              <p className="text-xs text-slate-400 mb-3">Facing an issue? Got a suggestion? We read every message.</p>
+              <FeedbackForm />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
-              <div className="bg-white rounded-2xl border border-slate-200 p-5">
-                <h3 className="text-sm font-semibold text-slate-800 mb-1">Share your feedback</h3>
-                <p className="text-xs text-slate-400 mb-3">Facing an issue? Got a suggestion? We read every message.</p>
-                <FeedbackForm />
-              </div>
-
-              <div className="bg-white rounded-2xl border border-slate-200 p-5 flex flex-col justify-between">
-                <div>
-                  <h3 className="text-sm font-semibold text-slate-800 mb-1">Contact support</h3>
-                  <p className="text-xs text-slate-400 mb-4">Need help? Reach out directly.</p>
-                  <div className="space-y-3">
-                    {[
-                      {
-                        href: 'tel:+916200825883',
-                        icon: '📞',
-                        label: 'Call / WhatsApp',
-                        value: '+91 6200825883',
-                        hoverClass: 'hover:bg-blue-50',
-                      },
-                      {
-                        href: 'https://wa.me/916200825883',
-                        icon: '💬',
-                        label: 'Message on WhatsApp',
-                        value: 'Chat with us',
-                        hoverClass: 'hover:bg-green-50',
-                      },
-                    ].map(link => (
-                      <a key={link.href} href={link.href} target="_blank" rel="noopener noreferrer"
-                        className={`flex items-center gap-3 p-3 bg-slate-50 ${link.hoverClass} rounded-xl transition-colors group`}>
-                        <div className="w-9 h-9 bg-white rounded-xl flex items-center justify-center shadow-sm text-lg">{link.icon}</div>
-                        <div>
-                          <p className="text-xs text-slate-500">{link.label}</p>
-                          <p className="text-sm font-semibold text-slate-800">{link.value}</p>
-                        </div>
-                      </a>
-                    ))}
-                  </div>
+            <div className="bg-white rounded-2xl border border-slate-200 p-5 flex flex-col justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-slate-800 mb-1">Contact support</h3>
+                <p className="text-xs text-slate-400 mb-4">Need help? Reach out directly.</p>
+                <div className="space-y-3">
+                  {[
+                    { href: 'tel:+916200825883', icon: '📞', label: 'Call / WhatsApp', value: '+91 6200825883', hoverClass: 'hover:bg-blue-50' },
+                    { href: 'https://wa.me/916200825883', icon: '💬', label: 'Message on WhatsApp', value: 'Chat with us', hoverClass: 'hover:bg-green-50' },
+                  ].map(link => (
+                    <a key={link.href} href={link.href} target="_blank" rel="noopener noreferrer"
+                      className={`flex items-center gap-3 p-3 bg-slate-50 ${link.hoverClass} rounded-xl transition-colors group`}>
+                      <div className="w-9 h-9 bg-white rounded-xl flex items-center justify-center shadow-sm text-lg">{link.icon}</div>
+                      <div>
+                        <p className="text-xs text-slate-500">{link.label}</p>
+                        <p className="text-sm font-semibold text-slate-800">{link.value}</p>
+                      </div>
+                    </a>
+                  ))}
                 </div>
-                <p className="text-xs text-slate-400 mt-4">Typical response: within a few hours</p>
+              </div>
+              <p className="text-xs text-slate-400 mt-4">Typical response: within a few hours</p>
+            </div>
+          </div>
+
+          <div className="border-t border-slate-100 pt-6 pb-8">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400">
+              <div className="flex items-center gap-2">
+                <svg width="18" height="18" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                  <rect width="100" height="100" rx="22" fill="#2563eb"/>
+                  <rect x="24" y="18" width="45" height="56" rx="4" fill="white"/>
+                  <polygon points="56,18 69,18 69,31" fill="#93c5fd"/>
+                  <polygon points="56,18 56,31 69,31" fill="#dbeafe"/>
+                  <rect x="29" y="36" width="32" height="4" rx="2" fill="#2563eb" opacity="0.22"/>
+                  <rect x="29" y="44" width="24" height="4" rx="2" fill="#2563eb" opacity="0.16"/>
+                  <rect x="29" y="54" width="32" height="3" rx="1.5" fill="#2563eb" opacity="0.16"/>
+                  <circle cx="70" cy="72" r="16" fill="#fbbf24"/>
+                  <text x="70" y="79" textAnchor="middle" fontSize="17" fontWeight="700" fontFamily="sans-serif" fill="#1e3a8a">✦</text>
+                </svg>
+                <span className="font-medium text-slate-500">PM Resume Optimizer</span>
+              </div>
+              <span>© {new Date().getFullYear()} PM Resume Optimizer. All rights reserved.</span>
+              <div className="flex items-center gap-4">
+                <a href="/privacy" className="hover:text-slate-600 transition-colors">Privacy Policy</a>
+                <a href="/terms" className="hover:text-slate-600 transition-colors">Terms of Service</a>
               </div>
             </div>
-
-            <div className="border-t border-slate-100 pt-6 pb-8">
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400">
-                <div className="flex items-center gap-2">
-                  <svg width="18" height="18" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                    <rect width="100" height="100" rx="22" fill="#2563eb"/>
-                    <rect x="24" y="18" width="45" height="56" rx="4" fill="white"/>
-                    <polygon points="56,18 69,18 69,31" fill="#93c5fd"/>
-                    <polygon points="56,18 56,31 69,31" fill="#dbeafe"/>
-                    <rect x="29" y="36" width="32" height="4" rx="2" fill="#2563eb" opacity="0.22"/>
-                    <rect x="29" y="44" width="24" height="4" rx="2" fill="#2563eb" opacity="0.16"/>
-                    <rect x="29" y="54" width="32" height="3" rx="1.5" fill="#2563eb" opacity="0.16"/>
-                    <circle cx="70" cy="72" r="16" fill="#fbbf24"/>
-                    <text x="70" y="79" textAnchor="middle" fontSize="17" fontWeight="700" fontFamily="sans-serif" fill="#1e3a8a">✦</text>
-                  </svg>
-                  <span className="font-medium text-slate-500">PM Resume Optimizer</span>
-                </div>
-                <span>© {new Date().getFullYear()} PM Resume Optimizer. All rights reserved.</span>
-                <div className="flex items-center gap-4">
-                  <a href="/privacy" className="hover:text-slate-600 transition-colors">Privacy Policy</a>
-                  <a href="/terms" className="hover:text-slate-600 transition-colors">Terms of Service</a>
-                </div>
-              </div>
-              <p className="text-center text-xs text-slate-300 mt-3">
-                Resume data processed server-side only · Never stored · Powered by Groq AI · LlamaParse · Puppeteer
-              </p>
-            </div>
+            <p className="text-center text-xs text-slate-300 mt-3">
+              Resume data processed server-side only · Never stored · Powered by Groq AI · LlamaParse · Puppeteer
+            </p>
           </div>
         </div>
+      </div>
     </>
   );
 }
