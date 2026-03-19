@@ -7,7 +7,6 @@ import { LoginModal } from '@/components/LoginModal';
 import { PaymentModal } from '@/components/PaymentModal';
 import { supabase } from '@/lib/supabase';
 import { Navbar } from '@/components/Navbar';
-import { RealATSChecker } from '@/components/ats/RealATSChecker';
 import { detectMissingPMKeywords } from '@/lib/pmAnalyzer';
 
 export const dynamic = 'force-dynamic';
@@ -1346,7 +1345,27 @@ export default function HomePage() {
   const fileInputRef  = useRef<HTMLInputElement>(null);
   const optimizerRef  = useRef<HTMLDivElement>(null);
 
-  // ── State persistence ────────────────────────────────────────────────────────
+  // ── Pre-fill from /score page ────────────────────────────────────────────────
+  useEffect(() => {
+    const saved = sessionStorage.getItem('optimizeState');
+    if (!saved) return;
+    try {
+      const state = JSON.parse(saved) as {
+        resumeText?: string; jdText?: string; profile?: string; timestamp?: number;
+      };
+      // Only restore if < 30 minutes old
+      if (state.timestamp && Date.now() - state.timestamp > 30 * 60 * 1000) {
+        sessionStorage.removeItem('optimizeState'); return;
+      }
+      if (state.resumeText) setResumeText(state.resumeText);
+      if (state.jdText)     setJobDescription(state.jdText);
+      if (state.profile)    setPmProfile(state.profile);
+      setInputMode('paste');
+      sessionStorage.removeItem('optimizeState');
+    } catch {
+      sessionStorage.removeItem('optimizeState');
+    }
+  }, []);
   const saveStateBeforeLogin = () => {
     const state = {
       resumeText, jobDescription, parsedResume, optimizedResume,
@@ -1751,21 +1770,47 @@ export default function HomePage() {
 
         <div className="max-w-7xl mx-auto px-6 py-10">
 
+          {/* ── Page nav ── */}
+          <div className="flex items-center justify-between mb-8 animate-fadeIn">
+            <a href="/"
+              className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-700 transition-colors bg-white border border-slate-200 hover:border-slate-300 px-3 py-1.5 rounded-full">
+              ← Home
+            </a>
+            <button
+              onClick={() => {
+                /* Save current state so /score can pre-fill */
+                if (resumeText.trim() || jobDescription.trim()) {
+                  sessionStorage.setItem('scoreState', JSON.stringify({
+                    resumeText,
+                    jdText: jobDescription,
+                    jdMode: 'paste',
+                    profile: pmProfile,
+                    timestamp: Date.now(),
+                  }));
+                }
+                window.location.href = '/score';
+              }}
+              className="inline-flex items-center gap-2 text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200 hover:border-blue-300 px-4 py-2 rounded-full transition-all">
+              🎯 Check ATS Score for this resume →
+            </button>
+          </div>
+
           {/* ── Hero ── */}
           <div className="text-center mb-10 animate-fadeInUp">
+            <div />
             <span className="inline-flex items-center gap-2 bg-blue-50 border border-blue-200 text-blue-700 text-xs font-semibold px-4 py-2 rounded-full mb-5">
               <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
               Built exclusively for Product Managers
             </span>
 
             <h1 className="text-4xl sm:text-5xl font-bold text-slate-900 mb-4 tracking-tight leading-tight">
-              Your resume, optimized for<br />
-              <span className="gradient-text">every PM job description.</span>
+              Optimize your resume for<br />
+              <span className="gradient-text">this specific PM role.</span>
             </h1>
 
             <p className="text-lg text-slate-600 max-w-xl mx-auto mb-4 font-medium">
               Paste your resume + any PM job description.<br />
-              Get an ATS-matched resume in under 60 seconds.
+              AI rewrites summary + bullets. Download PDF in 60 seconds.
             </p>
 
             <div className="flex flex-wrap justify-center gap-4 mt-4 text-sm text-slate-500">
@@ -1779,15 +1824,8 @@ export default function HomePage() {
             </p>
           </div>
 
-          {/* ── ATS Checker ── */}
-          <RealATSChecker
-            isLoggedIn={!!user}
-            onLogin={() => setShowLoginModal(true)}
-            onPrefillAndOptimize={handlePrefillAndOptimize}
-          />
 
           {/* ── Main Form + Results ── */}
-          <div ref={optimizerRef} className="scroll-mt-6">
           <div className={`grid grid-cols-1 ${showRightPanel ? 'lg:grid-cols-2' : ''} gap-6 items-start`}>
 
             {/* LEFT: Inputs */}
@@ -2099,7 +2137,7 @@ export default function HomePage() {
               </div>
             )}
           </div>
-          </div>{/* end scroll-mt wrapper */}
+          </div>
 
           {/* ── Footer ── */}
           <div className="mt-16 border-t border-slate-200">
