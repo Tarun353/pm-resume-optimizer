@@ -1,9 +1,9 @@
 /**
  * resumeOptimizer.ts
- * 
+ *
  * Optimizes resume based on job description AND user's PM profile.
  * Profiles: aspiring | transitioning | experienced
- * 
+ *
  * ONLY modifies: summary, experience[].bullets, internships[].bullets
  * NEVER removes or changes: education, skills, certifications, projects, etc.
  */
@@ -11,7 +11,7 @@
 import { ResumeData } from './types';
 import { groqChatCompletion } from './aiClient';
 
-// ─── Profile-specific guidance ──────────────────────────────────────────────────
+// ─── Profile-specific guidance ─────────────────────────────────────────────────
 
 const PROFILE_SUMMARY_GUIDANCE: Record<string, string> = {
   aspiring: `
@@ -22,6 +22,7 @@ RULES FOR SUMMARY:
 - Reframe any experience in PM language
 - Do NOT fake seniority — sound like an ambitious beginner, not a veteran
 - Tone: Enthusiastic, forward-looking, hungry to learn
+- Length: 3 sentences maximum
 `,
   transitioning: `
 The candidate is TRANSITIONING INTO PRODUCT MANAGEMENT from another domain.
@@ -30,6 +31,7 @@ RULES FOR SUMMARY:
 - Highlight WHY they are switching and what unique superpower their background gives them as a PM
 - Show they understand PM work: discovery, prioritization, stakeholder alignment, delivery
 - Tone: Confident, strategic, narrative-driven — tell a compelling pivot story
+- Length: 3 sentences maximum
 `,
   experienced: `
 The candidate is an EXPERIENCED PRODUCT MANAGER.
@@ -38,6 +40,7 @@ RULES FOR SUMMARY:
 - Highlight scope: team size, product scale, users impacted, ARR influenced
 - Show strategic thinking: roadmap ownership, vision, stakeholder management
 - Tone: Authoritative, results-driven, strategic
+- Length: 3–5 sentences (match the depth of the candidate's experience)
 `,
 };
 
@@ -71,13 +74,16 @@ RULES FOR BULLETS:
 `,
 };
 
-// ─── Extract keywords from job description ──────────────────────────────────────
+// ─── Extract keywords from job description ─────────────────────────────────────
 
 export function extractJDKeywords(jd: string): string[] {
-  const techPattern = /\b(react|angular|vue|next\.?js|node\.?js|python|java(?:script)?|typescript|c\+\+|c#|ruby|go|rust|swift|kotlin|php|scala|r\b|matlab|sql|nosql|postgresql|mysql|mongodb|redis|elasticsearch|kafka|rabbitmq|aws|gcp|azure|docker|kubernetes|k8s|terraform|ansible|jenkins|github|gitlab|ci\/cd|devops|agile|scrum|kanban|jira|confluence|rest|graphql|grpc|microservices|api|ml|ai|llm|nlp|deep.?learning|machine.?learning|data.?science|analytics|tableau|power.?bi|excel|salesforce|sap|linux|unix|bash|git|html|css|figma|sketch|ux|ui|spark|hadoop|airflow|dbt|snowflake|databricks)\b/gi;
-  const techFound = Array.from(new Set((jd.match(techPattern) ?? []).map(t => t.toLowerCase())));
+  const techPattern =
+    /\b(react|angular|vue|next\.?js|node\.?js|python|java(?:script)?|typescript|c\+\+|c#|ruby|go|rust|swift|kotlin|php|scala|r\b|matlab|sql|nosql|postgresql|mysql|mongodb|redis|elasticsearch|kafka|rabbitmq|aws|gcp|azure|docker|kubernetes|k8s|terraform|ansible|jenkins|github|gitlab|ci\/cd|devops|agile|scrum|kanban|jira|confluence|rest|graphql|grpc|microservices|api|ml|ai|llm|nlp|deep.?learning|machine.?learning|data.?science|analytics|tableau|power.?bi|excel|salesforce|sap|linux|unix|bash|git|html|css|figma|sketch|ux|ui|spark|hadoop|airflow|dbt|snowflake|databricks)\b/gi;
+  const techFound = Array.from(
+    new Set((jd.match(techPattern) ?? []).map((t) => t.toLowerCase()))
+  );
 
-  const tokens = jd.toLowerCase().split(/\W+/).filter(w => w.length > 3);
+  const tokens = jd.toLowerCase().split(/\W+/).filter((w) => w.length > 3);
   const freq: Record<string, number> = {};
   for (const t of tokens) freq[t] = (freq[t] ?? 0) + 1;
 
@@ -89,7 +95,7 @@ export function extractJDKeywords(jd: string): string[] {
   return [...new Set([...techFound, ...sorted])].slice(0, 15);
 }
 
-// ─── Optimize summary ───────────────────────────────────────────────────────────
+// ─── Optimize summary ──────────────────────────────────────────────────────────
 
 async function optimizeSummary(
   summary: string,
@@ -100,29 +106,32 @@ async function optimizeSummary(
 ): Promise<string> {
   if (!summary || summary.trim().length < 10) return summary;
 
-  const profileGuidance = PROFILE_SUMMARY_GUIDANCE[pmProfile] || PROFILE_SUMMARY_GUIDANCE['experienced'];
+  const profileGuidance =
+    PROFILE_SUMMARY_GUIDANCE[pmProfile] || PROFILE_SUMMARY_GUIDANCE['experienced'];
   const keywordList = keywords.slice(0, 3).join(', ');
 
   const experienceContext = [
-    ...(resume.experience ?? []).slice(0, 2).map(e => `${e.title} at ${e.company}`),
-    ...(resume.internships ?? []).slice(0, 1).map(e => `${e.title} at ${e.company}`),
+    ...(resume.experience ?? []).slice(0, 2).map((e) => `${e.title} at ${e.company}`),
+    ...(resume.internships ?? []).slice(0, 1).map((e) => `${e.title} at ${e.company}`),
   ].join(', ');
+
+  const isExperienced = pmProfile === 'experienced';
 
   const SUMMARY_SYSTEM = `You are a professional resume writer specializing in Product Management resumes.
 
 ${profileGuidance}
 
 CRITICAL RULES:
-- 3 lines MAXIMUM. No exceptions.
+- ${isExperienced ? '3–5 sentences maximum' : '3 sentences maximum'}. No exceptions.
 - Must reference the candidate's ACTUAL job titles or companies from their experience.
-- Naturally weave in 1-2 keywords from the job description.
+- Naturally weave in 1–2 keywords from the job description.
 - No clichés: "results-driven", "team player", "passionate", "detail-oriented".
 - DO NOT write a generic summary that could apply to anyone.`;
 
-  const userMsg = `Rewrite this professional summary in 3 lines MAX.
+  const userMsg = `Rewrite this professional summary.
 
 Candidate's actual experience: ${experienceContext || 'not provided'}
-Keywords to include (1-2 naturally): ${keywordList}
+Keywords to include (1–2 naturally): ${keywordList}
 
 Original Summary:
 ${summary}
@@ -130,10 +139,10 @@ ${summary}
 Job Description:
 ${jd}
 
-3-line rewrite (specific to their background, no fluff):`;
+Rewrite (specific to their background, no fluff):`;
 
   try {
-    const rewritten = await groqChatCompletion(SUMMARY_SYSTEM, userMsg, 200, 0.5);
+    const rewritten = await groqChatCompletion(SUMMARY_SYSTEM, userMsg, 250, 0.5);
     return rewritten.trim() || summary;
   } catch (err) {
     console.error('[optimizeSummary] Error:', err);
@@ -147,28 +156,36 @@ async function generateSummaryFromContext(
   keywords: string[],
   pmProfile: string
 ): Promise<string> {
-  const profileGuidance = PROFILE_SUMMARY_GUIDANCE[pmProfile] || PROFILE_SUMMARY_GUIDANCE['experienced'];
+  const profileGuidance =
+    PROFILE_SUMMARY_GUIDANCE[pmProfile] || PROFILE_SUMMARY_GUIDANCE['experienced'];
   const keywordList = keywords.slice(0, 3).join(', ');
+  const isExperienced = pmProfile === 'experienced';
 
-  const experienceSnapshot = (resume.experience ?? []).slice(0, 3).map((exp) => {
-    const bullets = (exp.bullets ?? []).slice(0, 2).join('; ');
-    return `- ${exp.title} at ${exp.company}${bullets ? `: ${bullets}` : ''}`;
-  }).join('\n');
+  const experienceSnapshot = (resume.experience ?? [])
+    .slice(0, 3)
+    .map((exp) => {
+      const bullets = (exp.bullets ?? []).slice(0, 2).join('; ');
+      return `- ${exp.title} at ${exp.company}${bullets ? `: ${bullets}` : ''}`;
+    })
+    .join('\n');
 
-  const internshipSnapshot = (resume.internships ?? []).slice(0, 2).map((item) => {
-    const bullets = (item.bullets ?? []).slice(0, 2).join('; ');
-    return `- ${item.title} at ${item.company}${bullets ? `: ${bullets}` : ''}`;
-  }).join('\n');
+  const internshipSnapshot = (resume.internships ?? [])
+    .slice(0, 2)
+    .map((item) => {
+      const bullets = (item.bullets ?? []).slice(0, 2).join('; ');
+      return `- ${item.title} at ${item.company}${bullets ? `: ${bullets}` : ''}`;
+    })
+    .join('\n');
 
   const SUMMARY_SYSTEM = `You are a professional resume writer specializing in Product Management resumes.
 ${profileGuidance}
 
 CRITICAL RULES:
-- 3 lines MAXIMUM. No exceptions.
+- ${isExperienced ? '3–5 sentences maximum' : '3 sentences maximum'}. No exceptions.
 - Must reference the candidate's ACTUAL job titles or companies.
 - No clichés. No generic fluff.`;
 
-  const userMsg = `Create a 3-line professional summary for this candidate using their actual experience.
+  const userMsg = `Create a professional summary for this candidate using their actual experience.
 Keywords to include naturally: ${keywordList}
 
 Experience:
@@ -180,10 +197,10 @@ ${internshipSnapshot || 'Not provided'}
 Job Description:
 ${jd}
 
-3-line summary only:`;
+Summary only:`;
 
   try {
-    const generated = await groqChatCompletion(SUMMARY_SYSTEM, userMsg, 200, 0.4);
+    const generated = await groqChatCompletion(SUMMARY_SYSTEM, userMsg, 250, 0.4);
     if (generated.trim().length > 20) return generated.trim();
   } catch (err) {
     console.error('[generateSummaryFromContext] Error:', err);
@@ -191,13 +208,19 @@ ${jd}
 
   const primaryExp = resume.experience?.[0];
   const primaryInternship = resume.internships?.[0];
-  const companyContext = [primaryExp?.company, primaryInternship?.company].filter(Boolean).join(' and ');
+  const companyContext = [primaryExp?.company, primaryInternship?.company]
+    .filter(Boolean)
+    .join(' and ');
   const fallbackKeywordText = keywords.slice(0, 2).join(', ');
 
-  return `Product Management professional with hands-on experience${companyContext ? ` at ${companyContext}` : ''}, delivering impact through cross-functional execution and measurable outcomes. Brings practical exposure aligned to target role needs${fallbackKeywordText ? `, including ${fallbackKeywordText}` : ''}.`;
+  return `Product Management professional with hands-on experience${
+    companyContext ? ` at ${companyContext}` : ''
+  }, delivering impact through cross-functional execution and measurable outcomes. Brings practical exposure aligned to target role needs${
+    fallbackKeywordText ? `, including ${fallbackKeywordText}` : ''
+  }.`;
 }
 
-// ─── Optimize bullets ───────────────────────────────────────────────────────────
+// ─── Optimize bullets ──────────────────────────────────────────────────────────
 
 async function rewriteBullets(
   bullets: string[],
@@ -207,7 +230,8 @@ async function rewriteBullets(
 ): Promise<string[]> {
   if (!bullets || bullets.length === 0) return bullets;
 
-  const profileGuidance = PROFILE_BULLETS_GUIDANCE[pmProfile] || PROFILE_BULLETS_GUIDANCE['experienced'];
+  const profileGuidance =
+    PROFILE_BULLETS_GUIDANCE[pmProfile] || PROFILE_BULLETS_GUIDANCE['experienced'];
   const keywordList = keywords.slice(0, 8).join(', ');
   const bulletsText = bullets.map((b, i) => `${i + 1}. ${b}`).join('\n');
 
@@ -220,13 +244,13 @@ GENERAL RULES:
 2. Add specific context: technologies, scale, outcomes
 3. ONLY add metrics if clearly implied by the original bullet — never invent them
 4. Keep it credible — do NOT exaggerate
-5. Each bullet should be 1-2 lines, not a paragraph
-6. Inject 1-2 job description keywords per bullet where natural`;
+5. Each bullet should be 1–2 lines, not a paragraph
+6. Inject 1–2 job description keywords per bullet where natural`;
 
   const userMsg = `Rewrite these resume bullets for a Product Management resume.
 Follow the candidate profile rules above carefully.
 
-Keywords to naturally include (1-2 per bullet): ${keywordList}
+Keywords to naturally include (1–2 per bullet): ${keywordList}
 
 Original Bullets:
 ${bulletsText}
@@ -241,8 +265,8 @@ Return ONLY the rewritten bullets, one per line, numbered:`;
 
     const lines = result
       .split('\n')
-      .map(line => line.replace(/^\d+\.\s*/, '').trim())
-      .filter(line => line.length > 10);
+      .map((line) => line.replace(/^\d+\.\s*/, '').trim())
+      .filter((line) => line.length > 10);
 
     if (lines.length !== bullets.length) {
       console.warn('[rewriteBullets] Count mismatch, using original');
@@ -256,7 +280,7 @@ Return ONLY the rewritten bullets, one per line, numbered:`;
   }
 }
 
-// ─── Main optimizer ─────────────────────────────────────────────────────────────
+// ─── Main optimizer ────────────────────────────────────────────────────────────
 
 export async function optimizeResume(
   resume: ResumeData,
@@ -279,14 +303,25 @@ export async function optimizeResume(
     // 1. Optimize or generate summary
     if (resume.summary && resume.summary.trim().length > 10) {
       console.log('[optimizeResume] Optimizing summary...');
-      const newSummary = await optimizeSummary(resume.summary, resume, jobDescription, keywords, pmProfile);
+      const newSummary = await optimizeSummary(
+        resume.summary,
+        resume,
+        jobDescription,
+        keywords,
+        pmProfile
+      );
       if (newSummary !== resume.summary) {
         optimizedResume.summary = newSummary;
         changes.push('Rewrote professional summary with profile-matched tone and JD keywords');
       }
     } else {
       console.log('[optimizeResume] Generating summary from context...');
-      optimizedResume.summary = await generateSummaryFromContext(resume, jobDescription, keywords, pmProfile);
+      optimizedResume.summary = await generateSummaryFromContext(
+        resume,
+        jobDescription,
+        keywords,
+        pmProfile
+      );
       changes.push('Generated professional summary tailored to your profile and job description');
     }
 
@@ -301,7 +336,12 @@ export async function optimizeResume(
       for (let i = 0; i < resume.experience.length; i++) {
         const exp = resume.experience[i];
         if (exp && exp.bullets && exp.bullets.length > 0) {
-          const newBullets = await rewriteBullets(exp.bullets, jobDescription, keywords, pmProfile);
+          const newBullets = await rewriteBullets(
+            exp.bullets,
+            jobDescription,
+            keywords,
+            pmProfile
+          );
           optimizedResume.experience[i]!.bullets = newBullets;
           changes.push(`Enhanced ${exp.bullets.length} bullet(s) for ${exp.title} at ${exp.company}`);
         }
@@ -314,17 +354,28 @@ export async function optimizeResume(
       for (let i = 0; i < resume.internships.length; i++) {
         const int = resume.internships[i];
         if (int && int.bullets && int.bullets.length > 0) {
-          const newBullets = await rewriteBullets(int.bullets, jobDescription, keywords, pmProfile);
+          const newBullets = await rewriteBullets(
+            int.bullets,
+            jobDescription,
+            keywords,
+            pmProfile
+          );
           if (optimizedResume.internships) optimizedResume.internships[i]!.bullets = newBullets;
-          changes.push(`Enhanced ${int.bullets.length} bullet(s) for ${int.title} at ${int.company}`);
+          changes.push(
+            `Enhanced ${int.bullets.length} bullet(s) for ${int.title} at ${int.company}`
+          );
         }
       }
     }
 
-    console.log('[optimizeResume] Done. Profile:', pmProfile, '| Keywords:', keywords.length);
+    console.log(
+      '[optimizeResume] Done. Profile:',
+      pmProfile,
+      '| Keywords:',
+      keywords.length
+    );
 
     return { optimizedResume, changes, keywordsInjected: keywords };
-
   } catch (error) {
     console.error('[optimizeResume] Fatal error:', error);
     return {
