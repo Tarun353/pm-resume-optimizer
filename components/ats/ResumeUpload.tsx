@@ -19,14 +19,18 @@ export function ResumeUpload({ fileName, isUploading, error, onFileSelect }: Res
         onClick={() => inputRef.current?.click()}
         className="group w-full rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 px-6 py-8 text-center transition-all duration-300 hover:border-blue-400 hover:bg-blue-50"
       >
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-2xl shadow-sm transition-transform duration-300 group-hover:scale-105">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-2xl shadow-sm transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
           📄
         </div>
         <p className="mt-4 text-sm font-semibold text-slate-900">
-          {isUploading ? 'Analyzing your resume…' : fileName ? 'Replace uploaded PDF' : 'Upload your resume PDF'}
+          {isUploading
+            ? 'Processing…'
+            : fileName
+            ? 'Replace uploaded PDF'
+            : 'Upload your resume PDF'}
         </p>
         <p className="mt-1 text-xs text-slate-500">
-          {fileName ?? 'Drag-and-drop feel, instant mock ATS scan, no login required.'}
+          {fileName ?? 'PDF upload · Sample keyword signal · No login required'}
         </p>
       </button>
 
@@ -45,7 +49,7 @@ export function ResumeUpload({ fileName, isUploading, error, onFileSelect }: Res
       />
 
       {error && (
-        <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
+        <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 animate-fadeIn">
           {error}
         </div>
       )}
