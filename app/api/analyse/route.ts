@@ -4,7 +4,7 @@
  * AI-powered resume analysis endpoint.
  * Returns per-bullet feedback, keyword gaps, PM vocab check, and overall score.
  *
- * QUOTA: Uses `score_analyses_used` column on the users table (separate from optimizations).
+ * QUOTA: Uses `score_analyses_used` column on the users table.
  * DB MIGRATION NEEDED:
  *   ALTER TABLE users ADD COLUMN IF NOT EXISTS score_analyses_used INTEGER DEFAULT 0;
  *
@@ -19,26 +19,22 @@ import { scoreResume } from '@/lib/atsScorer';
 function getSupabaseAdmin() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!url || !serviceRoleKey) {
-    throw new Error('Supabase credentials not configured');
-  }
-
+  if (!url || !serviceRoleKey) throw new Error('Supabase credentials not configured');
   return createClient(url, serviceRoleKey);
 }
 
 const FREE_ANALYSIS_LIMIT = 5;
 
-// ─── Types ─────────────────────────────────────────────────────────────────────
+// ─── Types ──────────────────────────────────────────────────────────────────────
 
 export interface BulletAnalysis {
   original: string;
-  score: number; // 1-10
+  score: number;
   strength: string | null;
   weakness: string;
   improved: string;
   tags: Array<'has_metric' | 'has_action_verb' | 'has_ownership' | 'jd_aligned' | 'too_vague' | 'no_impact'>;
-  section: string; // e.g. "Work Experience", "Internship", "Projects"
+  section: string;
 }
 
 export interface ResumeAnalysisResult {
@@ -57,78 +53,166 @@ export interface ResumeAnalysisResult {
   keywordsMissing: string[];
   pmVocabFound: string[];
   pmVocabMissing: string[];
-  metricsScore: number; // 0-100 pct of bullets with metrics
+  metricsScore: number;
   topImprovements: string[];
   profileSpecificFeedback: string;
 }
 
-// ─── Parse resume into sections ────────────────────────────────────────────────
+// ─── Section heading patterns ────────────────────────────────────────────────
 
-function extractBulletsFromText(resumeText: string): Array<{ text: string; section: string }> {
+const SECTION_HEADING_PATTERNS = [
+  /^(work\s+)?experience$/i,
+  /^professional\s+(experience|background|history)$/i,
+  /^employment(\s+history)?$/i,
+  /^internship(s)?$/i,
+  /^education$/i,
+  /^academic(\s+background)?$/i,
+  /^project(s)?$/i,
+  /^skill(s)?$/i,
+  /^technical\s+skill(s)?$/i,
+  /^achievement(s)?$/i,
+  /^award(s)?(\s+&\s+honor(s)?)?$/i,
+  /^honor(s)?$/i,
+  /^certification(s)?(\s+&\s+license(s)?)?$/i,
+  /^license(s)?$/i,
+  /^publication(s)?$/i,
+  /^summary$/i,
+  /^professional\s+summary$/i,
+  /^profile$/i,
+  /^objective$/i,
+  /^career\s+objective$/i,
+  /^leadership(\s+experience)?$/i,
+  /^volunteer(\s+experience)?$/i,
+  /^extracurricular(\s+activities)?$/i,
+  /^activities$/i,
+  /^involvement$/i,
+  /^additional(\s+information)?$/i,
+  /^languages$/i,
+  /^interests?$/i,
+  /^core\s+competencies$/i,
+  /^key\s+skills$/i,
+];
+
+const CONTACT_PATTERNS = [
+  /@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/,  // email
+  /linkedin\.com/i,
+  /github\.com/i,
+  /^\+?\d[\d\s\-().]{7,}$/,          // phone
+  /^[a-zA-Z0-9._%+-]+@/,             // email start
+];
+
+const ACTION_VERBS_REGEX = /^(led|drove|built|launched|managed|developed|created|designed|implemented|spearheaded|achieved|increased|improved|reduced|optimized|streamlined|collaborated|partnered|analyzed|identified|conducted|delivered|shipped|owned|defined|prioritized|coordinated|established|championed|facilitated|negotiated|synthesized|translated|transformed|accelerated|scaled|maintained|supported|assisted|worked|contributed|researched|prepared|executed|oversaw|supervised|directed|planned|organized|initiated|proposed|presented|communicated|reviewed|evaluated|trained|mentored|coached|engaged|generated|produced|published|wrote|drafted|deployed|migrated|integrated|automated|tested|resolved|handled|processed|conceptualized|formulated|pioneered|revamped|restructured|consolidated|expanded|launched|negotiated|secured|grew|boosted|enhanced|built|owned|shaped|influenced|drove|led|grew|closed|sourced|designed|architected|prototyped|validated|iterated|shipped|launched|scaled|analyzed|discovered|synthesized|translated|prioritized|roadmapped|launched|adopted|enabled|empowered)/i;
+
+// ─── Comprehensive bullet extraction ────────────────────────────────────────
+
+export function extractBulletsFromText(resumeText: string): Array<{ text: string; section: string }> {
   const lines = resumeText.split('\n').map(l => l.trim()).filter(Boolean);
   const bullets: Array<{ text: string; section: string }> = [];
   let currentSection = 'General';
-
-  // Section heading heuristics
-  const sectionHeadings = [
-    'experience', 'work experience', 'professional experience',
-    'internship', 'internships', 'projects', 'project',
-    'education', 'certifications', 'skills', 'achievements',
-    'publications', 'awards', 'leadership', 'volunteer',
-  ];
+  const seenTexts = new Set<string>();
 
   for (const line of lines) {
-    const lower = line.toLowerCase();
+    // Skip very short lines
+    if (line.length < 20) continue;
+
+    // Skip obvious contact info
+    if (CONTACT_PATTERNS.some(p => p.test(line))) continue;
+
+    // Skip lines that look like dates only
+    if (/^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|\d{4})/i.test(line) && line.length < 40) continue;
 
     // Detect section heading
-    const isHeading = sectionHeadings.some(h => lower === h || lower.startsWith(h + ' ') || lower.endsWith(' ' + h));
-    const isAllCaps = line === line.toUpperCase() && line.length > 3 && /[A-Z]/.test(line);
-    if (isHeading || isAllCaps) {
-      currentSection = line.replace(/[•\-*]/g, '').trim();
+    const isAllCaps = line === line.toUpperCase() && line.length > 2 && line.length < 60 && /[A-Z]/.test(line);
+    const matchesHeadingPattern = SECTION_HEADING_PATTERNS.some(p => p.test(line.replace(/[^\w\s]/g, '').trim()));
+
+    if (isAllCaps || matchesHeadingPattern) {
+      currentSection = line
+        .replace(/[•\-*:_|]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .split(' ')
+        .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+        .join(' ');
       continue;
     }
 
-    // Detect bullet line
-    const isBullet = line.startsWith('•') || line.startsWith('-') || line.startsWith('*') || /^\d+\./.test(line);
-    const isLongLine = line.length > 50 && !line.includes(':') && currentSection.toLowerCase().includes('experience');
+    // Skip lines that are just company names / job titles / dates (short, no verb)
+    if (line.length < 35 && !ACTION_VERBS_REGEX.test(line)) continue;
 
-    if (isBullet || isLongLine) {
-      const text = line.replace(/^[•\-*]\s*/, '').replace(/^\d+\.\s*/, '').trim();
-      if (text.length > 20) {
-        bullets.push({ text, section: currentSection });
+    // Strip bullet markers to get clean text
+    const cleanLine = line
+      .replace(/^[\s]*[•▪▸►→·\-*]\s+/, '')
+      .replace(/^\d+[.)]\s+/, '')
+      .trim();
+
+    if (cleanLine.length < 20) continue;
+
+    // A line is a bullet if:
+    // 1. Has explicit bullet marker, OR
+    // 2. Starts with an action verb (strong PM/professional signal), OR
+    // 3. Is a long descriptive line (likely an accomplishment or experience description)
+    const hasBulletMarker = /^[\s]*[•▪▸►→·\-*]\s+/.test(line) || /^\d+[.)]\s+/.test(line);
+    const startsWithActionVerb = ACTION_VERBS_REGEX.test(cleanLine);
+    const isLongDescriptiveLine = cleanLine.length > 55;
+
+    if (hasBulletMarker || startsWithActionVerb || isLongDescriptiveLine) {
+      // De-duplicate
+      const key = cleanLine.substring(0, 60).toLowerCase();
+      if (!seenTexts.has(key)) {
+        seenTexts.add(key);
+        bullets.push({ text: cleanLine, section: currentSection });
       }
     }
   }
 
-  return bullets.slice(0, 20); // cap at 20 bullets for cost reasons
+  // Cap at 25 to control AI cost but cover full resume
+  return bullets.slice(0, 25);
 }
 
-function extractSummary(resumeText: string): string {
+// ─── Summary extraction ──────────────────────────────────────────────────────
+
+export function extractSummary(resumeText: string): string {
   const lines = resumeText.split('\n').map(l => l.trim()).filter(Boolean);
   let inSummary = false;
   const summaryLines: string[] = [];
 
-  for (const line of lines) {
-    const lower = line.toLowerCase();
-    if (lower.includes('summary') || lower.includes('profile') || lower.includes('objective')) {
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]!;
+    const lower = line.toLowerCase().replace(/[^\w\s]/g, '').trim();
+
+    // Detect summary heading
+    if (
+      lower === 'summary' || lower === 'professional summary' ||
+      lower === 'profile' || lower === 'objective' ||
+      lower === 'career objective' || lower === 'about me' ||
+      lower === 'professional profile'
+    ) {
       inSummary = true;
       continue;
     }
+
     if (inSummary) {
       // Stop at next section heading
-      const isHeading = line === line.toUpperCase() || lower.includes('experience') || lower.includes('education') || lower.includes('skills');
-      if (isHeading && summaryLines.length > 0) break;
-      if (line.length > 30) summaryLines.push(line);
-      if (summaryLines.length >= 5) break;
+      const isAllCaps = line === line.toUpperCase() && line.length > 3 && /[A-Z]/.test(line);
+      const isNextSection = SECTION_HEADING_PATTERNS.some(p => p.test(line.replace(/[^\w\s]/g, '').trim()));
+
+      if ((isAllCaps || isNextSection) && summaryLines.length > 0) break;
+
+      if (line.length > 25 && !CONTACT_PATTERNS.some(p => p.test(line))) {
+        summaryLines.push(line);
+        if (summaryLines.length >= 6) break;
+      }
     }
   }
 
-  // Fallback: first long paragraph
+  // Fallback: first 2-3 long paragraphs that look like a summary
   if (summaryLines.length === 0) {
+    let count = 0;
     for (const line of lines) {
-      if (line.length > 80 && !line.includes('@') && !line.includes('linkedin')) {
+      if (line.length > 80 && !CONTACT_PATTERNS.some(p => p.test(line)) && !/^\d{4}/.test(line)) {
         summaryLines.push(line);
-        if (summaryLines.length >= 3) break;
+        count++;
+        if (count >= 3) break;
       }
     }
   }
@@ -136,7 +220,7 @@ function extractSummary(resumeText: string): string {
   return summaryLines.join(' ').trim();
 }
 
-// ─── AI Analysis ───────────────────────────────────────────────────────────────
+// ─── AI Analysis ─────────────────────────────────────────────────────────────
 
 async function runAIAnalysis(
   resumeText: string,
@@ -147,66 +231,78 @@ async function runAIAnalysis(
 ): Promise<ResumeAnalysisResult> {
 
   const profileContext =
-    profile === 'aspiring'      ? 'aspiring PM (student/fresher — no formal PM experience yet)' :
-    profile === 'transitioning' ? 'transitioning into PM from another domain (engineer/marketer/consultant)' :
-                                  'experienced PM (1+ years in a PM role)';
+    profile === 'aspiring'
+      ? 'ASPIRING PM — student or fresher with no formal PM experience yet. They may have projects, internships, hackathons, or academic work. Evaluate them on product thinking potential, clarity of communication, problem framing, and evidence of user empathy. DO NOT penalize for lacking 5 years of experience. DO reward transferable skills, side projects, quantified college/intern outcomes, and evidence of curiosity.'
+      : profile === 'transitioning'
+      ? 'TRANSITIONING INTO PM — professional from another domain (engineering, marketing, consulting, ops, etc.) pivoting into PM. Evaluate how well they translate their background into PM language. Reward: cross-functional work, ownership language, data-driven decisions, user focus. Penalize: failing to PM-frame past work, domain jargon with no product context, no narrative of why they are switching.'
+      : 'EXPERIENCED PM — 1+ years as a Product Manager. Evaluate against senior PM bar: product outcomes, metrics, strategic ownership, roadmap, stakeholder management, team leadership. Penalize: vague bullets without numbers, no scope mentioned (team size, user base, revenue), tactical-only work with no strategy, missing OKR/metric language.';
 
   const bulletsFormatted = bullets
     .map((b, i) => `${i + 1}. [${b.section}] ${b.text}`)
     .join('\n');
 
-  const SYSTEM = `You are an expert PM resume coach who has reviewed 10,000+ PM resumes and coached candidates into Google, Flipkart, Razorpay, Meesho, and top Indian startups.
+  const hasJD = jdText.trim().length > 50;
 
-You give HONEST, SPECIFIC, ACTIONABLE feedback. Never be vague. Never say "good job" without citing exactly what's strong. Never say "improve this" without showing exactly how.
+  const SYSTEM = `You are an expert PM resume coach who has reviewed 50,000+ PM resumes and placed candidates at Google, Meta, Flipkart, Razorpay, Meesho, CRED, and top Indian/global startups.
 
-You must respond with ONLY valid JSON matching the schema exactly. No preamble, no markdown, no explanation outside the JSON.`;
+Your feedback is BRUTALLY HONEST, HYPER-SPECIFIC, and ACTIONABLE. You cite exact text from the resume. You never give generic advice. You show the exact rewrite.
 
-  const USER = `Analyse this PM resume for a ${profileContext}.
+Candidate profile: ${profileContext}
 
-JOB DESCRIPTION:
-${jdText.trim().length > 50 ? jdText.substring(0, 2000) : 'No JD provided — use general PM best practices.'}
+CRITICAL RULES:
+- Analyze EVERY bullet provided. Do not skip any.
+- Each weakness must quote or reference specific words from the original bullet.
+- Each "improved" version must be concretely better — stronger verb, metric added if implied, PM language injected, scope clarified.
+- The improved summary MUST reference the candidate's actual companies and roles.
+- Do NOT say "consider adding metrics" without showing an example metric.
+- profileSpecificFeedback must address this specific profile's biggest gaps (${profile}).
+- You must respond ONLY with valid JSON. No markdown fences, no preamble.`;
 
-PROFESSIONAL SUMMARY:
-${summary || 'No summary found in the resume.'}
+  const USER = `Perform a comprehensive PM resume analysis for a ${profile} candidate.
 
-RESUME BULLET POINTS (${bullets.length} total):
+${hasJD ? `JOB DESCRIPTION:\n${jdText.substring(0, 2500)}\n\n` : 'No JD provided — use general PM best practices for all JD-related fields.\n\n'}
+
+PROFESSIONAL SUMMARY (analyze this):
+${summary || 'No summary section found in the resume. Treat as a missing section and penalize accordingly.'}
+
+ALL RESUME BULLETS TO ANALYZE (${bullets.length} total — analyze EVERY single one):
 ${bulletsFormatted}
 
-FULL RESUME TEXT (for context):
-${resumeText.substring(0, 3000)}
+FULL RESUME TEXT (for context, names, companies, dates — do not re-extract bullets from here):
+${resumeText.substring(0, 3500)}
 
-Return this exact JSON schema (no extra fields, no markdown):
+Return EXACTLY this JSON schema — no extra keys, no markdown:
 {
-  "overallScore": <integer 0-100>,
-  "grade": <"A"|"B"|"C"|"D"|"F">,
-  "gradeLabel": <short string like "Strong Match" | "Good, needs polish" | "Needs Work" | "Significant Gaps" | "Major Rewrite Needed">,
-  "executiveSummary": <2-3 sentence honest overall verdict. Cite specific resume evidence.>,
+  "overallScore": <integer 0-100, be honest — most resumes score 40-65>,
+  "grade": <"A" if >=80, "B" if >=65, "C" if >=50, "D" if >=35, else "F">,
+  "gradeLabel": <"Strong Match"|"Good, needs polish"|"Needs Work"|"Significant Gaps"|"Major Rewrite Needed">,
+  "executiveSummary": <2-3 sentences. Be direct. Reference specific companies/roles from the resume. State what's holding this resume back.>,
   "summaryAnalysis": {
     "score": <1-10>,
-    "feedback": <specific critique of their actual summary text. What's missing, what's weak, what's strong.>,
-    "improved": <rewritten summary for their profile — must reference their actual companies/roles>
+    "feedback": <Specific critique. Quote actual phrases from their summary that are weak. Explain exactly why.>,
+    "improved": <Full rewritten summary. Must mention their real companies. Must be profile-appropriate (${profile}).>
   },
   "bulletAnalysis": [
     {
-      "original": <exact bullet text>,
-      "score": <1-10>,
-      "strength": <what's genuinely strong, or null>,
-      "weakness": <specific weakness — be direct and honest>,
-      "improved": <rewritten bullet — must be better, more specific, add metric if implied>,
-      "tags": <array from: "has_metric","has_action_verb","has_ownership","jd_aligned","too_vague","no_impact">,
-      "section": <section name>
+      "original": <exact bullet text as provided>,
+      "score": <1-10. Be harsh: most unquantified bullets = 4-6. Generic bullets = 3-4. Strong quantified bullets = 8-9.>,
+      "strength": <What is actually strong here, or null if nothing is>,
+      "weakness": <Quote the exact weak phrase. Explain concisely why it fails.>,
+      "improved": <Rewritten bullet. Must be concretely better. Use same context/company. Add implied metric if obvious.>,
+      "tags": <array of applicable: "has_metric","has_action_verb","has_ownership","jd_aligned","too_vague","no_impact">,
+      "section": <section name as provided>
     }
   ],
-  "keywordsFound": <array of JD keywords found in resume>,
-  "keywordsMissing": <array of important JD keywords NOT in resume — max 12>,
-  "pmVocabFound": <array of PM terms found: roadmap, OKR, A/B test, etc.>,
-  "pmVocabMissing": <array of important PM terms missing — max 10>,
-  "metricsScore": <0-100 — percentage of bullets that have quantified impact>,
-  "topImprovements": <array of exactly 3 most impactful improvements the candidate should make>,
-  "profileSpecificFeedback": <2-3 sentences of feedback specific to their career stage — aspiring/transitioning/experienced>
+  "keywordsFound": <array of JD keywords actually found verbatim or near-verbatim in the resume>,
+  "keywordsMissing": <array of important JD keywords NOT in the resume — max 12, most impactful first>,
+  "pmVocabFound": <PM terms present: roadmap, OKR, A/B test, PRD, north star, sprint, backlog, GTM, NPS, DAU, MAU, churn, funnel, retention, activation, etc.>,
+  "pmVocabMissing": <Important PM terms absent — max 10, most impactful for this profile first>,
+  "metricsScore": <0-100 integer — what % of bullets have a quantified metric (number, %, $, x)>,
+  "topImprovements": <array of exactly 3 most impactful changes. Be specific: quote what to change and show the direction.>,
+  "profileSpecificFeedback": <2-3 sentences specific to ${profile} profile. For aspiring: what PM potential signals are present/absent. For transitioning: how well they've reframed their background. For experienced: whether they demonstrate strategic ownership and scope.>
 }`;
 
-  const raw = await groqChatCompletion(SYSTEM, USER, 3000, 0.3);
+  const raw = await groqChatCompletion(SYSTEM, USER, 4000, 0.2);
 
   // Clean and parse JSON
   const cleaned = raw
@@ -216,9 +312,13 @@ Return this exact JSON schema (no extra fields, no markdown):
     .trim();
 
   try {
-    return JSON.parse(cleaned) as ResumeAnalysisResult;
+    const result = JSON.parse(cleaned) as ResumeAnalysisResult;
+    // Validate bulletAnalysis count matches input
+    if (!result.bulletAnalysis || result.bulletAnalysis.length === 0) {
+      throw new Error('AI returned empty bulletAnalysis');
+    }
+    return result;
   } catch {
-    // Try to extract JSON from response
     const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       return JSON.parse(jsonMatch[0]) as ResumeAnalysisResult;
@@ -227,7 +327,7 @@ Return this exact JSON schema (no extra fields, no markdown):
   }
 }
 
-// ─── Route handler ──────────────────────────────────────────────────────────────
+// ─── Route handler ────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
   try {
@@ -244,7 +344,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    // 2. Check + increment quota
+    // 2. Check quota
     const { data: dbUser, error: fetchError } = await supabaseAdmin
       .from('users')
       .select('score_analyses_used, subscription_type, subscription_expires_at')
@@ -255,7 +355,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Check if paid plan is active
     const now = new Date();
     const hasActivePlan =
       dbUser.subscription_type === 'paid' &&
@@ -272,29 +371,39 @@ export async function POST(req: NextRequest) {
     }
 
     // 3. Parse body
-    const body = await req.json() as {
-      resumeText: string;
-      jdText: string;
-      profile: string;
-    };
-
+    const body = await req.json() as { resumeText: string; jdText: string; profile: string };
     const { resumeText, jdText, profile } = body;
 
     if (!resumeText || resumeText.trim().length < 100) {
-      return NextResponse.json({ error: 'Resume text too short (minimum 100 characters)' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Resume text too short (minimum 100 characters)' },
+        { status: 400 }
+      );
     }
 
-    // 4. Extract bullets and summary
+    // 4. Extract content
     const bullets = extractBulletsFromText(resumeText);
     const summary = extractSummary(resumeText);
+
+    // Guard: if we found 0 bullets, something is very wrong with the input
+    if (bullets.length === 0) {
+      return NextResponse.json(
+        { error: 'Could not extract any content from the resume. Please paste the full resume text including bullet points and experience sections.' },
+        { status: 400 }
+      );
+    }
 
     // 5. Run AI analysis
     const aiResult = await runAIAnalysis(resumeText, jdText, profile, bullets, summary);
 
-    // 6. Enrich with client-side scorer data
+    // 6. Enrich with client-side scorer data (fill gaps if AI missed keywords)
     const clientScore = scoreResume(resumeText, jdText, profile);
-    aiResult.keywordsFound  = aiResult.keywordsFound?.length  ? aiResult.keywordsFound  : clientScore.breakdown.jdKeywords.matched;
-    aiResult.keywordsMissing = aiResult.keywordsMissing?.length ? aiResult.keywordsMissing : clientScore.breakdown.jdKeywords.missing;
+    if (!aiResult.keywordsFound?.length) {
+      aiResult.keywordsFound = clientScore.breakdown.jdKeywords.matched;
+    }
+    if (!aiResult.keywordsMissing?.length) {
+      aiResult.keywordsMissing = clientScore.breakdown.jdKeywords.missing;
+    }
 
     // 7. Increment quota
     await supabaseAdmin
