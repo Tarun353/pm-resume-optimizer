@@ -178,7 +178,36 @@ CRITICAL RULES:
 - The improved summary MUST reference the candidate's actual companies and roles.
 - Do NOT say "consider adding metrics" without showing an example metric.
 - profileSpecificFeedback must address this specific profile's biggest gaps (${profile}).
-- You must respond ONLY with valid JSON. No markdown fences, no preamble.`;
+- You must respond ONLY with valid JSON. No markdown fences, no preamble.
+
+CRITICAL — HANDLING METRICS IN "IMPROVED" VERSIONS:
+- ONLY add a metric if it's EXPLICITLY stated in the original bullet OR clearly implied from context (e.g., "500 users" mentioned).
+- For PROJECT/ACADEMIC bullets: DO NOT fabricate business metrics like "25% increase", "30% adoption", "revenue lift" — these are lies if the student doesn't have real company data.
+- For PROJECT bullets that did research: The research rigor (42 surveys, 8 interviews) IS the metric. Don't invent fake business outcomes.
+- For PROJECT bullets: Focus on LEARNING, INSIGHTS, SKILLS DEMONSTRATED, and PRODUCT THINKING instead of fake business impact.
+- For INTERNSHIP bullets: Only add metrics if the intern realistically could have measured them (user tests with N people, features shipped to X users). Don't claim company-wide impact they didn't have.
+- For EXPERIENCE bullets: You can suggest realistic metrics based on role context, but make it clear these are examples ("e.g., 10k→12k users" not "increased users by 20%").
+
+Examples of GOOD vs BAD metric additions:
+
+ACADEMIC PROJECT - Research:
+Original: "Analyzed voice input adoption barriers through 42 surveys and 8 interviews."
+❌ BAD (fabricated metric): "Analyzed voice input adoption barriers, identifying a 25% decrease in adoption rates due to usability issues."
+✅ GOOD (research rigor + insight): "Conducted user research on voice input adoption barriers through 42 surveys and 8 interviews, identifying top 3 usability friction points and presenting actionable UX improvement recommendations."
+
+ACADEMIC PROJECT - App built:
+Original: "Built e-commerce mobile app with payment integration"
+❌ BAD (fake business metric): "Built e-commerce app that increased conversion by 30%"
+✅ GOOD (scope + learning): "Built React Native e-commerce app with Stripe payment integration, conducting 15 user tests to validate checkout flow and iterating on feedback"
+
+INTERNSHIP - Real impact:
+Original: "Helped with user research"
+❌ BAD (vague): "Conducted user research"
+✅ GOOD (specific + real metric): "Conducted 20 user interviews for mobile onboarding redesign, synthesizing insights into 3-page research report that informed Q3 roadmap"
+
+EXPERIENCE - Can suggest realistic metric:
+Original: "Improved checkout flow"
+✅ GOOD: "Redesigned checkout flow based on funnel analysis, reducing cart abandonment by 15% (baseline: 45%→30%)"`;
 
   const USER = `Perform a comprehensive PM resume analysis for a ${profile} candidate.
 
@@ -189,6 +218,8 @@ ${summary || 'No summary section found in the resume. Treat as a missing section
 
 ALL RESUME BULLETS TO ANALYZE (${bullets.length} total — analyze EVERY single one, return ${bullets.length} entries in bulletAnalysis):
 ${bulletsFormatted}
+
+REMEMBER: For Project/Academic bullets, DO NOT fabricate business metrics. Research rigor and insights ARE valuable without fake "25% increase" numbers.
 
 Return EXACTLY this JSON schema — no extra keys, no markdown:
 {
@@ -207,7 +238,7 @@ Return EXACTLY this JSON schema — no extra keys, no markdown:
       "score": <1-10. Be harsh: most unquantified bullets = 4-6. Generic bullets = 3-4. Strong quantified bullets = 8-9.>,
       "strength": <What is actually strong here, or null if nothing is>,
       "weakness": <Quote the exact weak phrase. Explain concisely why it fails.>,
-      "improved": <Rewritten bullet. Must be concretely better. Use same context/company. Add implied metric if obvious.>,
+      "improved": <Rewritten bullet. Must be concretely better. DO NOT ADD FAKE METRICS for projects/academic work. Use same context. Show learning/rigor instead.>,
       "tags": <array of applicable: "has_metric","has_action_verb","has_ownership","jd_aligned","too_vague","no_impact">,
       "section": <section name as provided>
     }
