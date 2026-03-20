@@ -7,7 +7,7 @@ export type VisibilityLevel = 'LOW' | 'MEDIUM' | 'HIGH';
 export interface AdvancedInsightsResponse {
   visibility: VisibilityLevel;
   missing_keywords: string[];
-  role_fit: string;
+  role_fit: 'CLEAR' | 'CONFUSED';
   impact_score: number;
   interview_probability: number;
   recommendations: string[];
@@ -30,6 +30,10 @@ export interface AdvancedInsightsResponse {
     detected_role: string;
     confidence: number;
   };
+}
+
+function cloneDefaultAdvancedInsightsResponse(): AdvancedInsightsResponse {
+  return JSON.parse(JSON.stringify(DEFAULT_ADVANCED_INSIGHTS_RESPONSE)) as AdvancedInsightsResponse;
 }
 
 export const DEFAULT_ADVANCED_INSIGHTS_RESPONSE: AdvancedInsightsResponse = {
@@ -149,6 +153,10 @@ function buildFallbackRecommendations(missingKeywords: string[], roleDetection: 
   return recommendations.slice(0, 3);
 }
 
+function computeRoleFit(roleDetection: { confidence: number }, matchedKeywordCount: number) {
+  return roleDetection.confidence >= 50 || matchedKeywordCount >= 4 ? 'CLEAR' : 'CONFUSED';
+}
+
 async function getGeminiRecommendations(context: {
   missingKeywords: string[];
   roleDetection: { detected_role: string; confidence: number };
@@ -198,7 +206,7 @@ async function getGeminiRecommendations(context: {
 
 export async function buildAdvancedInsights(resumeText: string, jdText: string, profile: string): Promise<AdvancedInsightsResponse> {
   if (!isAdvancedAnalysisEnabled()) {
-    return DEFAULT_ADVANCED_INSIGHTS_RESPONSE;
+    return cloneDefaultAdvancedInsightsResponse();
   }
 
   const atsResult = scoreResume(resumeText, jdText, profile);
@@ -213,6 +221,7 @@ export async function buildAdvancedInsights(resumeText: string, jdText: string, 
   const impactScore = clamp(Math.round((impactPercentage * 0.7) + ((100 - responsibilityPercentage) * 0.3)));
   const visibility = computeVisibility(matchedKeywords.length, Math.max(jdKeywords.length, 1));
   const roleDetection = detectRole(resumeText, jdText);
+  const roleFit = computeRoleFit(roleDetection, matchedKeywords.length);
   const recruiterInterest = computeRecruiterInterest(atsResult.totalScore, impactScore);
   const interviewProbability = clamp(Math.round((atsResult.totalScore * 0.6) + (impactScore * 0.25) + (roleDetection.confidence * 0.15)));
 
@@ -236,7 +245,7 @@ export async function buildAdvancedInsights(resumeText: string, jdText: string, 
   return {
     visibility,
     missing_keywords: missingKeywords,
-    role_fit: roleDetection.detected_role,
+    role_fit: roleFit,
     impact_score: impactScore,
     interview_probability: interviewProbability,
     recommendations,
@@ -270,4 +279,8 @@ export async function buildRecruiterSimulation(resumeText: string, jdText: strin
     recommendations: insights.recommendations,
     recruiter_search: insights.recruiter_search,
   };
+}
+
+export function buildDefaultAdvancedInsightsResponse() {
+  return cloneDefaultAdvancedInsightsResponse();
 }

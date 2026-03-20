@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { buildAdvancedInsights, DEFAULT_ADVANCED_INSIGHTS_RESPONSE } from '@/lib/advancedInsights';
+import { buildAdvancedInsights, buildDefaultAdvancedInsightsResponse } from '@/lib/advancedInsights';
 import { isAdvancedAnalysisEnabled } from '@/utils/featureFlags';
 
 export async function POST(req: NextRequest) {
@@ -18,6 +18,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(response);
   } catch (error) {
     console.error('[api/analyze-advanced] Failed to build advanced insights.', error);
-    return NextResponse.json(DEFAULT_ADVANCED_INSIGHTS_RESPONSE);
+    return NextResponse.json(buildDefaultAdvancedInsightsResponse());
   }
 }
