@@ -10,6 +10,7 @@ import { PMLoadingScreen } from '@/components/PMLoadingScreen';
 import { supabase } from '@/lib/supabase';
 import { DEFAULT_JDS } from '@/lib/defaultJDs';
 import type { ResumeAnalysisResult, BulletAnalysis } from '@/app/api/analyse/route';
+import type { AdvancedInsightsResponse } from '@/lib/advancedInsights';
 
 // ─── Icons ─────────────────────────────────────────────────────────────────────
 function CheckIcon() {
@@ -202,6 +203,9 @@ export default function ScorePage() {
   const [showLogin, setShowLogin]   = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [pendingAnalyse, setPendingAnalyse] = useState(false);
+  const [advancedInsightsEnabled, setAdvancedInsightsEnabled] = useState(false);
+  const [advancedResult, setAdvancedResult] = useState<AdvancedInsightsResponse | null>(null);
+  const [advancedError, setAdvancedError] = useState<string | null>(null);
   const resultRef                   = useRef<HTMLDivElement>(null);
 
   // ── Pre-fill from /optimize (user clicked "Check ATS Score" mid-way) ──────────
@@ -237,10 +241,13 @@ export default function ScorePage() {
     : jdText;
 
   const canAnalyse = resumeText.trim().length >= 100;
+  const advancedInsightsAvailable = process.env.NEXT_PUBLIC_ENABLE_ADVANCED_ANALYSIS === 'true';
 
   const runAnalysis = async () => {
     setError(null);
     setResult(null);
+    setAdvancedResult(null);
+    setAdvancedError(null);
     setIsAnalysing(true);
 
     try {
@@ -264,6 +271,30 @@ export default function ScorePage() {
       }
 
       setResult(data);
+
+      if (advancedInsightsAvailable && advancedInsightsEnabled) {
+        try {
+          const advancedRes = await fetch('/api/analyze-advanced', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({ resumeText, jdText: effectiveJD, profile }),
+          });
+
+          const advancedData = await advancedRes.json();
+          if (!advancedRes.ok) {
+            throw new Error(advancedData.error ?? 'Advanced insights failed');
+          }
+
+          setAdvancedResult(advancedData);
+        } catch (advancedErr) {
+          console.error('Advanced insights failed:', advancedErr);
+          setAdvancedError('Advanced insights are temporarily unavailable. Showing the standard analysis only.');
+        }
+      }
+
       await refreshUser();
 
       setTimeout(() => {
@@ -474,6 +505,22 @@ export default function ScorePage() {
               </div>
             </div>
 
+            <div className="px-6 pt-6">
+              <label className={`flex items-start gap-3 rounded-2xl border px-4 py-3 transition-colors ${advancedInsightsAvailable ? 'border-indigo-200 bg-indigo-50/60' : 'border-slate-200 bg-slate-50 text-slate-400'}`}>
+                <input
+                  type="checkbox"
+                  checked={advancedInsightsEnabled}
+                  disabled={!advancedInsightsAvailable}
+                  onChange={e => setAdvancedInsightsEnabled(e.target.checked)}
+                  className="mt-1 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 disabled:cursor-not-allowed"
+                />
+                <div>
+                  <p className="text-sm font-semibold text-slate-800">Enable Advanced Insights (Beta)</p>
+                  <p className="text-xs text-slate-500">Calls the new beta endpoint only when enabled. Standard analysis remains unchanged if this is off or unavailable.</p>
+                </div>
+              </label>
+            </div>
+
             {/* CTA */}
             <div className="p-6 border-t border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="text-sm text-slate-500">
@@ -505,6 +552,12 @@ export default function ScorePage() {
           {isAnalysing && (
             <div className="bg-white rounded-[2rem] border border-slate-200 shadow-xl p-8 mb-6 animate-fadeIn">
               <PMLoadingScreen mode="analyse" />
+            </div>
+          )}
+
+          {advancedError && !isAnalysing && (
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-6 text-sm text-amber-800 animate-fadeIn">
+              <strong>Advanced Insights Beta:</strong> {advancedError}
             </div>
           )}
 
@@ -556,6 +609,73 @@ export default function ScorePage() {
                   </div>
                 )}
               </div>
+
+              {advancedResult && (
+                <div className="bg-white rounded-[2rem] border border-indigo-200 shadow-sm overflow-hidden animate-fadeInUp">
+                  <div className="px-6 py-4 border-b border-indigo-100 bg-indigo-50/70 flex items-center justify-between">
+                    <h3 className="font-bold text-slate-900">🧪 Advanced Hiring Insights (Beta)</h3>
+                    <span className="text-xs font-semibold text-indigo-700 bg-white border border-indigo-200 rounded-full px-3 py-1">Feature-flagged</span>
+                  </div>
+                  <div className="p-6 space-y-5">
+                    <div className="grid sm:grid-cols-4 gap-3 text-center">
+                      {[
+                        { label: 'Visibility', value: advancedResult.visibility },
+                        { label: 'Role Fit', value: advancedResult.role_fit },
+                        { label: 'Impact Score', value: `${advancedResult.impact_score}%` },
+                        { label: 'Interview Probability', value: `${advancedResult.interview_probability}%` },
+                      ].map((stat) => (
+                        <div key={stat.label} className="bg-slate-50 rounded-xl p-3">
+                          <p className="text-lg font-bold text-slate-900">{stat.value}</p>
+                          <p className="text-xs text-slate-400 mt-0.5">{stat.label}</p>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200">
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Recruiter Search</p>
+                        <p className="text-sm text-slate-700 mb-3"><strong>Query:</strong> {advancedResult.recruiter_search.search_query_example}</p>
+                        <p className="text-sm text-slate-700"><strong>Visibility:</strong> {advancedResult.recruiter_search.visibility}</p>
+                      </div>
+                      <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200">
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Role Detection</p>
+                        <p className="text-sm text-slate-700 mb-3"><strong>Detected Role:</strong> {advancedResult.role_detection.detected_role}</p>
+                        <p className="text-sm text-slate-700"><strong>Confidence:</strong> {advancedResult.role_detection.confidence}%</p>
+                      </div>
+                    </div>
+
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4">
+                        <p className="text-xs font-bold text-blue-700 uppercase tracking-widest mb-2">Missing Keywords</p>
+                        <div className="flex flex-wrap gap-2">
+                          {advancedResult.missing_keywords.length > 0 ? advancedResult.missing_keywords.map((keyword) => (
+                            <span key={keyword} className="inline-flex items-center px-2.5 py-1 rounded-full bg-white border border-blue-200 text-blue-700 text-xs font-semibold">
+                              {keyword}
+                            </span>
+                          )) : <p className="text-sm text-blue-800">No critical gaps detected.</p>}
+                        </div>
+                      </div>
+                      <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4">
+                        <p className="text-xs font-bold text-emerald-700 uppercase tracking-widest mb-2">Impact Analyzer</p>
+                        <p className="text-sm text-emerald-900">Impact bullets: {advancedResult.impact_analysis.impact_percentage}%</p>
+                        <p className="text-sm text-emerald-900">Responsibility-only bullets: {advancedResult.impact_analysis.responsibility_percentage}%</p>
+                      </div>
+                    </div>
+
+                    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+                      <p className="text-xs font-bold text-amber-700 uppercase tracking-widest mb-2">Recommendations</p>
+                      <ul className="space-y-2 text-sm text-amber-900">
+                        {advancedResult.recommendations.map((recommendation, index) => (
+                          <li key={`${recommendation}-${index}`} className="flex items-start gap-2">
+                            <span className="mt-1">•</span>
+                            <span>{recommendation}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Summary analysis */}
               {result.summaryAnalysis?.original && (
