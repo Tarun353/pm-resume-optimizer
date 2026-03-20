@@ -9,6 +9,9 @@
  *   25 pts — PM Vocabulary      (product management core terms)
  *   20 pts — Metrics Presence   (quantified impact in bullets)
  *   15 pts — Action Verbs       (strong PM-relevant action verbs)
+ *
+ * NEW: filterStatus fields that reframe the score as
+ * "what searches do you appear in" rather than a 0-100 grade.
  */
 
 // ─── PM-specific vocabulary ────────────────────────────────────────────────────
@@ -38,6 +41,29 @@ const PM_ACTION_VERBS = [
   'established', 'achieved', 'increased', 'improved', 'reduced',
   'optimized', 'streamlined', 'championed', 'influenced', 'facilitated',
   'negotiated', 'synthesized', 'translated', 'transformed', 'accelerated',
+];
+
+// ─── ATS search term templates: what recruiters actually type ──────────────────
+// These are common ATS search queries used by PM recruiters.
+// A resume "appears in" a search if it has those keywords.
+
+const ATS_SEARCH_TERMS: Array<{
+  label: string;
+  keywords: string[];
+  category: 'role' | 'domain' | 'skill';
+}> = [
+  { label: 'Product Manager', keywords: ['product manager', 'pm'], category: 'role' },
+  { label: 'Senior PM', keywords: ['senior product manager', 'senior pm', 'spm'], category: 'role' },
+  { label: 'Growth PM', keywords: ['growth', 'a/b test', 'experimentation', 'retention', 'activation', 'funnel'], category: 'domain' },
+  { label: 'B2B SaaS PM', keywords: ['saas', 'enterprise', 'b2b', 'smb'], category: 'domain' },
+  { label: 'Fintech PM', keywords: ['fintech', 'payments', 'lending', 'kyc', 'banking'], category: 'domain' },
+  { label: 'Platform PM', keywords: ['platform', 'api', 'integration', 'infrastructure', 'ecosystem'], category: 'domain' },
+  { label: 'Data-driven PM', keywords: ['sql', 'analytics', 'data-driven', 'metrics', 'dashboard', 'amplitude', 'mixpanel'], category: 'skill' },
+  { label: 'Consumer/B2C PM', keywords: ['consumer', 'mobile app', 'dau', 'mau', 'b2c'], category: 'domain' },
+  { label: 'Agile/Scrum PM', keywords: ['agile', 'scrum', 'sprint', 'kanban', 'jira'], category: 'skill' },
+  { label: 'Roadmap Owner', keywords: ['roadmap', 'prioritization', 'okr', 'product strategy'], category: 'skill' },
+  { label: 'Edtech PM', keywords: ['edtech', 'education', 'learning', 'students'], category: 'domain' },
+  { label: 'E-commerce PM', keywords: ['ecommerce', 'marketplace', 'checkout', 'cart', 'seller'], category: 'domain' },
 ];
 
 // ─── Tokenise helpers ──────────────────────────────────────────────────────────
@@ -226,6 +252,67 @@ function scoreActionVerbs(resumeText: string): {
   return { score, maxScore: 15, verbsFound, verbsMissing };
 }
 
+// ─── NEW: Filter Status — what ATS searches does this resume appear in? ────────
+
+function computeFilterStatus(resumeText: string, jdText: string, totalScore: number): {
+  filterStatus: 'strong' | 'passing' | 'at_risk';
+  filterStatusLabel: string;
+  filterStatusDescription: string;
+  searchesYouAppearIn: string[];
+  searchesYouAreMissing: string[];
+  criticalKeywordsToAdd: string[];
+} {
+  const lower = normalise(resumeText);
+
+  // Which ATS search terms does this resume match?
+  const appearing: string[] = [];
+  const missing: string[] = [];
+
+  for (const term of ATS_SEARCH_TERMS) {
+    const matchCount = term.keywords.filter(k => lower.includes(k)).length;
+    const threshold = term.keywords.length === 1 ? 1 : 2;
+    if (matchCount >= threshold) {
+      appearing.push(term.label);
+    } else {
+      missing.push(term.label);
+    }
+  }
+
+  // Filter status based on score + appearing searches
+  let filterStatus: 'strong' | 'passing' | 'at_risk';
+  let filterStatusLabel: string;
+  let filterStatusDescription: string;
+
+  if (totalScore >= 70 && appearing.length >= 3) {
+    filterStatus = 'strong';
+    filterStatusLabel = '✓ Strong ATS Pass';
+    filterStatusDescription = 'Your resume will appear in most recruiter keyword searches for PM roles. ATS is not your bottleneck.';
+  } else if (totalScore >= 45 || appearing.length >= 2) {
+    filterStatus = 'passing';
+    filterStatusLabel = '⚠ Passing ATS';
+    filterStatusDescription = 'Your resume passes basic ATS filters but may miss some recruiter searches. A few keyword additions will help.';
+  } else {
+    filterStatus = 'at_risk';
+    filterStatusLabel = '✗ ATS At Risk';
+    filterStatusDescription = 'Your resume may be filtered out before a recruiter ever sees it. Critical keywords are missing.';
+  }
+
+  // Critical keywords to add — pull from JD missing keywords + core PM terms
+  const jdKeywords = extractJDKeywords(jdText);
+  const jdMissing = jdKeywords
+    .filter(k => !lower.includes(k))
+    .slice(0, 5);
+
+  return {
+    filterStatus,
+    filterStatusLabel,
+    filterStatusDescription,
+    searchesYouAppearIn: appearing,
+    searchesYouAreMissing: missing,
+    criticalKeywordsToAdd: jdMissing,
+  };
+}
+
 // ─── Profile-specific feedback ─────────────────────────────────────────────────
 
 function getProfileFeedback(
@@ -277,9 +364,16 @@ export interface ATSScoreResult {
     metrics:      { score: number; maxScore: number; bulletCount: number; bulletsWithMetrics: number; examples: string[] };
     actionVerbs:  { score: number; maxScore: number; verbsFound: string[]; verbsMissing: string[] };
   };
-  topMissingKeywords: string[]; // JD keywords missing from resume — most important
+  topMissingKeywords: string[];
   profileTips: string[];
   hasJD: boolean;
+  // NEW: Filter status fields
+  filterStatus: 'strong' | 'passing' | 'at_risk';
+  filterStatusLabel: string;
+  filterStatusDescription: string;
+  searchesYouAppearIn: string[];
+  searchesYouAreMissing: string[];
+  criticalKeywordsToAdd: string[];
 }
 
 export function scoreResume(
@@ -317,6 +411,9 @@ export function scoreResume(
 
   const profileTips = getProfileFeedback(profile, totalScore, metricsResult, jdResult.missing);
 
+  // NEW: Compute filter status
+  const filterData = computeFilterStatus(resumeText, jdText, totalScore);
+
   return {
     totalScore,
     grade,
@@ -330,5 +427,12 @@ export function scoreResume(
     topMissingKeywords: jdResult.missing.slice(0, 10),
     profileTips,
     hasJD,
+    // NEW fields
+    filterStatus: filterData.filterStatus,
+    filterStatusLabel: filterData.filterStatusLabel,
+    filterStatusDescription: filterData.filterStatusDescription,
+    searchesYouAppearIn: filterData.searchesYouAppearIn,
+    searchesYouAreMissing: filterData.searchesYouAreMissing,
+    criticalKeywordsToAdd: filterData.criticalKeywordsToAdd,
   };
 }
