@@ -13,10 +13,38 @@
  *   - It returns HTTP 429 (rate limited / quota exceeded)
  *   - It throws any other error (logged, then chain continues)
  *
- * Usage:
- *   import { smartAICall } from '@/lib/aiClient';
- *   const result = await smartAICall(systemPrompt, userMessage, maxTokens, temperature);
+ * All responses are stripped of markdown formatting before returning,
+ * so **bold**, *italic*, `code`, etc. never appear in generated PDFs
+ * regardless of which model produced the output.
  */
+
+// ─── Markdown stripper ────────────────────────────────────────────────────────
+
+/**
+ * Removes all common markdown formatting from AI output.
+ * Applied to EVERY response from EVERY model before returning,
+ * so the caller always gets clean plain text.
+ *
+ * NOTE: This is intentionally NOT applied when the caller expects JSON,
+ * because JSON responses go through JSON.parse() directly and are not
+ * rendered as text in the PDF. The stripping only affects text content.
+ */
+function stripMarkdown(text: string): string {
+  return text
+    .replace(/```[\s\S]*?```/g, (match) => {
+      // For code blocks, extract just the content inside
+      return match.replace(/```(?:\w+)?\n?/g, '').replace(/```/g, '');
+    })
+    .replace(/\*\*(.+?)\*\*/g, '$1')      // **bold** → bold
+    .replace(/\*(.+?)\*/g, '$1')           // *italic* → italic
+    .replace(/`(.+?)`/g, '$1')             // `inline code` → plain
+    .replace(/^#{1,6}\s+/gm, '')           // ## Headings → plain
+    .replace(/_{2}(.+?)_{2}/g, '$1')       // __bold__ → bold
+    .replace(/_(.+?)_/g, '$1')             // _italic_ → italic
+    .replace(/\[(.+?)\]\(.+?\)/g, '$1')   // [links](url) → text only
+    .replace(/~~(.+?)~~/g, '$1')           // ~~strikethrough~~ → plain
+    .trim();
+}
 
 // ─── Rate-limit detector ──────────────────────────────────────────────────────
 
@@ -44,7 +72,6 @@ async function callGroq(
   const apiKey = env('GROQ_API_KEY');
   if (!apiKey) throw new Error('GROQ_API_KEY not set');
 
-  // Dynamic import keeps cold-start memory low on Render's 512 MB free tier
   const Groq = await import('groq-sdk').then((m) => m.default ?? m);
   const client = new (Groq as any)({ apiKey });
 
@@ -172,7 +199,6 @@ async function callCohere(
   }
 
   const data = (await res.json()) as any;
-  // Cohere v2 chat: message.content is an array of content blocks
   const text: string =
     data?.message?.content?.[0]?.text ??
     data?.message?.content ??
@@ -189,11 +215,9 @@ async function callHuggingFace(
   maxTokens: number,
   temperature: number,
 ): Promise<string> {
-  // Support both HF_TOKEN (classic) and HUGGINGFACE_API_KEY (newer naming)
   const apiKey = env('HF_TOKEN') ?? env('HUGGINGFACE_API_KEY');
   if (!apiKey) throw new Error('HF_TOKEN / HUGGINGFACE_API_KEY not set');
 
-  // Use the OpenAI-compatible Messages API on HF serverless inference
   const model = 'meta-llama/Meta-Llama-3-8B-Instruct';
   const url = `https://api-inference.huggingface.co/models/${model}/v1/chat/completions`;
 
@@ -209,15 +233,18 @@ async function callHuggingFace(
         { role: 'system', content: system },
         { role: 'user', content: user },
       ],
-      max_tokens: Math.min(maxTokens, 2048), // HF serverless cap
-      temperature: Math.max(temperature, 0.01), // HF requires > 0
+      max_tokens: Math.min(maxTokens, 2048),
+      temperature: Math.max(temperature, 0.01),
       stream: false,
     }),
   });
 
   if (!res.ok) {
     const msg = await res.text().catch(() => res.statusText);
-    throw Object.assign(new Error(`HuggingFace HTTP ${res.status}: ${msg}`), { status: res.status });
+    throw Object.assign(
+      new Error(`HuggingFace HTTP ${res.status}: ${msg}`),
+      { status: res.status },
+    );
   }
 
   const data = (await res.json()) as any;
@@ -243,7 +270,8 @@ const PROVIDERS: Provider[] = [
 
 /**
  * Primary export — automatically falls through providers on 429 or any error.
- * Drop-in replacement for the old `groqChatCompletion`.
+ * ALL responses are stripped of markdown before returning, so **bold**, *italic*,
+ * `code` etc. never appear in generated PDFs regardless of which model responded.
  */
 export async function smartAICall(
   systemPrompt: string,
@@ -260,14 +288,14 @@ export async function smartAICall(
         if (name !== 'Groq') {
           console.warn(`[aiClient] ⚠️  Primary Groq unavailable — used ${name} as fallback`);
         }
-        return result;
+        // ── Strip markdown from ALL models, every time, forever ──
+        return stripMarkdown(result);
       }
     } catch (err) {
       const limited = is429(err);
       const msg = err instanceof Error ? err.message : String(err);
       console.warn(`[aiClient] ${name} ${limited ? 'rate-limited (429)' : 'errored'}: ${msg}`);
       errors.push(`${name}: ${msg}`);
-      // Always continue to next provider regardless of error type
     }
   }
 
@@ -275,11 +303,7 @@ export async function smartAICall(
 }
 
 /**
- * Backward-compatible alias — existing files that import groqChatCompletion
- * (resumeOptimizer.ts, ai-rewrite/route.ts, generate-cover-letter/route.ts)
- * will work without any changes once you update their import path to
- * '@/lib/aiClient' instead of '@/lib/groqClient'.
- *
+ * Backward-compatible alias for files that still import groqChatCompletion.
  * @deprecated Use smartAICall directly in new code.
  */
 export async function groqChatCompletion(
