@@ -153,6 +153,34 @@ function buildFallbackRecommendations(missingKeywords: string[], roleDetection: 
   return recommendations.slice(0, 3);
 }
 
+function cleanJsonString(text: string) {
+  if (!text) return '';
+
+  return text
+    .replace(/```(?:json)?/gi, '')
+    .replace(/,\s*}/g, '}')
+    .replace(/,\s*]/g, ']')
+    .replace(/[\u0000-\u001F]+/g, '')
+    .trim();
+}
+
+function safeJsonParse(text: string) {
+  try {
+    return JSON.parse(text);
+  } catch (error) {
+    console.error('[advanced-insights] Invalid JSON from AI:', error);
+    return null;
+  }
+}
+
+function isValidAdvancedResponse(data: unknown): data is { recommendations: string[] } {
+  return Boolean(
+    data &&
+    typeof data === 'object' &&
+    Array.isArray((data as { recommendations?: unknown }).recommendations)
+  );
+}
+
 function computeRoleFit(roleDetection: { confidence: number }, matchedKeywordCount: number) {
   return roleDetection.confidence >= 50 || matchedKeywordCount >= 4 ? 'CLEAR' : 'CONFUSED';
 }
@@ -198,10 +226,27 @@ async function getGeminiRecommendations(context: {
     throw new Error(`Gemini advanced recommendations failed: ${res.status} ${message}`);
   }
 
-  const data = await res.json() as any;
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-  const parsed = JSON.parse(text || '{}') as { recommendations?: string[] };
-  return Array.isArray(parsed.recommendations) ? parsed.recommendations.slice(0, 3) : [];
+  try {
+    const data = await res.json() as any;
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    const cleaned = cleanJsonString(text || '{}');
+    const parsed = safeJsonParse(cleaned);
+
+    if (!parsed) {
+      console.warn('[advanced-insights] Falling back due to invalid AI JSON.');
+      return [];
+    }
+
+    if (!isValidAdvancedResponse(parsed)) {
+      console.warn('[advanced-insights] Invalid Gemini recommendation structure, using fallback recommendations.');
+      return [];
+    }
+
+    return parsed.recommendations.slice(0, 3);
+  } catch (error) {
+    console.error('[advanced-insights] Advanced insights failed:', error);
+    return [];
+  }
 }
 
 export async function buildAdvancedInsights(resumeText: string, jdText: string, profile: string): Promise<AdvancedInsightsResponse> {
