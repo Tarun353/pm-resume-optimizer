@@ -1,3 +1,5 @@
+import { createHash } from 'crypto';
+
 import { extractJDKeywords, scoreResume } from '@/lib/atsScorer';
 import { isAdvancedAnalysisEnabled } from '@/utils/featureFlags';
 
@@ -32,6 +34,26 @@ export interface AdvancedInsightsResponse {
   };
 }
 
+const ADVANCED_INSIGHTS_CACHE = new Map<string, AdvancedInsightsResponse>();
+const MAX_CACHE_ENTRIES = 100;
+const MAX_RESUME_CHARS_FOR_AI = 2000;
+const MAX_JD_CHARS_FOR_AI = 1500;
+const MAX_RECOMMENDATIONS = 3;
+const STOP_WORDS = new Set([
+  'a', 'an', 'and', 'are', 'as', 'at', 'be', 'by', 'for', 'from', 'in', 'into', 'is', 'of', 'on', 'or', 'that', 'the', 'to', 'with',
+  'you', 'your', 'will', 'can', 'our', 'we', 'their', 'this', 'they', 'who', 'have', 'has', 'had', 'using', 'use', 'used', 'over',
+  'than', 'within', 'across', 'through', 'about', 'such', 'ability', 'experience', 'years', 'year', 'work', 'working', 'strong',
+  'preferred', 'requirements', 'qualifications', 'skills', 'skill', 'team', 'teams', 'product', 'manager', 'management', 'role',
+]);
+const IMPACT_METRIC_REGEX = /(\b\d+(?:\.\d+)?\s*(?:%|x|k|m|mn|b)\b|\$\s*\d+(?:\.\d+)?\s*(?:k|m|mn|b)?\b|\b\d+(?:,\d{3})+\b|\b\d+\s*(?:users|customers|clients|revenue|arr|mrr|nps|ctr|conversion|conversions|retention|downloads|signups|installs|experiments|tests)\b)/i;
+const IMPACT_VERB_REGEX = /\b(grew|increased|improved|boosted|reduced|decreased|saved|generated|drove|lifted|scaled|optimized|achieved|delivered|expanded)\b/i;
+const RESPONSIBILITY_REGEX = /\b(owned|managed|supported|coordinated|collaborated|partnered|responsible|assisted|worked with|helped|executed)\b/i;
+const ROLE_KEYWORDS = {
+  growth: ['retention', 'conversion', 'a/b', 'experiment', 'experimentation', 'activation', 'funnel', 'growth'],
+  platform: ['api', 'apis', 'platform', 'system', 'systems', 'architecture', 'infrastructure', 'integration'],
+  data: ['sql', 'analytics', 'dashboard', 'dashboards', 'metric', 'metrics', 'insight', 'insights', 'data'],
+} as const;
+
 function cloneDefaultAdvancedInsightsResponse(): AdvancedInsightsResponse {
   return JSON.parse(JSON.stringify(DEFAULT_ADVANCED_INSIGHTS_RESPONSE)) as AdvancedInsightsResponse;
 }
@@ -64,9 +86,6 @@ export const DEFAULT_ADVANCED_INSIGHTS_RESPONSE: AdvancedInsightsResponse = {
   },
 };
 
-const METRIC_REGEX = /(\d+\.?\d*\s*(%|x|k\b|m\b|mn\b|users|customers|clients|revenue|arr|mrr|nps|ctr|conversion|retention)|\$\s*\d+|₹\s*\d+)/i;
-const RESPONSIBILITY_REGEX = /\b(owned|managed|supported|coordinated|collaborated|partnered|responsible|assisted|worked with|helped|executed)\b/i;
-
 function clamp(value: number, min = 0, max = 100) {
   return Math.max(min, Math.min(max, value));
 }
@@ -97,35 +116,69 @@ function computeRecruiterInterest(atsMatch: number, impactScore: number): Recrui
   return 'LOW';
 }
 
+function extractSignificantTerms(text: string, limit: number) {
+  return Array.from(new Set(
+    text
+      .toLowerCase()
+      .replace(/[^a-z0-9+#/.\-\s]/g, ' ')
+      .split(/\s+/)
+      .map((term) => term.trim())
+      .filter((term) => term.length >= 3)
+      .filter((term) => !STOP_WORDS.has(term))
+  )).slice(0, limit);
+}
+
+function extractMissingKeywords(jdText: string, resumeText: string, limit = 8) {
+  const normalizedResume = normalizeText(resumeText);
+  const atsKeywords = extractJDKeywords(jdText)
+    .map((keyword) => keyword.trim())
+    .filter(Boolean);
+  const jdTerms = extractSignificantTerms(jdText, 40);
+  const combinedKeywords = Array.from(new Set([...atsKeywords, ...jdTerms]));
+  const matchedKeywords = combinedKeywords.filter((keyword) => normalizedResume.includes(keyword.toLowerCase()));
+  const missingKeywords = combinedKeywords.filter((keyword) => !normalizedResume.includes(keyword.toLowerCase())).slice(0, limit);
+
+  return { matchedKeywords, missingKeywords, allKeywords: combinedKeywords };
+}
+
+function calculateImpactAnalysis(resumeText: string) {
+  const bullets = extractBullets(resumeText);
+  const lines = bullets.length > 0 ? bullets : resumeText.split('\n').map((line) => line.trim()).filter(Boolean);
+  const impactBullets = lines.filter((line) => IMPACT_METRIC_REGEX.test(line) || (IMPACT_VERB_REGEX.test(line) && /\d/.test(line)));
+  const responsibilityBullets = lines.filter((line) => RESPONSIBILITY_REGEX.test(line));
+  const impactPercentage = lines.length > 0 ? Math.round((impactBullets.length / lines.length) * 100) : 0;
+  const responsibilityPercentage = lines.length > 0 ? Math.round((responsibilityBullets.length / lines.length) * 100) : 100;
+  const impactScore = clamp(Math.round((impactPercentage * 0.7) + ((100 - responsibilityPercentage) * 0.3)));
+
+  return {
+    impactPercentage,
+    responsibilityPercentage,
+    impactScore,
+  };
+}
+
 function detectRole(resumeText: string, jdText: string) {
   const text = normalizeText(`${resumeText}\n${jdText}`);
-  const roleSignals = [
-    {
-      detected_role: 'Growth PM',
-      keywords: ['a/b', 'experiment', 'conversion', 'retention', 'activation', 'growth', 'funnel'],
-    },
-    {
-      detected_role: 'Platform PM',
-      keywords: ['api', 'apis', 'platform', 'system', 'systems', 'infrastructure', 'integration'],
-    },
-    {
-      detected_role: 'Data PM',
-      keywords: ['sql', 'analytics', 'dashboard', 'experimentation', 'data', 'insight', 'metric'],
-    },
-  ];
-
-  const scoredRoles = roleSignals.map((role) => {
-    const matches = role.keywords.filter((keyword) => text.includes(keyword)).length;
-    return { role: role.detected_role, matches, total: role.keywords.length };
-  }).sort((a, b) => b.matches - a.matches);
+  const scoredRoles = Object.entries(ROLE_KEYWORDS)
+    .map(([role, keywords]) => {
+      const matches = keywords.filter((keyword) => text.includes(keyword)).length;
+      return { role, matches, total: keywords.length };
+    })
+    .sort((a, b) => b.matches - a.matches);
 
   const best = scoredRoles[0];
   if (!best || best.matches === 0) {
     return { detected_role: 'General PM', confidence: 35 };
   }
 
+  const roleNameMap: Record<string, string> = {
+    growth: 'Growth PM',
+    platform: 'Platform PM',
+    data: 'Data PM',
+  };
+
   return {
-    detected_role: best.role,
+    detected_role: roleNameMap[best.role] || 'General PM',
     confidence: clamp(Math.round((best.matches / best.total) * 100)),
   };
 }
@@ -150,7 +203,7 @@ function buildFallbackRecommendations(missingKeywords: string[], roleDetection: 
 
   recommendations.push(`Strengthen positioning for ${roleDetection.detected_role} by highlighting matching projects, systems, or experiments.`);
 
-  return recommendations.slice(0, 3);
+  return recommendations.slice(0, MAX_RECOMMENDATIONS);
 }
 
 function cleanJsonString(text: string) {
@@ -173,7 +226,7 @@ function safeJsonParse(text: string) {
   }
 }
 
-function isValidAdvancedResponse(data: unknown): data is { recommendations: string[] } {
+function isValidAdvancedResponse(data: unknown): data is { visibility?: string; interview_probability?: number; recommendations: string[] } {
   return Boolean(
     data &&
     typeof data === 'object' &&
@@ -181,27 +234,69 @@ function isValidAdvancedResponse(data: unknown): data is { recommendations: stri
   );
 }
 
+function parseVisibilityLevel(value: unknown): VisibilityLevel | undefined {
+  return value === 'LOW' || value === 'MEDIUM' || value === 'HIGH' ? value : undefined;
+}
+
 function computeRoleFit(roleDetection: { confidence: number }, matchedKeywordCount: number) {
   return roleDetection.confidence >= 50 || matchedKeywordCount >= 4 ? 'CLEAR' : 'CONFUSED';
 }
 
-async function getGeminiRecommendations(context: {
+function trimForAi(text: string, maxChars: number) {
+  return text.replace(/\s+/g, ' ').trim().slice(0, maxChars);
+}
+
+function createCacheKey(resumeText: string, jdText: string, profile: string) {
+  return createHash('sha256').update(`${resumeText}\n---\n${jdText}\n---\n${profile}`).digest('hex');
+}
+
+function getCachedInsights(cacheKey: string) {
+  const cached = ADVANCED_INSIGHTS_CACHE.get(cacheKey);
+  if (!cached) return null;
+
+  ADVANCED_INSIGHTS_CACHE.delete(cacheKey);
+  ADVANCED_INSIGHTS_CACHE.set(cacheKey, cached);
+
+  return JSON.parse(JSON.stringify(cached)) as AdvancedInsightsResponse;
+}
+
+function setCachedInsights(cacheKey: string, response: AdvancedInsightsResponse) {
+  if (ADVANCED_INSIGHTS_CACHE.size >= MAX_CACHE_ENTRIES) {
+    const oldestKey = ADVANCED_INSIGHTS_CACHE.keys().next().value;
+    if (oldestKey) {
+      ADVANCED_INSIGHTS_CACHE.delete(oldestKey);
+    }
+  }
+
+  ADVANCED_INSIGHTS_CACHE.set(cacheKey, JSON.parse(JSON.stringify(response)) as AdvancedInsightsResponse);
+}
+
+async function getGeminiInsights(context: {
+  trimmedResume: string;
+  trimmedJD: string;
   missingKeywords: string[];
   roleDetection: { detected_role: string; confidence: number };
-  impactPercentage: number;
+  impactScore: number;
+  visibility: VisibilityLevel;
   interviewProbability: number;
-}): Promise<string[]> {
+  fallbackRecommendations: string[];
+}): Promise<{ visibility?: VisibilityLevel; interview_probability?: number; recommendations: string[] }> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     throw new Error('GEMINI_API_KEY not set');
   }
 
-  const prompt = {
-    missing_keywords: context.missingKeywords.slice(0, 6),
-    detected_role: context.roleDetection.detected_role,
-    role_confidence: context.roleDetection.confidence,
-    impact_percentage: context.impactPercentage,
-    interview_probability: context.interviewProbability,
+  const requestPayload = {
+    resume_summary: context.trimmedResume,
+    jd_summary: context.trimmedJD,
+    precomputed_metrics: {
+      missing_keywords: context.missingKeywords.slice(0, 6),
+      impact_score: context.impactScore,
+      role_type: context.roleDetection.detected_role,
+      role_confidence: context.roleDetection.confidence,
+      baseline_visibility: context.visibility,
+      baseline_interview_probability: context.interviewProbability,
+    },
   };
 
   const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
@@ -210,12 +305,12 @@ async function getGeminiRecommendations(context: {
     body: JSON.stringify({
       contents: [{
         parts: [{
-          text: `Return JSON only with a recommendations array of 3 short resume-improvement actions. Context: ${JSON.stringify(prompt)}`,
+          text: `Analyze this Product Manager resume. Inputs: resume summary, job description summary, precomputed metrics (missing keywords, impact score, role type). Return STRICT JSON only: {"visibility":"LOW|MEDIUM|HIGH","interview_probability":number,"recommendations":[string]}. Be concise, meaningful, and actionable. Max 120 words. Limit recommendations to ${MAX_RECOMMENDATIONS}. Data: ${JSON.stringify(requestPayload)}`,
         }],
       }],
       generationConfig: {
         temperature: 0.2,
-        maxOutputTokens: 200,
+        maxOutputTokens: 140,
         responseMimeType: 'application/json',
       },
     }),
@@ -223,30 +318,27 @@ async function getGeminiRecommendations(context: {
 
   if (!res.ok) {
     const message = await res.text().catch(() => res.statusText);
-    throw new Error(`Gemini advanced recommendations failed: ${res.status} ${message}`);
+    throw new Error(`Gemini advanced insights failed: ${res.status} ${message}`);
   }
 
-  try {
-    const data = await res.json() as any;
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-    const cleaned = cleanJsonString(text || '{}');
-    const parsed = safeJsonParse(cleaned);
+  const data = await res.json() as any;
+  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+  const cleaned = cleanJsonString(text || '{}');
+  const parsed = safeJsonParse(cleaned);
 
-    if (!parsed) {
-      console.warn('[advanced-insights] Falling back due to invalid AI JSON.');
-      return [];
-    }
-
-    if (!isValidAdvancedResponse(parsed)) {
-      console.warn('[advanced-insights] Invalid Gemini recommendation structure, using fallback recommendations.');
-      return [];
-    }
-
-    return parsed.recommendations.slice(0, 3);
-  } catch (error) {
-    console.error('[advanced-insights] Advanced insights failed:', error);
-    return [];
+  if (!parsed || !isValidAdvancedResponse(parsed)) {
+    console.warn('[advanced-insights] Invalid Gemini response structure, using fallback recommendations.');
+    return { recommendations: context.fallbackRecommendations };
   }
+
+  return {
+    visibility: parseVisibilityLevel(parsed.visibility),
+    interview_probability: typeof parsed.interview_probability === 'number' ? clamp(Math.round(parsed.interview_probability)) : undefined,
+    recommendations: parsed.recommendations
+      .filter((recommendation): recommendation is string => typeof recommendation === 'string' && recommendation.trim().length > 0)
+      .map((recommendation) => recommendation.trim())
+      .slice(0, MAX_RECOMMENDATIONS),
+  };
 }
 
 export async function buildAdvancedInsights(resumeText: string, jdText: string, profile: string): Promise<AdvancedInsightsResponse> {
@@ -254,49 +346,63 @@ export async function buildAdvancedInsights(resumeText: string, jdText: string, 
     return cloneDefaultAdvancedInsightsResponse();
   }
 
+  const cacheKey = createCacheKey(resumeText, jdText, profile);
+  const cached = getCachedInsights(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
   const atsResult = scoreResume(resumeText, jdText, profile);
-  const jdKeywords = extractJDKeywords(jdText);
-  const matchedKeywords = jdKeywords.filter((keyword) => normalizeText(resumeText).includes(keyword.toLowerCase()));
-  const missingKeywords = jdKeywords.filter((keyword) => !matchedKeywords.includes(keyword)).slice(0, 8);
-  const bullets = extractBullets(resumeText);
-  const impactBullets = bullets.filter((bullet) => METRIC_REGEX.test(bullet));
-  const responsibilityBullets = bullets.filter((bullet) => RESPONSIBILITY_REGEX.test(bullet));
-  const impactPercentage = bullets.length > 0 ? Math.round((impactBullets.length / bullets.length) * 100) : 0;
-  const responsibilityPercentage = bullets.length > 0 ? Math.round((responsibilityBullets.length / bullets.length) * 100) : 100;
-  const impactScore = clamp(Math.round((impactPercentage * 0.7) + ((100 - responsibilityPercentage) * 0.3)));
-  const visibility = computeVisibility(matchedKeywords.length, Math.max(jdKeywords.length, 1));
+  const { matchedKeywords, missingKeywords, allKeywords } = extractMissingKeywords(jdText, resumeText);
+  const { impactPercentage, responsibilityPercentage, impactScore } = calculateImpactAnalysis(resumeText);
+  const visibility = computeVisibility(matchedKeywords.length, Math.max(allKeywords.length, 1));
   const roleDetection = detectRole(resumeText, jdText);
   const roleFit = computeRoleFit(roleDetection, matchedKeywords.length);
   const recruiterInterest = computeRecruiterInterest(atsResult.totalScore, impactScore);
-  const interviewProbability = clamp(Math.round((atsResult.totalScore * 0.6) + (impactScore * 0.25) + (roleDetection.confidence * 0.15)));
+  const baselineInterviewProbability = clamp(Math.round((atsResult.totalScore * 0.6) + (impactScore * 0.25) + (roleDetection.confidence * 0.15)));
 
   const fallbackRecommendations = buildFallbackRecommendations(missingKeywords, roleDetection, impactPercentage);
   let recommendations = fallbackRecommendations;
+  let finalVisibility = visibility;
+  let interviewProbability = baselineInterviewProbability;
 
   try {
-    const geminiRecommendations = await getGeminiRecommendations({
+    const geminiInsights = await getGeminiInsights({
+      trimmedResume: trimForAi(resumeText, MAX_RESUME_CHARS_FOR_AI),
+      trimmedJD: trimForAi(jdText, MAX_JD_CHARS_FOR_AI),
       missingKeywords,
       roleDetection,
-      impactPercentage,
-      interviewProbability,
+      impactScore,
+      visibility,
+      interviewProbability: baselineInterviewProbability,
+      fallbackRecommendations,
     });
-    if (geminiRecommendations.length > 0) {
-      recommendations = geminiRecommendations;
+
+    if (geminiInsights.recommendations.length > 0) {
+      recommendations = geminiInsights.recommendations;
+    }
+
+    if (geminiInsights.visibility === 'LOW' || geminiInsights.visibility === 'MEDIUM' || geminiInsights.visibility === 'HIGH') {
+      finalVisibility = geminiInsights.visibility;
+    }
+
+    if (typeof geminiInsights.interview_probability === 'number') {
+      interviewProbability = geminiInsights.interview_probability;
     }
   } catch (error) {
-    console.error('[advanced-insights] Gemini recommendations failed, using fallback recommendations.', error);
+    console.error('[advanced-insights] Gemini insights failed, using computed fallback insights.', error);
   }
 
-  return {
-    visibility,
+  const response: AdvancedInsightsResponse = {
+    visibility: finalVisibility,
     missing_keywords: missingKeywords,
     role_fit: roleFit,
     impact_score: impactScore,
     interview_probability: interviewProbability,
     recommendations,
     recruiter_search: {
-      search_query_example: buildSearchQuery(jdKeywords, resumeText),
-      visibility,
+      search_query_example: buildSearchQuery(allKeywords, resumeText),
+      visibility: finalVisibility,
       missing_keywords: missingKeywords,
     },
     interview_assessment: {
@@ -311,6 +417,10 @@ export async function buildAdvancedInsights(resumeText: string, jdText: string, 
     },
     role_detection: roleDetection,
   };
+
+  setCachedInsights(cacheKey, response);
+
+  return response;
 }
 
 export async function buildRecruiterSimulation(resumeText: string, jdText: string, profile: string) {
