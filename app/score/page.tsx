@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useAuth } from '@/lib/AuthContext';
 import { LoginModal } from '@/components/LoginModal';
 import { PaymentModal } from '@/components/PaymentModal';
+import { PMLoadingScreen } from '@/components/PMLoadingScreen';
 import { supabase } from '@/lib/supabase';
 import { DEFAULT_JDS } from '@/lib/defaultJDs';
 import type { ResumeAnalysisResult, BulletAnalysis } from '@/app/api/analyse/route';
@@ -180,45 +181,6 @@ function KeywordGrid({ found, missing, label }: { found: string[]; missing: stri
               : <p className="text-xs text-emerald-600 font-medium">All matched! 🎉</p>}
           </div>
         </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Loading animation ──────────────────────────────────────────────────────────
-function AnalysingLoader() {
-  const steps = [
-    { icon: '📄', label: 'Reading your resume...' },
-    { icon: '🔍', label: 'Analysing each bullet point...' },
-    { icon: '🎯', label: 'Comparing against job description...' },
-    { icon: '📊', label: 'Scoring PM vocabulary and metrics...' },
-    { icon: '✨', label: 'Generating improvement suggestions...' },
-  ];
-  const [step, setStep] = useState(0);
-
-  useState(() => {
-    const interval = setInterval(() => {
-      setStep(s => Math.min(s + 1, steps.length - 1));
-    }, 3500);
-    return () => clearInterval(interval);
-  });
-
-  return (
-    <div className="flex flex-col items-center justify-center py-20 gap-6">
-      <div className="relative w-20 h-20">
-        <div className="w-20 h-20 border-4 border-blue-100 rounded-full absolute inset-0"/>
-        <div className="w-20 h-20 border-4 border-blue-600 border-t-transparent rounded-full animate-spin absolute inset-0"/>
-        <div className="absolute inset-0 flex items-center justify-center text-2xl">{steps[step]?.icon}</div>
-      </div>
-      <div className="text-center space-y-2">
-        <p className="font-bold text-slate-900 text-lg">AI is analysing your resume</p>
-        <p className="text-sm text-slate-500">{steps[step]?.label}</p>
-        <p className="text-xs text-slate-400">This takes 20–40 seconds — going bullet by bullet</p>
-      </div>
-      <div className="flex gap-1.5 mt-2">
-        {steps.map((_, i) => (
-          <div key={i} className={`w-2 h-2 rounded-full transition-all duration-500 ${i <= step ? 'bg-blue-600 scale-110' : 'bg-slate-200'}`}/>
-        ))}
       </div>
     </div>
   );
@@ -542,7 +504,7 @@ export default function ScorePage() {
           {/* Loading */}
           {isAnalysing && (
             <div className="bg-white rounded-[2rem] border border-slate-200 shadow-xl p-8 mb-6 animate-fadeIn">
-              <AnalysingLoader />
+              <PMLoadingScreen mode="analyse" />
             </div>
           )}
 

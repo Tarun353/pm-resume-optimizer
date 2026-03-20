@@ -72,16 +72,37 @@ const ANALYSE_STEPS: Step[] = [
   { icon: '✨', label: 'Preparing your full report...' },
 ];
 
+const COVER_LETTER_STEPS: Step[] = [
+  { icon: '📄', label: 'Reading your resume...' },
+  { icon: '🎯', label: 'Aligning with the job description...' },
+  { icon: '✍️', label: 'Drafting a tailored opening...' },
+  { icon: '💼', label: 'Highlighting your PM wins...' },
+  { icon: '✨', label: 'Polishing your final cover letter...' },
+];
+
+const DOWNLOAD_STEPS: Step[] = [
+  { icon: '📄', label: 'Preparing your document...' },
+  { icon: '🎨', label: 'Applying the final layout...' },
+  { icon: '🧾', label: 'Rendering a clean PDF...' },
+  { icon: '🔒', label: 'Finalizing your download...' },
+];
+
 // ─── Props ────────────────────────────────────────────────────────────────────
 interface PMLoadingProps {
-  mode?: 'optimize' | 'analyse' | 'cover-letter';
+  mode?: 'optimize' | 'analyse' | 'cover-letter' | 'download';
   /** Optional override message shown above the step ticker */
   message?: string;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export function PMLoadingScreen({ mode = 'optimize', message }: PMLoadingProps) {
-  const steps = mode === 'analyse' ? ANALYSE_STEPS : OPTIMIZE_STEPS;
+  const steps = mode === 'analyse'
+    ? ANALYSE_STEPS
+    : mode === 'cover-letter'
+    ? COVER_LETTER_STEPS
+    : mode === 'download'
+    ? DOWNLOAD_STEPS
+    : OPTIMIZE_STEPS;
 
   // Joke state
   const jokeQueueRef = useRef<typeof PM_JOKES>(shuffle(PM_JOKES));
@@ -117,12 +138,12 @@ export function PMLoadingScreen({ mode = 'optimize', message }: PMLoadingProps) 
     return () => clearInterval(id);
   }, [steps.length]);
 
-  // ── Joke cycle: setup (3s) → punchline (4s) → fade → next ───────────────────
+  // ── Joke cycle: setup (~5s) → punchline (~6s) → fade → next ─────────────────
   useEffect(() => {
     let timer: NodeJS.Timeout;
 
     if (jokePhase === 'setup') {
-      timer = setTimeout(() => setJokePhase('punchline'), 3200);
+      timer = setTimeout(() => setJokePhase('punchline'), 5000);
     } else if (jokePhase === 'punchline') {
       timer = setTimeout(() => {
         setJokeVisible(false);
@@ -137,7 +158,7 @@ export function PMLoadingScreen({ mode = 'optimize', message }: PMLoadingProps) 
           setJokePhase('setup');
           setJokeVisible(true);
         }, 600);
-      }, 4000);
+      }, 6000);
     }
 
     return () => clearTimeout(timer);
@@ -220,7 +241,7 @@ export function PMLoadingScreen({ mode = 'optimize', message }: PMLoadingProps) 
               className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/30 text-xl"
               style={{ animation: 'floatOrb 3s ease-in-out infinite' }}
             >
-              {mode === 'analyse' ? '🔍' : mode === 'cover-letter' ? '✉️' : '✨'}
+              {mode === 'analyse' ? '🔍' : mode === 'cover-letter' ? '✉️' : mode === 'download' ? '⬇️' : '✨'}
             </div>
             {/* Orbiting dot 1 */}
             <div
@@ -238,11 +259,13 @@ export function PMLoadingScreen({ mode = 'optimize', message }: PMLoadingProps) 
         {/* ── Title ── */}
         <div className="text-center mb-2">
           <p className="font-bold text-slate-900 text-lg">
-            {mode === 'analyse'
+            {message || (mode === 'analyse'
               ? 'AI is analysing your resume'
               : mode === 'cover-letter'
               ? 'Crafting your cover letter'
-              : 'AI is optimizing your resume'}
+              : mode === 'download'
+              ? 'Preparing your download'
+              : 'AI is optimizing your resume')}
             <span className="text-blue-500 font-normal">{dots}</span>
           </p>
         </div>

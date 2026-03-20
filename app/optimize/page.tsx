@@ -7,6 +7,7 @@ import { LoginModal } from '@/components/LoginModal';
 import { PaymentModal } from '@/components/PaymentModal';
 import { supabase } from '@/lib/supabase';
 import { Navbar } from '@/components/Navbar';
+import { PMLoadingScreen } from '@/components/PMLoadingScreen';
 import { detectMissingPMKeywords } from '@/lib/pmAnalyzer';
 
 export const dynamic = 'force-dynamic';
@@ -1743,6 +1744,14 @@ export default function HomePage() {
         </div>
       )}
 
+      {isDownloading && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/40 backdrop-blur-sm px-4">
+          <div className="w-full max-w-2xl">
+            <PMLoadingScreen mode="download" message="Preparing your PDF download" />
+          </div>
+        </div>
+      )}
+
       {/* ── Main Layout ── */}
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/20 to-indigo-50/30">
         <Navbar onSignInClick={() => setShowLoginModal(true)} />
@@ -1945,10 +1954,11 @@ export default function HomePage() {
               <div className="flex flex-col items-center gap-3">
 
                 {isLoading ? (
-                  /* Loading state — full width spinner */
-                  <div className="w-full py-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-bold flex items-center justify-center gap-2 shadow-xl shadow-blue-500/25">
-                    <SpinnerIcon />
-                    <span className="ml-2">{loadingStep || 'Working...'}</span>
+                  <div className="w-full">
+                    <PMLoadingScreen
+                      mode={loadingStep.toLowerCase().includes('cover letter') ? 'cover-letter' : 'optimize'}
+                      message={loadingStep || undefined}
+                    />
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 gap-3 w-full">
@@ -2037,20 +2047,10 @@ export default function HomePage() {
 
                 {/* Loading */}
                 {isLoading && (
-                  <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center animate-fadeIn">
-                    <div className="relative w-16 h-16 mx-auto mb-5">
-                      <div className="w-16 h-16 border-4 border-blue-100 rounded-full absolute inset-0" />
-                      <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin absolute inset-0" />
-                      <div className="absolute inset-0 flex items-center justify-center text-xl">✨</div>
-                    </div>
-                    <p className="font-semibold text-slate-900 mb-1">AI is working on your document...</p>
-                    <p className="text-sm text-slate-400 mb-4">{loadingStep}</p>
-                    <div className="flex justify-center gap-1.5">
-                      <span className="dot-bounce w-2 h-2 bg-blue-600 rounded-full inline-block" />
-                      <span className="dot-bounce w-2 h-2 bg-blue-600 rounded-full inline-block" />
-                      <span className="dot-bounce w-2 h-2 bg-blue-600 rounded-full inline-block" />
-                    </div>
-                  </div>
+                  <PMLoadingScreen
+                    mode={loadingStep.toLowerCase().includes('cover letter') ? 'cover-letter' : 'optimize'}
+                    message={loadingStep || undefined}
+                  />
                 )}
 
                 {/* Error */}
