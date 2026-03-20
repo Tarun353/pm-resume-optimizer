@@ -1,11 +1,9 @@
 /**
  * app/api/analyse/route.ts
  *
- * AI-powered resume analysis endpoint.
+ * AI-powered resume analysis endpoint - ANALYZES ALL BULLETS FROM ALL SECTIONS
+ * Works for: Aspiring PMs, Transitioning PMs, Experienced PMs
  * Quota: `score_analyses_used` column (separate from optimizations).
- *
- * DB MIGRATION (run once in Supabase SQL editor):
- *   ALTER TABLE users ADD COLUMN IF NOT EXISTS score_analyses_used INTEGER DEFAULT 0;
  *
  * Free tier: 5 analyses per user.
  */
@@ -14,7 +12,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { groqChatCompletion } from '@/lib/aiClient';
 import { scoreResume } from '@/lib/atsScorer';
-import { extractBulletsFromText, extractSummary } from '@/lib/resumeExtractor';
+import { parseResumeText } from '@/lib/resumeParser';
+import type { ResumeData, CareerStage } from '@/lib/types';
 
 function getSupabaseAdmin() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -58,6 +57,91 @@ export interface ResumeAnalysisResult {
   profileSpecificFeedback: string;
 }
 
+// ─── Helper Functions ────────────────────────────────────────────────────────────
+
+/**
+ * Extract ALL bullets from ALL sections of parsed resume
+ * This ensures comprehensive analysis of the entire resume
+ */
+function extractAllBullets(resume: ResumeData): Array<{ text: string; section: string }> {
+  const bullets: Array<{ text: string; section: string }> = [];
+  
+  // Work Experience
+  if (resume.experience && resume.experience.length > 0) {
+    resume.experience.forEach((exp, idx) => {
+      const company = exp.company || 'Company';
+      const title = exp.title || 'Role';
+      if (exp.bullets && exp.bullets.length > 0) {
+        exp.bullets.forEach(bullet => {
+          if (bullet.trim()) {
+            bullets.push({
+              text: bullet.trim(),
+              section: `Experience — ${title} at ${company}`
+            });
+          }
+        });
+      }
+    });
+  }
+  
+  // Internships
+  if (resume.internships && resume.internships.length > 0) {
+    resume.internships.forEach((int, idx) => {
+      const company = int.company || 'Company';
+      const title = int.title || 'Role';
+      if (int.bullets && int.bullets.length > 0) {
+        int.bullets.forEach(bullet => {
+          if (bullet.trim()) {
+            bullets.push({
+              text: bullet.trim(),
+              section: `Internship — ${title} at ${company}`
+            });
+          }
+        });
+      }
+    });
+  }
+  
+  // Projects
+  if (resume.projects && resume.projects.length > 0) {
+    resume.projects.forEach((proj, idx) => {
+      const name = proj.name || `Project ${idx + 1}`;
+      
+      // Project description as a "bullet"
+      if (proj.description && proj.description.trim()) {
+        bullets.push({
+          text: proj.description.trim(),
+          section: `Project — ${name}`
+        });
+      }
+      
+      // Project bullets
+      if (proj.bullets && proj.bullets.length > 0) {
+        proj.bullets.forEach(bullet => {
+          if (bullet.trim()) {
+            bullets.push({
+              text: bullet.trim(),
+              section: `Project — ${name}`
+            });
+          }
+        });
+      }
+    });
+  }
+  
+  console.log(`[extractAllBullets] Extracted ${bullets.length} bullets from resume`);
+  return bullets;
+}
+
+/**
+ * Get career stage from profile string
+ */
+function getCareerStageFromProfile(profile: string): CareerStage {
+  if (profile === 'aspiring') return 'fresher';
+  if (profile === 'transitioning') return 'career-change';
+  return 'experienced';
+}
+
 // ─── AI Analysis ─────────────────────────────────────────────────────────────
 
 async function runAIAnalysis(
@@ -88,7 +172,7 @@ Your feedback is BRUTALLY HONEST, HYPER-SPECIFIC, and ACTIONABLE. You cite exact
 Candidate profile: ${profileContext}
 
 CRITICAL RULES:
-- Analyze EVERY bullet provided. Do not skip any.
+- Analyze EVERY SINGLE bullet provided. Do not skip any. There are ${bullets.length} bullets — your bulletAnalysis array must have ${bullets.length} entries.
 - Each weakness must quote or reference specific words from the original bullet.
 - Each "improved" version must be concretely better — stronger verb, metric added if implied, PM language injected, scope clarified.
 - The improved summary MUST reference the candidate's actual companies and roles.
@@ -103,7 +187,7 @@ ${hasJD ? `JOB DESCRIPTION:\n${jdText.substring(0, 1500)}\n\n` : 'No JD provided
 PROFESSIONAL SUMMARY (analyze this):
 ${summary || 'No summary section found in the resume. Treat as a missing section and penalize accordingly.'}
 
-ALL RESUME BULLETS TO ANALYZE (${bullets.length} total — analyze EVERY single one):
+ALL RESUME BULLETS TO ANALYZE (${bullets.length} total — analyze EVERY single one, return ${bullets.length} entries in bulletAnalysis):
 ${bulletsFormatted}
 
 Return EXACTLY this JSON schema — no extra keys, no markdown:
@@ -127,6 +211,7 @@ Return EXACTLY this JSON schema — no extra keys, no markdown:
       "tags": <array of applicable: "has_metric","has_action_verb","has_ownership","jd_aligned","too_vague","no_impact">,
       "section": <section name as provided>
     }
+    ... REPEAT FOR ALL ${bullets.length} BULLETS - DO NOT SKIP ANY
   ],
   "keywordsFound": <array of JD keywords actually found verbatim or near-verbatim in the resume>,
   "keywordsMissing": <array of important JD keywords NOT in the resume — max 12, most impactful first>,
@@ -137,7 +222,9 @@ Return EXACTLY this JSON schema — no extra keys, no markdown:
   "profileSpecificFeedback": <2-3 sentences specific to ${profile} profile.>
 }`;
 
-  const raw = await groqChatCompletion(SYSTEM, USER, 4000, 0.2);
+  console.log(`[runAIAnalysis] Sending ${bullets.length} bullets to AI for analysis`);
+  
+  const raw = await groqChatCompletion(SYSTEM, USER, 6000, 0.2);
 
   const cleaned = raw
     .replace(/^```json\s*/i, '')
@@ -150,6 +237,9 @@ Return EXACTLY this JSON schema — no extra keys, no markdown:
     if (!result.bulletAnalysis || result.bulletAnalysis.length === 0) {
       throw new Error('AI returned empty bulletAnalysis');
     }
+    
+    console.log(`[runAIAnalysis] AI analyzed ${result.bulletAnalysis.length} bullets`);
+    
     return result;
   } catch {
     const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
@@ -214,24 +304,34 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 4. Extract content using lib helpers
-    const bullets = extractBulletsFromText(resumeText);
-    const summary = extractSummary(resumeText);
+    console.log('[/api/analyse] Starting comprehensive analysis');
+
+    // 4. PARSE THE FULL RESUME using the robust parser (same as optimize flow)
+    const careerStage = getCareerStageFromProfile(profile);
+    console.log('[/api/analyse] Parsing resume with career stage:', careerStage);
+    
+    const parsedResume: ResumeData = await parseResumeText(resumeText, careerStage);
+    
+    // 5. Extract ALL bullets from ALL sections
+    const bullets = extractAllBullets(parsedResume);
+    const summary = parsedResume.summary || '';
 
     if (bullets.length === 0) {
       return NextResponse.json(
         {
           error:
-            'Could not extract any content from the resume. Please paste the full resume text including bullet points and experience sections.',
+            'Could not extract any bullet points from the resume. Please paste the full resume text including work experience, internships, and project sections.',
         },
         { status: 400 },
       );
     }
 
-    // 5. Run AI analysis
+    console.log(`[/api/analyse] Extracted ${bullets.length} bullets from ${profile} profile resume`);
+
+    // 6. Run AI analysis
     const aiResult = await runAIAnalysis(resumeText, jdText, profile, bullets, summary);
 
-    // 6. Enrich with client-side scorer data
+    // 7. Enrich with client-side scorer data
     const clientScore = scoreResume(resumeText, jdText, profile);
     if (!aiResult.keywordsFound?.length) {
       aiResult.keywordsFound = clientScore.breakdown.jdKeywords.matched;
@@ -240,11 +340,13 @@ export async function POST(req: NextRequest) {
       aiResult.keywordsMissing = clientScore.breakdown.jdKeywords.missing;
     }
 
-    // 7. Increment quota
+    // 8. Increment quota
     await supabaseAdmin
       .from('users')
       .update({ score_analyses_used: analysesUsed + 1 })
       .eq('id', user.id);
+
+    console.log(`[/api/analyse] Analysis complete. Returned ${aiResult.bulletAnalysis.length} bullet analyses.`);
 
     return NextResponse.json({
       ...aiResult,
