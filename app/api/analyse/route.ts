@@ -107,7 +107,7 @@ function isValidResumeAnalysisResult(data: unknown): data is ResumeAnalysisResul
 function buildFallbackAnalysisResult(
   resumeText: string,
   jdText: string,
-  profile: CareerStage,
+  profile: string,
   bullets: Array<{ text: string; section: string }>,
   summary: string,
 ): ResumeAnalysisResult {
