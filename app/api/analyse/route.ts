@@ -24,6 +24,28 @@ function getSupabaseAdmin() {
 
 const FREE_ANALYSIS_LIMIT = 5;
 
+function cleanJsonString(text: string) {
+  if (!text) return '';
+
+  return text
+    .replace(/^```json\s*/i, '')
+    .replace(/^```\s*/i, '')
+    .replace(/```\s*$/i, '')
+    .replace(/,\s*}/g, '}')
+    .replace(/,\s*]/g, ']')
+    .replace(/[\u0000-\u001F]+/g, '')
+    .trim();
+}
+
+function safeJsonParse<T>(text: string): T | null {
+  try {
+    return JSON.parse(text) as T;
+  } catch (error) {
+    console.error('[/api/analyse] Invalid JSON from AI:', error);
+    return null;
+  }
+}
+
 // ─── Types ──────────────────────────────────────────────────────────────────────
 
 export interface BulletAnalysis {
@@ -55,6 +77,76 @@ export interface ResumeAnalysisResult {
   metricsScore: number;
   topImprovements: string[];
   profileSpecificFeedback: string;
+}
+
+function isValidResumeAnalysisResult(data: unknown): data is ResumeAnalysisResult {
+  if (!data || typeof data !== 'object') return false;
+
+  const result = data as Partial<ResumeAnalysisResult>;
+  return (
+    typeof result.overallScore === 'number' &&
+    typeof result.grade === 'string' &&
+    typeof result.gradeLabel === 'string' &&
+    typeof result.executiveSummary === 'string' &&
+    result.summaryAnalysis !== undefined &&
+    typeof result.summaryAnalysis.original === 'string' &&
+    typeof result.summaryAnalysis.score === 'number' &&
+    typeof result.summaryAnalysis.feedback === 'string' &&
+    typeof result.summaryAnalysis.improved === 'string' &&
+    Array.isArray(result.bulletAnalysis) &&
+    Array.isArray(result.keywordsFound) &&
+    Array.isArray(result.keywordsMissing) &&
+    Array.isArray(result.pmVocabFound) &&
+    Array.isArray(result.pmVocabMissing) &&
+    typeof result.metricsScore === 'number' &&
+    Array.isArray(result.topImprovements) &&
+    typeof result.profileSpecificFeedback === 'string'
+  );
+}
+
+function buildFallbackAnalysisResult(
+  resumeText: string,
+  jdText: string,
+  profile: CareerStage,
+  bullets: Array<{ text: string; section: string }>,
+  summary: string,
+): ResumeAnalysisResult {
+  const clientScore = scoreResume(resumeText, jdText, profile);
+  const overallScore = Math.round(clientScore.totalScore);
+  const grade: ResumeAnalysisResult['grade'] = overallScore >= 90 ? 'A' : overallScore >= 80 ? 'B' : overallScore >= 70 ? 'C' : overallScore >= 60 ? 'D' : 'F';
+
+  return {
+    overallScore,
+    grade,
+    gradeLabel: clientScore.gradeLabel,
+    executiveSummary: 'We could not fully parse the AI analysis, so this result uses a safe fallback based on the ATS score and extracted resume content.',
+    summaryAnalysis: {
+      original: summary,
+      score: Math.max(1, Math.min(10, Math.round(overallScore / 10))),
+      feedback: 'AI output was malformed, so detailed summary feedback is temporarily unavailable. Review your summary for specificity, PM keywords, and measurable outcomes.',
+      improved: summary || 'Add a concise summary focused on product ownership, measurable impact, and relevant domain expertise.',
+    },
+    bulletAnalysis: bullets.map((bullet) => ({
+      original: bullet.text,
+      score: 5,
+      strength: null,
+      weakness: 'Detailed AI bullet analysis was unavailable because the model response could not be parsed safely.',
+      improved: bullet.text,
+      tags: [],
+      section: bullet.section,
+    })),
+    keywordsFound: clientScore.breakdown.jdKeywords.matched,
+    keywordsMissing: clientScore.breakdown.jdKeywords.missing,
+    pmVocabFound: clientScore.breakdown.pmVocab.found,
+    pmVocabMissing: clientScore.breakdown.pmVocab.missing,
+    metricsScore: clientScore.breakdown.metrics.score,
+    topImprovements: [
+      'Add more exact JD keywords into relevant bullets and your summary.',
+      'Rewrite weak bullets to show measurable outcomes, scope, or user/business impact.',
+      'Clarify PM ownership by naming products, decisions, experiments, or cross-functional leadership.',
+    ],
+    profileSpecificFeedback: `Safe fallback result for ${profile}: strengthen PM-specific language, keyword alignment, and measurable impact while the AI analysis is unavailable.`,
+  };
 }
 
 // ─── Helper Functions ────────────────────────────────────────────────────────────
@@ -257,28 +349,24 @@ Return EXACTLY this JSON schema — no extra keys, no markdown:
   
   const raw = await groqChatCompletion(SYSTEM, USER, 6000, 0.2);
 
-  const cleaned = raw
-    .replace(/^```json\s*/i, '')
-    .replace(/^```\s*/i, '')
-    .replace(/```\s*$/i, '')
-    .trim();
+  const cleaned = cleanJsonString(raw);
+  const parsed = safeJsonParse<ResumeAnalysisResult>(cleaned);
 
-  try {
-    const result = JSON.parse(cleaned) as ResumeAnalysisResult;
-    if (!result.bulletAnalysis || result.bulletAnalysis.length === 0) {
-      throw new Error('AI returned empty bulletAnalysis');
-    }
-    
-    console.log(`[runAIAnalysis] AI analyzed ${result.bulletAnalysis.length} bullets`);
-    
-    return result;
-  } catch {
-    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]) as ResumeAnalysisResult;
-    }
-    throw new Error('AI returned invalid JSON. Please try again.');
+  if (parsed && isValidResumeAnalysisResult(parsed) && parsed.bulletAnalysis.length > 0) {
+    console.log(`[runAIAnalysis] AI analyzed ${parsed.bulletAnalysis.length} bullets`);
+    return parsed;
   }
+
+  const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+  const extracted = jsonMatch ? safeJsonParse<ResumeAnalysisResult>(jsonMatch[0]) : null;
+
+  if (extracted && isValidResumeAnalysisResult(extracted) && extracted.bulletAnalysis.length > 0) {
+    console.log(`[runAIAnalysis] Recovered AI analysis from extracted JSON with ${extracted.bulletAnalysis.length} bullets`);
+    return extracted;
+  }
+
+  console.warn('[runAIAnalysis] AI returned invalid JSON or unexpected structure. Using safe fallback analysis.');
+  return buildFallbackAnalysisResult(resumeText, jdText, profile, bullets, summary);
 }
 
 // ─── Route handler ────────────────────────────────────────────────────────────
