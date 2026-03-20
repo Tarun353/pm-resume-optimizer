@@ -9,6 +9,8 @@ import { PaymentModal } from '@/components/PaymentModal';
 import { PMLoadingScreen } from '@/components/PMLoadingScreen';
 import { supabase } from '@/lib/supabase';
 import { DEFAULT_JDS } from '@/lib/defaultJDs';
+import { scoreResume } from '@/lib/atsScorer';
+import { analyzeRecruiterSignals, type RecruiterAnalysis } from '@/lib/recruiterSignals';
 import type { ResumeAnalysisResult, BulletAnalysis } from '@/app/api/analyse/route';
 import type { AdvancedInsightsResponse } from '@/lib/advancedInsights';
 
@@ -86,7 +88,7 @@ function TagPill({ tag }: { tag: string }) {
   );
 }
 
-// ─── Bullet Card (expandable) - UPDATED FOR SECTION GROUPING ───────────────────
+// ─── Bullet Card ────────────────────────────────────────────────────────────────
 function BulletCard({ bullet, index }: { bullet: BulletAnalysis; index: number }) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -98,12 +100,8 @@ function BulletCard({ bullet, index }: { bullet: BulletAnalysis; index: number }
   };
 
   return (
-    <div className="transition-all duration-200 animate-fadeInUp bg-white"
-      style={{ animationDelay: `${index * 20}ms` }}>
-
-      {/* Header row */}
-      <button
-        onClick={() => setOpen(p => !p)}
+    <div className="transition-all duration-200 animate-fadeInUp bg-white" style={{ animationDelay: `${index * 20}ms` }}>
+      <button onClick={() => setOpen(p => !p)}
         className="w-full flex items-start gap-3 px-4 py-4 text-left hover:bg-slate-50 transition-colors">
         <BulletScoreBadge score={bullet.score} />
         <div className="flex-1 min-w-0">
@@ -115,7 +113,6 @@ function BulletCard({ bullet, index }: { bullet: BulletAnalysis; index: number }
         <ChevronIcon open={open} />
       </button>
 
-      {/* Expanded detail */}
       {open && (
         <div className="border-t border-slate-100 px-4 py-4 space-y-4 animate-fadeIn bg-slate-50">
           {bullet.strength && (
@@ -127,7 +124,6 @@ function BulletCard({ bullet, index }: { bullet: BulletAnalysis; index: number }
               </div>
             </div>
           )}
-
           <div className="flex items-start gap-2.5 bg-red-50 border border-red-200 rounded-xl px-3 py-3">
             <span className="text-red-500 mt-0.5 shrink-0"><CrossIcon /></span>
             <div>
@@ -135,7 +131,6 @@ function BulletCard({ bullet, index }: { bullet: BulletAnalysis; index: number }
               <p className="text-sm text-red-800">{bullet.weakness}</p>
             </div>
           </div>
-
           <div className="bg-blue-50 border border-blue-200 rounded-xl px-3 py-3">
             <div className="flex items-center justify-between mb-2">
               <p className="text-xs font-bold text-blue-700">✨ AI-improved version</p>
@@ -152,7 +147,7 @@ function BulletCard({ bullet, index }: { bullet: BulletAnalysis; index: number }
   );
 }
 
-// ─── Keyword section ────────────────────────────────────────────────────────────
+// ─── Keyword Grid ───────────────────────────────────────────────────────────────
 function KeywordGrid({ found, missing, label }: { found: string[]; missing: string[]; label: string }) {
   return (
     <div className="bg-white rounded-2xl border border-slate-200 p-5 space-y-4">
@@ -187,6 +182,199 @@ function KeywordGrid({ found, missing, label }: { found: string[]; missing: stri
   );
 }
 
+// ─── NEW: Gate 1 — ATS Filter Panel ────────────────────────────────────────────
+function GateOnePanel({ atsResult }: { atsResult: ReturnType<typeof scoreResume> }) {
+  const statusColors = {
+    strong:   { bg: 'bg-emerald-50',  border: 'border-emerald-200', badge: 'bg-emerald-100 text-emerald-800', dot: 'bg-emerald-500' },
+    passing:  { bg: 'bg-amber-50',    border: 'border-amber-200',   badge: 'bg-amber-100 text-amber-800',     dot: 'bg-amber-500' },
+    at_risk:  { bg: 'bg-red-50',      border: 'border-red-200',     badge: 'bg-red-100 text-red-800',         dot: 'bg-red-500' },
+  };
+  const c = statusColors[atsResult.filterStatus];
+
+  return (
+    <div className={`rounded-[2rem] border-2 ${c.border} ${c.bg} overflow-hidden animate-fadeInUp`}>
+      {/* Header */}
+      <div className="px-6 py-5 border-b border-white/60">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-white/70 flex items-center justify-center text-xl shadow-sm">🔍</div>
+            <div>
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Gate 1 of 2</p>
+              <h3 className="font-bold text-slate-900 text-lg">ATS Filter — Will recruiters even see you?</h3>
+            </div>
+          </div>
+          <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold ${c.badge}`}>
+            <span className={`w-2 h-2 rounded-full ${c.dot}`}/>
+            {atsResult.filterStatusLabel}
+          </span>
+        </div>
+        <p className="text-sm text-slate-600 mt-3 leading-relaxed max-w-2xl">
+          {atsResult.filterStatusDescription}
+        </p>
+      </div>
+
+      <div className="p-6 space-y-5">
+        {/* Searches you appear in */}
+        {atsResult.searchesYouAppearIn.length > 0 && (
+          <div>
+            <p className="text-xs font-bold text-emerald-700 uppercase tracking-widest mb-2.5">
+              ✓ You appear in recruiter searches for:
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {atsResult.searchesYouAppearIn.map(s => (
+                <span key={s} className="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 font-semibold">
+                  <CheckIcon/> {s}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Searches you're missing */}
+        {atsResult.searchesYouAreMissing.length > 0 && (
+          <div>
+            <p className="text-xs font-bold text-red-600 uppercase tracking-widest mb-2.5">
+              ✗ You're invisible in searches for:
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {atsResult.searchesYouAreMissing.slice(0, 6).map(s => (
+                <span key={s} className="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-full bg-white/70 text-slate-600 border border-slate-300 font-medium">
+                  {s}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Critical keywords to add */}
+        {atsResult.criticalKeywordsToAdd.length > 0 && (
+          <div className="bg-white/70 rounded-2xl p-4 border border-white/80">
+            <p className="text-xs font-bold text-slate-700 uppercase tracking-widest mb-2.5">
+              💡 Add these JD keywords to unlock more recruiter searches:
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {atsResult.criticalKeywordsToAdd.map(k => (
+                <span key={k} className="text-sm px-3 py-1.5 rounded-full bg-blue-100 text-blue-800 border border-blue-200 font-semibold">
+                  + {k}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Score breakdown mini */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[
+            { label: 'JD Keywords', score: atsResult.breakdown.jdKeywords.score, max: 40 },
+            { label: 'PM Vocab', score: atsResult.breakdown.pmVocab.score, max: 25 },
+            { label: 'Metrics', score: atsResult.breakdown.metrics.score, max: 20 },
+            { label: 'Action Verbs', score: atsResult.breakdown.actionVerbs.score, max: 15 },
+          ].map(item => (
+            <div key={item.label} className="bg-white/70 rounded-xl p-3 text-center border border-white/80">
+              <p className="text-xs text-slate-500 mb-1">{item.label}</p>
+              <p className="text-base font-bold text-slate-900">
+                {item.score}<span className="text-slate-400 font-normal text-xs">/{item.max}</span>
+              </p>
+              <div className="mt-1.5 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-blue-500 rounded-full transition-all duration-700"
+                  style={{ width: `${(item.score / item.max) * 100}%` }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── NEW: Gate 2 — Recruiter Review Panel ──────────────────────────────────────
+function GateTwoPanel({ analysis }: { analysis: RecruiterAnalysis }) {
+  const appealConfig = {
+    high:   { bg: 'bg-emerald-50',  border: 'border-emerald-200', badge: 'bg-emerald-100 text-emerald-800', dot: 'bg-emerald-500' },
+    medium: { bg: 'bg-amber-50',    border: 'border-amber-200',   badge: 'bg-amber-100 text-amber-800',     dot: 'bg-amber-500' },
+    low:    { bg: 'bg-red-50',      border: 'border-red-200',     badge: 'bg-red-100 text-red-800',         dot: 'bg-red-500' },
+  };
+  const c = appealConfig[analysis.overallAppeal];
+
+  const signalConfig = {
+    strong:  { icon: '✓', bg: 'bg-emerald-50',  border: 'border-emerald-200', text: 'text-emerald-700', iconBg: 'bg-emerald-100' },
+    ok:      { icon: '~', bg: 'bg-blue-50',      border: 'border-blue-200',   text: 'text-blue-700',    iconBg: 'bg-blue-100'    },
+    weak:    { icon: '⚠', bg: 'bg-amber-50',     border: 'border-amber-200',  text: 'text-amber-700',   iconBg: 'bg-amber-100'   },
+    missing: { icon: '✗', bg: 'bg-red-50',       border: 'border-red-200',    text: 'text-red-700',     iconBg: 'bg-red-100'     },
+  };
+
+  return (
+    <div className={`rounded-[2rem] border-2 ${c.border} ${c.bg} overflow-hidden animate-fadeInUp`}>
+      {/* Header */}
+      <div className="px-6 py-5 border-b border-white/60">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-white/70 flex items-center justify-center text-xl shadow-sm">👁</div>
+            <div>
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Gate 2 of 2</p>
+              <h3 className="font-bold text-slate-900 text-lg">Recruiter Review — Will they call you?</h3>
+            </div>
+          </div>
+          <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold ${c.badge}`}>
+            <span className={`w-2 h-2 rounded-full ${c.dot}`}/>
+            {analysis.appealLabel}
+          </span>
+        </div>
+        <p className="text-sm text-slate-600 mt-3 leading-relaxed max-w-2xl">
+          A recruiter scans your resume for <strong>6-10 seconds</strong> before deciding. 
+          These are the signals they actually look for — not ATS keywords.
+        </p>
+      </div>
+
+      <div className="p-6 space-y-3">
+        {/* Signal cards */}
+        {analysis.signals.map((signal) => {
+          const sc = signalConfig[signal.status];
+          return (
+            <div key={signal.id} className={`rounded-2xl border ${sc.border} ${sc.bg} p-4`}>
+              <div className="flex items-start gap-3">
+                <span className={`inline-flex items-center justify-center w-8 h-8 rounded-xl ${sc.iconBg} ${sc.text} font-bold text-sm shrink-0 mt-0.5`}>
+                  {sc.icon}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <span className="text-sm font-bold text-slate-900">{signal.icon} {signal.label}</span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-semibold capitalize ${
+                      signal.status === 'strong' ? 'bg-emerald-100 text-emerald-700' :
+                      signal.status === 'ok'     ? 'bg-blue-100 text-blue-700'       :
+                      signal.status === 'weak'   ? 'bg-amber-100 text-amber-700'     :
+                                                   'bg-red-100 text-red-700'
+                    }`}>
+                      {signal.status === 'missing' ? 'Not Found' : signal.status.charAt(0).toUpperCase() + signal.status.slice(1)}
+                    </span>
+                  </div>
+                  <p className="text-sm text-slate-600 leading-relaxed">{signal.finding}</p>
+                  {signal.fix && (
+                    <div className="mt-2 flex items-start gap-1.5">
+                      <span className="text-xs font-bold text-slate-500 shrink-0 mt-0.5">💡 Fix:</span>
+                      <p className="text-xs text-slate-600 leading-relaxed">{signal.fix}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Top fix callout */}
+        {analysis.overallAppeal !== 'high' && (
+          <div className="bg-white/70 border border-white/80 rounded-2xl p-4 mt-2">
+            <p className="text-xs font-bold text-slate-700 uppercase tracking-widest mb-1">🔑 Most Impactful Fix Right Now</p>
+            <p className="text-sm text-slate-700 leading-relaxed">{analysis.topFix}</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main page ──────────────────────────────────────────────────────────────────
 export default function ScorePage() {
   const router = useRouter();
@@ -199,15 +387,15 @@ export default function ScorePage() {
   const [profile, setProfile]       = useState('experienced');
   const [isAnalysing, setIsAnalysing] = useState(false);
   const [result, setResult]         = useState<(ResumeAnalysisResult & { analysesRemaining: number }) | null>(null);
+  const [atsResult, setAtsResult]   = useState<ReturnType<typeof scoreResume> | null>(null);
+  const [recruiterAnalysis, setRecruiterAnalysis] = useState<RecruiterAnalysis | null>(null);
   const [error, setError]           = useState<string | null>(null);
   const [showLogin, setShowLogin]   = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [pendingAnalyse, setPendingAnalyse] = useState(false);
-  const [advancedInsightsEnabled, setAdvancedInsightsEnabled] = useState(false);
-  const [advancedResult, setAdvancedResult] = useState<AdvancedInsightsResponse | null>(null);
   const resultRef                   = useRef<HTMLDivElement>(null);
 
-  // ── Pre-fill from /optimize (user clicked "Check ATS Score" mid-way) ──────────
+  // ── Pre-fill from /optimize ─────────────────────────────────────────────────
   useEffect(() => {
     const saved = sessionStorage.getItem('scoreState');
     if (!saved) return;
@@ -221,15 +409,12 @@ export default function ScorePage() {
       }
       if (state.resumeText) setResumeText(state.resumeText);
       if (state.jdText && state.jdText.trim().length > 50) {
-        setJdText(state.jdText);
-        setJdMode('paste');
+        setJdText(state.jdText); setJdMode('paste');
       }
       if (state.jdMode === 'default' && state.selectedJD) {
-        setJdMode('default');
-        setSelectedJD(state.selectedJD);
+        setJdMode('default'); setSelectedJD(state.selectedJD);
       }
       if (state.profile) setProfile(state.profile);
-      // Don't remove — login flow also uses this key after OAuth
     } catch {
       sessionStorage.removeItem('scoreState');
     }
@@ -240,18 +425,26 @@ export default function ScorePage() {
     : jdText;
 
   const canAnalyse = resumeText.trim().length >= 100;
-  const advancedInsightsAvailable = process.env.NEXT_PUBLIC_ENABLE_ADVANCED_ANALYSIS === 'true';
 
   const runAnalysis = async () => {
     setError(null);
     setResult(null);
-    setAdvancedResult(null);
+    setAtsResult(null);
+    setRecruiterAnalysis(null);
     setIsAnalysing(true);
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error('no_session');
 
+      // Run client-side analysis immediately (no API needed)
+      const ats = scoreResume(resumeText, effectiveJD, profile);
+      setAtsResult(ats);
+
+      const recruiter = analyzeRecruiterSignals(resumeText, effectiveJD, profile);
+      setRecruiterAnalysis(recruiter);
+
+      // Run AI analysis (uses one of the 5 free analyses)
       const res = await fetch('/api/analyse', {
         method: 'POST',
         headers: {
@@ -269,29 +462,6 @@ export default function ScorePage() {
       }
 
       setResult(data);
-
-      if (advancedInsightsAvailable && advancedInsightsEnabled) {
-        try {
-          const advancedRes = await fetch('/api/analyze-advanced', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${session.access_token}`,
-            },
-            body: JSON.stringify({ resumeText, jdText: effectiveJD, profile }),
-          });
-
-          const advancedData = await advancedRes.json();
-          if (!advancedRes.ok) {
-            throw new Error(advancedData.error ?? 'Advanced insights failed');
-          }
-
-          setAdvancedResult(advancedData);
-        } catch (advancedErr) {
-          console.error('Advanced insights failed:', advancedErr);
-        }
-      }
-
       await refreshUser();
 
       setTimeout(() => {
@@ -300,7 +470,6 @@ export default function ScorePage() {
 
     } catch (err) {
       if (err instanceof Error && err.message === 'no_session') {
-        // Save state + trigger login
         sessionStorage.setItem('scoreState', JSON.stringify({ resumeText, jdText: effectiveJD, jdMode, selectedJD, profile }));
         setPendingAnalyse(true);
         setShowLogin(true);
@@ -377,18 +546,14 @@ export default function ScorePage() {
             <div className="flex items-center gap-3">
               {user && (
                 <span className="text-xs text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full font-medium">
-                  {analysesLeft === '∞' ? '∞' : `${analysesLeft} free analyses left`}
+                  {analysesLeft === '∞' ? '∞ analyses' : `${analysesLeft} of 5 free analyses left`}
                 </span>
               )}
-              {/* Save current inputs before navigating to /optimize */}
               <button
                 onClick={() => {
                   if (resumeText.trim() || jdText.trim()) {
                     sessionStorage.setItem('optimizeState', JSON.stringify({
-                      resumeText,
-                      jdText: effectiveJD,
-                      profile,
-                      timestamp: Date.now(),
+                      resumeText, jdText: effectiveJD, profile, timestamp: Date.now(),
                     }));
                   }
                   window.location.href = '/optimize';
@@ -402,33 +567,33 @@ export default function ScorePage() {
 
         <div className="max-w-5xl mx-auto px-6 py-10">
 
-          {/* Hero */}
+          {/* ── Hero — NEW FRAMING ── */}
           <div className="text-center mb-10 animate-fadeInUp">
             <span className="inline-flex items-center gap-2 bg-blue-100 text-blue-700 text-xs font-bold px-4 py-2 rounded-full mb-4">
               <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"/>
-              AI-Powered · Per-Bullet Analysis
+              AI-Powered · Two-Gate Analysis
             </span>
             <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-3 tracking-tight">
-              How well does your resume match<br/>
-              <span className="gradient-text">this PM job description?</span>
+              Your resume has <span className="gradient-text">two jobs to do.</span>
             </h1>
-            <p className="text-slate-500 max-w-xl mx-auto text-sm leading-relaxed">
-              Paste your resume + any PM JD. Our AI analyses every bullet point individually —
-              what's strong, what's weak, and the exact improved version.
+            <p className="text-slate-500 max-w-2xl mx-auto text-sm leading-relaxed">
+              <strong className="text-slate-700">Gate 1: Pass the ATS filter</strong> — appear in recruiter keyword searches.<br/>
+              <strong className="text-slate-700">Gate 2: Win the 6-second scan</strong> — make the human recruiter stop and read.<br/>
+              Most resumes pass Gate 1 and fail Gate 2. We show you both.
             </p>
           </div>
 
-          {/* Input Card */}
+          {/* ── Input Card ── */}
           <div className="bg-white rounded-[2rem] border border-slate-200 shadow-xl shadow-slate-200/50 overflow-hidden mb-6 animate-fadeInUp stagger-1">
 
-            {/* Profile */}
+            {/* Profile selector */}
             <div className="p-6 border-b border-slate-100">
               <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Your PM Profile</label>
               <div className="grid grid-cols-3 gap-3">
                 {[
-                  { value: 'aspiring',      emoji: '🎓', label: 'Aspiring PM',     sub: 'Student / Fresher' },
-                  { value: 'transitioning', emoji: '🔄', label: 'Transitioning',   sub: 'From another domain' },
-                  { value: 'experienced',   emoji: '💼', label: 'Experienced PM',  sub: '1+ years as PM' },
+                  { value: 'aspiring',      emoji: '🎓', label: 'Aspiring PM',    sub: 'Student / Fresher' },
+                  { value: 'transitioning', emoji: '🔄', label: 'Transitioning',  sub: 'From another domain' },
+                  { value: 'experienced',   emoji: '💼', label: 'Experienced PM', sub: '1+ years as PM' },
                 ].map(opt => (
                   <button key={opt.value} onClick={() => setProfile(opt.value)}
                     className={`flex flex-col items-center gap-1.5 p-4 rounded-2xl border-2 transition-all duration-200 ${
@@ -442,6 +607,7 @@ export default function ScorePage() {
               </div>
             </div>
 
+            {/* Resume + JD inputs */}
             <div className="grid md:grid-cols-2 gap-0 divide-y md:divide-y-0 md:divide-x divide-slate-100">
               {/* Resume */}
               <div className="p-6 space-y-3">
@@ -502,31 +668,12 @@ export default function ScorePage() {
               </div>
             </div>
 
-            <div className="px-6 pt-6">
-              <label className={`flex items-start gap-3 rounded-2xl border px-4 py-3 transition-colors ${advancedInsightsAvailable ? 'border-indigo-200 bg-indigo-50/60' : 'border-slate-200 bg-slate-50 text-slate-400'}`}>
-                <input
-                  type="checkbox"
-                  checked={advancedInsightsEnabled}
-                  disabled={!advancedInsightsAvailable}
-                  onChange={e => setAdvancedInsightsEnabled(e.target.checked)}
-                  className="mt-1 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 disabled:cursor-not-allowed"
-                />
-                <div>
-                  <p className="text-sm font-semibold text-slate-800">Enable Advanced Insights (Beta)</p>
-                  <p className="text-xs text-slate-500">Calls the new beta endpoint only when enabled. Standard analysis remains unchanged if this is off, unavailable, or the beta request fails.</p>
-                  {!advancedInsightsAvailable && (
-                    <p className="mt-1 text-xs text-slate-400">This beta is currently disabled by feature flag.</p>
-                  )}
-                </div>
-              </label>
-            </div>
-
             {/* CTA */}
-            <div className="p-6 border-t border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="px-6 pt-6 pb-6 border-t border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="text-sm text-slate-500">
                 {user
                   ? <span>{analysesLeft === '∞' ? 'Unlimited analyses (premium)' : `${analysesLeft} of 5 free analyses remaining`}</span>
-                  : <span>5 free AI analyses · No credit card needed · Just sign in with Google</span>}
+                  : <span>5 free AI analyses · No credit card needed · Sign in with Google</span>}
               </div>
               <button onClick={handleAnalyse} disabled={!canAnalyse || isAnalysing}
                 className={`px-8 py-3.5 rounded-2xl text-sm font-bold transition-all duration-200 flex items-center gap-2.5 btn-press ${
@@ -555,274 +702,202 @@ export default function ScorePage() {
             </div>
           )}
 
-          {/* Results */}
-          {result && !isAnalysing && (
+          {/* ── Results ── */}
+          {(atsResult || recruiterAnalysis || result) && !isAnalysing && (
             <div ref={resultRef} className="space-y-6 scroll-mt-6">
 
-              {/* Score header */}
-              <div className="bg-white rounded-[2rem] border border-slate-200 shadow-xl overflow-hidden animate-scaleIn">
-                <div className="p-6 sm:p-8">
-                  <div className="flex flex-col sm:flex-row items-center gap-8">
-                    <ScoreRing score={result.overallScore} grade={result.gradeLabel} />
-                    <div className="flex-1 space-y-4">
-                      <div>
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">AI Verdict</p>
-                        <p className="text-slate-700 leading-relaxed">{result.executiveSummary}</p>
-                      </div>
-                      <div className="bg-indigo-50 border border-indigo-200 rounded-2xl px-4 py-3 text-sm text-indigo-800">
-                        <strong>Profile-specific:</strong> {result.profileSpecificFeedback}
-                      </div>
-                      <div className="grid grid-cols-3 gap-3 text-center">
-                        {[
-                          { label: 'Bullets Analysed', value: result.bulletAnalysis?.length ?? 0 },
-                          { label: 'Keywords Missing', value: result.keywordsMissing?.length ?? 0 },
-                          { label: 'Metrics Score', value: `${result.metricsScore}%` },
-                        ].map(stat => (
-                          <div key={stat.label} className="bg-slate-50 rounded-xl p-3">
-                            <p className="text-xl font-bold text-slate-900">{stat.value}</p>
-                            <p className="text-xs text-slate-400 mt-0.5">{stat.label}</p>
+              {/* ── GATE 1: ATS Filter Panel ── */}
+              {atsResult && (
+                <GateOnePanel atsResult={atsResult} />
+              )}
+
+              {/* ── GATE 2: Recruiter Review Panel ── */}
+              {recruiterAnalysis && (
+                <GateTwoPanel analysis={recruiterAnalysis} />
+              )}
+
+              {/* ── AI Deep Analysis (if loaded) ── */}
+              {result && (
+                <>
+                  {/* Executive summary card */}
+                  <div className="bg-white rounded-[2rem] border border-slate-200 shadow-xl overflow-hidden animate-scaleIn">
+                    <div className="p-6 sm:p-8">
+                      <div className="flex flex-col sm:flex-row items-center gap-8">
+                        <ScoreRing score={result.overallScore} grade={result.gradeLabel} />
+                        <div className="flex-1 space-y-4">
+                          <div>
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">AI Deep Analysis</p>
+                            <p className="text-slate-700 leading-relaxed">{result.executiveSummary}</p>
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Top improvements */}
-                {result.topImprovements?.length > 0 && (
-                  <div className="border-t border-slate-100 px-6 sm:px-8 py-5 bg-amber-50/50">
-                    <p className="text-xs font-bold text-amber-700 uppercase tracking-widest mb-3">🎯 Top 3 improvements to make right now</p>
-                    <ol className="space-y-2">
-                      {result.topImprovements.map((tip, i) => (
-                        <li key={i} className="flex items-start gap-3 text-sm text-amber-900 animate-fadeInUp" style={{ animationDelay: `${i * 60}ms` }}>
-                          <span className="w-5 h-5 rounded-full bg-amber-200 text-amber-800 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
-                          {tip}
-                        </li>
-                      ))}
-                    </ol>
-                  </div>
-                )}
-              </div>
-
-              {advancedResult && (
-                <div className="bg-white rounded-[2rem] border border-indigo-200 shadow-sm overflow-hidden animate-fadeInUp">
-                  <div className="px-6 py-4 border-b border-indigo-100 bg-indigo-50/70 flex items-center justify-between">
-                    <h3 className="font-bold text-slate-900">🧪 Advanced Hiring Insights (Beta)</h3>
-                    <span className="text-xs font-semibold text-indigo-700 bg-white border border-indigo-200 rounded-full px-3 py-1">Feature-flagged</span>
-                  </div>
-                  <div className="p-6 space-y-5">
-                    <div className="grid sm:grid-cols-4 gap-3 text-center">
-                      {[
-                        { label: 'Visibility', value: advancedResult.visibility },
-                        { label: 'Role Fit', value: advancedResult.role_fit },
-                        { label: 'Impact Score', value: `${advancedResult.impact_score}%` },
-                        { label: 'Interview Probability', value: `${advancedResult.interview_probability}%` },
-                      ].map((stat) => (
-                        <div key={stat.label} className="bg-slate-50 rounded-xl p-3">
-                          <p className="text-lg font-bold text-slate-900">{stat.value}</p>
-                          <p className="text-xs text-slate-400 mt-0.5">{stat.label}</p>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="grid sm:grid-cols-2 gap-4">
-                      <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200">
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Recruiter Search</p>
-                        <p className="text-sm text-slate-700 mb-3"><strong>Query:</strong> {advancedResult.recruiter_search.search_query_example}</p>
-                        <p className="text-sm text-slate-700"><strong>Visibility:</strong> {advancedResult.recruiter_search.visibility}</p>
-                      </div>
-                      <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200">
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Role Detection</p>
-                        <p className="text-sm text-slate-700 mb-3"><strong>Detected Role:</strong> {advancedResult.role_detection.detected_role}</p>
-                        <p className="text-sm text-slate-700"><strong>Confidence:</strong> {advancedResult.role_detection.confidence}%</p>
-                      </div>
-                    </div>
-
-                    <div className="grid sm:grid-cols-2 gap-4">
-                      <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4">
-                        <p className="text-xs font-bold text-blue-700 uppercase tracking-widest mb-2">Missing Keywords</p>
-                        <div className="flex flex-wrap gap-2">
-                          {advancedResult.missing_keywords.length > 0 ? advancedResult.missing_keywords.map((keyword) => (
-                            <span key={keyword} className="inline-flex items-center px-2.5 py-1 rounded-full bg-white border border-blue-200 text-blue-700 text-xs font-semibold">
-                              {keyword}
-                            </span>
-                          )) : <p className="text-sm text-blue-800">No critical gaps detected.</p>}
-                        </div>
-                      </div>
-                      <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4">
-                        <p className="text-xs font-bold text-emerald-700 uppercase tracking-widest mb-2">Impact Analyzer</p>
-                        <p className="text-sm text-emerald-900">Impact bullets: {advancedResult.impact_analysis.impact_percentage}%</p>
-                        <p className="text-sm text-emerald-900">Responsibility-only bullets: {advancedResult.impact_analysis.responsibility_percentage}%</p>
-                      </div>
-                    </div>
-
-                    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
-                      <p className="text-xs font-bold text-amber-700 uppercase tracking-widest mb-2">Recommendations</p>
-                      <ul className="space-y-2 text-sm text-amber-900">
-                        {advancedResult.recommendations.map((recommendation, index) => (
-                          <li key={`${recommendation}-${index}`} className="flex items-start gap-2">
-                            <span className="mt-1">•</span>
-                            <span>{recommendation}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Summary analysis */}
-              {result.summaryAnalysis?.original && (
-                <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden animate-fadeInUp">
-                  <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-                    <h3 className="font-bold text-slate-900">📝 Summary Analysis</h3>
-                    <BulletScoreBadge score={result.summaryAnalysis.score} />
-                  </div>
-                  <div className="p-6 space-y-4">
-                    <div>
-                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Your current summary</p>
-                      <p className="text-sm text-slate-600 bg-slate-50 border border-slate-200 rounded-xl p-3 leading-relaxed">{result.summaryAnalysis.original}</p>
-                    </div>
-                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-800">
-                      <strong>Feedback:</strong> {result.summaryAnalysis.feedback}
-                    </div>
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <p className="text-xs font-bold text-blue-700 uppercase tracking-widest">✨ AI-improved summary</p>
-                        <button
-                          onClick={async () => {
-                            await navigator.clipboard.writeText(result.summaryAnalysis.improved);
-                          }}
-                          className="text-xs px-2.5 py-1 bg-blue-50 border border-blue-200 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors font-semibold">
-                          Copy
-                        </button>
-                      </div>
-                      <p className="text-sm text-blue-900 bg-blue-50 border border-blue-200 rounded-xl p-3 leading-relaxed font-medium">{result.summaryAnalysis.improved}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Bullet analysis - SECTION GROUPED */}
-              {result.bulletAnalysis?.length > 0 && (
-                <div className="animate-fadeInUp stagger-2">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-bold text-slate-900 text-lg">⚡ Bullet-by-Bullet Analysis ({result.bulletAnalysis.length})</h3>
-                    <p className="text-xs text-slate-400">Grouped by section · Click any bullet to see full feedback</p>
-                  </div>
-                  
-                  {/* Group bullets by section */}
-                  {(() => {
-                    // Group bullets by section name
-                    const groupedBullets = result.bulletAnalysis.reduce((acc, bullet) => {
-                      if (!acc[bullet.section]) {
-                        acc[bullet.section] = [];
-                      }
-                      acc[bullet.section]!.push(bullet);
-                      return acc;
-                    }, {} as Record<string, BulletAnalysis[]>);
-
-                    // Get section names and their stats
-                    const sections = Object.keys(groupedBullets).map(sectionName => {
-                      const sectionBullets = groupedBullets[sectionName]!;
-                      const avgScore = Math.round(
-                        sectionBullets.reduce((sum, b) => sum + b.score, 0) / sectionBullets.length
-                      );
-                      return { name: sectionName, bullets: sectionBullets, avgScore };
-                    });
-
-                    return (
-                      <div className="space-y-6">
-                        {sections.map((section, sectionIdx) => (
-                          <div key={section.name} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                            {/* Section header */}
-                            <div className="px-5 py-3 bg-slate-50 border-b border-slate-200">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                  <h4 className="font-bold text-slate-900">{section.name}</h4>
-                                  <span className="text-xs text-slate-500">({section.bullets.length} bullets)</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-xs font-semibold text-slate-500">Avg Score:</span>
-                                  <span className={`inline-flex items-center justify-center w-8 h-8 rounded-lg font-bold text-sm ${
-                                    section.avgScore >= 8 ? 'bg-emerald-100 text-emerald-700'
-                                    : section.avgScore >= 6 ? 'bg-blue-100 text-blue-700'
-                                    : section.avgScore >= 4 ? 'bg-amber-100 text-amber-700'
-                                    : 'bg-red-100 text-red-700'
-                                  }`}>
-                                    {section.avgScore}
-                                  </span>
-                                </div>
+                          <div className="bg-indigo-50 border border-indigo-200 rounded-2xl px-4 py-3 text-sm text-indigo-800">
+                            <strong>Profile-specific:</strong> {result.profileSpecificFeedback}
+                          </div>
+                          <div className="grid grid-cols-3 gap-3 text-center">
+                            {[
+                              { label: 'Bullets Analysed', value: result.bulletAnalysis?.length ?? 0 },
+                              { label: 'Keywords Missing', value: result.keywordsMissing?.length ?? 0 },
+                              { label: 'Metrics Score', value: `${result.metricsScore}%` },
+                            ].map(stat => (
+                              <div key={stat.label} className="bg-slate-50 rounded-xl p-3">
+                                <p className="text-xl font-bold text-slate-900">{stat.value}</p>
+                                <p className="text-xs text-slate-400 mt-0.5">{stat.label}</p>
                               </div>
-                            </div>
-
-                            {/* Section bullets */}
-                            <div className="divide-y divide-slate-100">
-                              {section.bullets.map((bullet, bulletIdx) => (
-                                <BulletCard 
-                                  key={`${sectionIdx}-${bulletIdx}`}
-                                  bullet={bullet} 
-                                  index={sectionIdx * 10 + bulletIdx}
-                                />
-                              ))}
-                            </div>
+                            ))}
                           </div>
-                        ))}
+                        </div>
                       </div>
-                    );
-                  })()}
-                </div>
-              )}
+                    </div>
 
-              {/* Keyword gaps */}
-              {(result.keywordsFound?.length > 0 || result.keywordsMissing?.length > 0) && (
-                <div className="animate-fadeInUp stagger-3">
-                  <h3 className="font-bold text-slate-900 text-lg mb-4">🎯 JD Keyword Analysis</h3>
-                  <KeywordGrid
-                    found={result.keywordsFound ?? []}
-                    missing={result.keywordsMissing ?? []}
-                    label="Keywords from Job Description"
-                  />
-                </div>
-              )}
+                    {/* Top improvements */}
+                    {result.topImprovements?.length > 0 && (
+                      <div className="border-t border-slate-100 px-6 sm:px-8 py-5 bg-amber-50/50">
+                        <p className="text-xs font-bold text-amber-700 uppercase tracking-widest mb-3">🎯 Top 3 improvements to make right now</p>
+                        <ol className="space-y-2">
+                          {result.topImprovements.map((tip, i) => (
+                            <li key={i} className="flex items-start gap-3 text-sm text-amber-900">
+                              <span className="w-5 h-5 rounded-full bg-amber-200 text-amber-800 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
+                              {tip}
+                            </li>
+                          ))}
+                        </ol>
+                      </div>
+                    )}
+                  </div>
 
-              {/* PM vocab */}
-              {(result.pmVocabFound?.length > 0 || result.pmVocabMissing?.length > 0) && (
-                <div className="animate-fadeInUp stagger-4">
-                  <h3 className="font-bold text-slate-900 text-lg mb-4">📝 PM Vocabulary</h3>
-                  <KeywordGrid
-                    found={result.pmVocabFound ?? []}
-                    missing={result.pmVocabMissing ?? []}
-                    label="PM-specific terms and vocabulary"
-                  />
-                </div>
-              )}
-
-              {/* CTA to optimize */}
-              <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[2rem] p-8 text-white animate-fadeInUp stagger-5">
-                <div className="max-w-2xl">
-                  <p className="text-2xl font-bold mb-3">
-                    {result.overallScore >= 80 ? 'Strong score — let\'s make it perfect.' : `${100 - result.overallScore} points left on the table.`}
-                  </p>
-                  <p className="text-blue-100 leading-relaxed mb-6">
-                    The AI optimizer rewrites your summary and every bullet point using the missing JD keywords,
-                    adds implied metrics, strengthens verbs — and gives you a downloadable PDF ready to send.
-                    Your resume text and this JD are already loaded.
-                  </p>
-                  {result.keywordsMissing?.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mb-6">
-                      <span className="text-xs text-blue-200 font-medium self-center">Will inject:</span>
-                      {result.keywordsMissing.slice(0, 8).map(kw => (
-                        <span key={kw} className="bg-white/20 text-white text-xs px-3 py-1.5 rounded-full font-medium">+ {kw}</span>
-                      ))}
+                  {/* Summary analysis */}
+                  {result.summaryAnalysis?.original && (
+                    <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden animate-fadeInUp">
+                      <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                        <h3 className="font-bold text-slate-900">📝 Summary Analysis</h3>
+                        <BulletScoreBadge score={result.summaryAnalysis.score} />
+                      </div>
+                      <div className="p-6 space-y-4">
+                        <div>
+                          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Your current summary</p>
+                          <p className="text-sm text-slate-600 bg-slate-50 border border-slate-200 rounded-xl p-3 leading-relaxed">{result.summaryAnalysis.original}</p>
+                        </div>
+                        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-800">
+                          <strong>Feedback:</strong> {result.summaryAnalysis.feedback}
+                        </div>
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="text-xs font-bold text-blue-700 uppercase tracking-widest">✨ AI-improved summary</p>
+                            <button onClick={async () => { await navigator.clipboard.writeText(result.summaryAnalysis.improved); }}
+                              className="text-xs px-2.5 py-1 bg-blue-50 border border-blue-200 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors font-semibold">
+                              Copy
+                            </button>
+                          </div>
+                          <p className="text-sm text-blue-900 bg-blue-50 border border-blue-200 rounded-xl p-3 leading-relaxed font-medium">{result.summaryAnalysis.improved}</p>
+                        </div>
+                      </div>
                     </div>
                   )}
-                  <button onClick={handleOptimize}
-                    className="bg-white text-blue-700 font-bold px-8 py-4 rounded-2xl hover:bg-blue-50 transition-all shadow-xl shadow-blue-900/20 btn-press text-sm flex items-center gap-2 w-fit">
-                    ✨ Optimize My Resume for This Role →
-                  </button>
+
+                  {/* Bullet analysis grouped by section */}
+                  {result.bulletAnalysis?.length > 0 && (
+                    <div className="animate-fadeInUp stagger-2">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="font-bold text-slate-900 text-lg">⚡ Bullet-by-Bullet Analysis ({result.bulletAnalysis.length})</h3>
+                        <p className="text-xs text-slate-400">Grouped by section · Click any bullet to expand</p>
+                      </div>
+
+                      {(() => {
+                        const grouped = result.bulletAnalysis.reduce((acc, bullet) => {
+                          if (!acc[bullet.section]) acc[bullet.section] = [];
+                          acc[bullet.section]!.push(bullet);
+                          return acc;
+                        }, {} as Record<string, BulletAnalysis[]>);
+
+                        return (
+                          <div className="space-y-6">
+                            {Object.entries(grouped).map(([sectionName, sectionBullets], sectionIdx) => {
+                              const avgScore = Math.round(sectionBullets.reduce((s, b) => s + b.score, 0) / sectionBullets.length);
+                              return (
+                                <div key={sectionName} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                                  <div className="px-5 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                      <h4 className="font-bold text-slate-900">{sectionName}</h4>
+                                      <span className="text-xs text-slate-500">({sectionBullets.length} bullets)</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-xs font-semibold text-slate-500">Avg:</span>
+                                      <span className={`inline-flex items-center justify-center w-8 h-8 rounded-lg font-bold text-sm ${
+                                        avgScore >= 8 ? 'bg-emerald-100 text-emerald-700'
+                                        : avgScore >= 6 ? 'bg-blue-100 text-blue-700'
+                                        : avgScore >= 4 ? 'bg-amber-100 text-amber-700'
+                                        : 'bg-red-100 text-red-700'
+                                      }`}>{avgScore}</span>
+                                    </div>
+                                  </div>
+                                  <div className="divide-y divide-slate-100">
+                                    {sectionBullets.map((bullet, bulletIdx) => (
+                                      <BulletCard key={`${sectionIdx}-${bulletIdx}`} bullet={bullet} index={sectionIdx * 10 + bulletIdx} />
+                                    ))}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
+
+                  {/* Keyword gaps */}
+                  {(result.keywordsFound?.length > 0 || result.keywordsMissing?.length > 0) && (
+                    <div className="animate-fadeInUp stagger-3">
+                      <h3 className="font-bold text-slate-900 text-lg mb-4">🎯 JD Keyword Analysis</h3>
+                      <KeywordGrid
+                        found={result.keywordsFound ?? []}
+                        missing={result.keywordsMissing ?? []}
+                        label="Keywords from Job Description"
+                      />
+                    </div>
+                  )}
+
+                  {/* PM vocab */}
+                  {(result.pmVocabFound?.length > 0 || result.pmVocabMissing?.length > 0) && (
+                    <div className="animate-fadeInUp stagger-4">
+                      <h3 className="font-bold text-slate-900 text-lg mb-4">📝 PM Vocabulary</h3>
+                      <KeywordGrid
+                        found={result.pmVocabFound ?? []}
+                        missing={result.pmVocabMissing ?? []}
+                        label="PM-specific terms and vocabulary"
+                      />
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* ── CTA to optimize ── */}
+              {(atsResult || result) && (
+                <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[2rem] p-8 text-white animate-fadeInUp stagger-5">
+                  <div className="max-w-2xl">
+                    <p className="text-2xl font-bold mb-3">
+                      {(result?.overallScore ?? 0) >= 80 && recruiterAnalysis?.overallAppeal === 'high'
+                        ? 'Strong resume — let\'s make it perfect for this exact JD.'
+                        : 'Now let AI fix all of this automatically.'}
+                    </p>
+                    <p className="text-blue-100 leading-relaxed mb-6">
+                      The optimizer rewrites your summary and every bullet point to fix the
+                      Gate 1 keywords and Gate 2 credibility signals at the same time.
+                      Your resume text and this JD are already loaded.
+                    </p>
+                    {atsResult?.criticalKeywordsToAdd && atsResult.criticalKeywordsToAdd.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mb-6">
+                        <span className="text-xs text-blue-200 font-medium self-center">Will inject:</span>
+                        {atsResult.criticalKeywordsToAdd.slice(0, 6).map(kw => (
+                          <span key={kw} className="bg-white/20 text-white text-xs px-3 py-1.5 rounded-full font-medium">+ {kw}</span>
+                        ))}
+                      </div>
+                    )}
+                    <button onClick={handleOptimize}
+                      className="bg-white text-blue-700 font-bold px-8 py-4 rounded-2xl hover:bg-blue-50 transition-all shadow-xl shadow-blue-900/20 btn-press text-sm flex items-center gap-2 w-fit">
+                      ✨ Optimize My Resume for This Role →
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
 
             </div>
           )}
