@@ -205,7 +205,6 @@ export default function ScorePage() {
   const [pendingAnalyse, setPendingAnalyse] = useState(false);
   const [advancedInsightsEnabled, setAdvancedInsightsEnabled] = useState(false);
   const [advancedResult, setAdvancedResult] = useState<AdvancedInsightsResponse | null>(null);
-  const [advancedError, setAdvancedError] = useState<string | null>(null);
   const resultRef                   = useRef<HTMLDivElement>(null);
 
   // ── Pre-fill from /optimize (user clicked "Check ATS Score" mid-way) ──────────
@@ -247,7 +246,6 @@ export default function ScorePage() {
     setError(null);
     setResult(null);
     setAdvancedResult(null);
-    setAdvancedError(null);
     setIsAnalysing(true);
 
     try {
@@ -291,7 +289,6 @@ export default function ScorePage() {
           setAdvancedResult(advancedData);
         } catch (advancedErr) {
           console.error('Advanced insights failed:', advancedErr);
-          setAdvancedError('Advanced insights are temporarily unavailable. Showing the standard analysis only.');
         }
       }
 
@@ -516,7 +513,10 @@ export default function ScorePage() {
                 />
                 <div>
                   <p className="text-sm font-semibold text-slate-800">Enable Advanced Insights (Beta)</p>
-                  <p className="text-xs text-slate-500">Calls the new beta endpoint only when enabled. Standard analysis remains unchanged if this is off or unavailable.</p>
+                  <p className="text-xs text-slate-500">Calls the new beta endpoint only when enabled. Standard analysis remains unchanged if this is off, unavailable, or the beta request fails.</p>
+                  {!advancedInsightsAvailable && (
+                    <p className="mt-1 text-xs text-slate-400">This beta is currently disabled by feature flag.</p>
+                  )}
                 </div>
               </label>
             </div>
@@ -552,12 +552,6 @@ export default function ScorePage() {
           {isAnalysing && (
             <div className="bg-white rounded-[2rem] border border-slate-200 shadow-xl p-8 mb-6 animate-fadeIn">
               <PMLoadingScreen mode="analyse" />
-            </div>
-          )}
-
-          {advancedError && !isAnalysing && (
-            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-6 text-sm text-amber-800 animate-fadeIn">
-              <strong>Advanced Insights Beta:</strong> {advancedError}
             </div>
           )}
 
