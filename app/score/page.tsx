@@ -84,7 +84,7 @@ function TagPill({ tag }: { tag: string }) {
   );
 }
 
-// ─── Bullet Card (expandable) ───────────────────────────────────────────────────
+// ─── Bullet Card (expandable) - UPDATED FOR SECTION GROUPING ───────────────────
 function BulletCard({ bullet, index }: { bullet: BulletAnalysis; index: number }) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -95,11 +95,9 @@ function BulletCard({ bullet, index }: { bullet: BulletAnalysis; index: number }
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const borderColor = bullet.score >= 8 ? 'border-l-emerald-500' : bullet.score >= 6 ? 'border-l-blue-500' : bullet.score >= 4 ? 'border-l-amber-500' : 'border-l-red-400';
-
   return (
-    <div className={`border border-slate-200 border-l-4 ${borderColor} rounded-2xl bg-white overflow-hidden transition-all duration-200 animate-fadeInUp`}
-      style={{ animationDelay: `${index * 40}ms` }}>
+    <div className="transition-all duration-200 animate-fadeInUp bg-white"
+      style={{ animationDelay: `${index * 20}ms` }}>
 
       {/* Header row */}
       <button
@@ -107,9 +105,8 @@ function BulletCard({ bullet, index }: { bullet: BulletAnalysis; index: number }
         className="w-full flex items-start gap-3 px-4 py-4 text-left hover:bg-slate-50 transition-colors">
         <BulletScoreBadge score={bullet.score} />
         <div className="flex-1 min-w-0">
-          <p className="text-xs text-slate-400 font-semibold uppercase tracking-wide mb-1">{bullet.section}</p>
-          <p className="text-sm text-slate-700 line-clamp-2 leading-relaxed">{bullet.original}</p>
-          <div className="flex flex-wrap gap-1 mt-2">
+          <p className="text-sm text-slate-700 leading-relaxed mb-2">{bullet.original}</p>
+          <div className="flex flex-wrap gap-1">
             {bullet.tags.map(tag => <TagPill key={tag} tag={tag} />)}
           </div>
         </div>
@@ -118,7 +115,7 @@ function BulletCard({ bullet, index }: { bullet: BulletAnalysis; index: number }
 
       {/* Expanded detail */}
       {open && (
-        <div className="border-t border-slate-100 px-4 py-4 space-y-4 animate-fadeIn">
+        <div className="border-t border-slate-100 px-4 py-4 space-y-4 animate-fadeIn bg-slate-50">
           {bullet.strength && (
             <div className="flex items-start gap-2.5 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-3">
               <span className="text-emerald-500 mt-0.5 shrink-0"><CheckIcon /></span>
@@ -630,18 +627,74 @@ export default function ScorePage() {
                 </div>
               )}
 
-              {/* Bullet analysis */}
+              {/* Bullet analysis - SECTION GROUPED */}
               {result.bulletAnalysis?.length > 0 && (
                 <div className="animate-fadeInUp stagger-2">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="font-bold text-slate-900 text-lg">⚡ Bullet-by-Bullet Analysis ({result.bulletAnalysis.length})</h3>
-                    <p className="text-xs text-slate-400">Click any bullet to see full feedback</p>
+                    <p className="text-xs text-slate-400">Grouped by section · Click any bullet to see full feedback</p>
                   </div>
-                  <div className="space-y-3">
-                    {result.bulletAnalysis.map((bullet, i) => (
-                      <BulletCard key={i} bullet={bullet} index={i} />
-                    ))}
-                  </div>
+                  
+                  {/* Group bullets by section */}
+                  {(() => {
+                    // Group bullets by section name
+                    const groupedBullets = result.bulletAnalysis.reduce((acc, bullet) => {
+                      if (!acc[bullet.section]) {
+                        acc[bullet.section] = [];
+                      }
+                      acc[bullet.section]!.push(bullet);
+                      return acc;
+                    }, {} as Record<string, BulletAnalysis[]>);
+
+                    // Get section names and their stats
+                    const sections = Object.keys(groupedBullets).map(sectionName => {
+                      const sectionBullets = groupedBullets[sectionName]!;
+                      const avgScore = Math.round(
+                        sectionBullets.reduce((sum, b) => sum + b.score, 0) / sectionBullets.length
+                      );
+                      return { name: sectionName, bullets: sectionBullets, avgScore };
+                    });
+
+                    return (
+                      <div className="space-y-6">
+                        {sections.map((section, sectionIdx) => (
+                          <div key={section.name} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                            {/* Section header */}
+                            <div className="px-5 py-3 bg-slate-50 border-b border-slate-200">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <h4 className="font-bold text-slate-900">{section.name}</h4>
+                                  <span className="text-xs text-slate-500">({section.bullets.length} bullets)</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-semibold text-slate-500">Avg Score:</span>
+                                  <span className={`inline-flex items-center justify-center w-8 h-8 rounded-lg font-bold text-sm ${
+                                    section.avgScore >= 8 ? 'bg-emerald-100 text-emerald-700'
+                                    : section.avgScore >= 6 ? 'bg-blue-100 text-blue-700'
+                                    : section.avgScore >= 4 ? 'bg-amber-100 text-amber-700'
+                                    : 'bg-red-100 text-red-700'
+                                  }`}>
+                                    {section.avgScore}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Section bullets */}
+                            <div className="divide-y divide-slate-100">
+                              {section.bullets.map((bullet, bulletIdx) => (
+                                <BulletCard 
+                                  key={`${sectionIdx}-${bulletIdx}`}
+                                  bullet={bullet} 
+                                  index={sectionIdx * 10 + bulletIdx}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
 
