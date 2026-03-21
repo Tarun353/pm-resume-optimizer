@@ -17,7 +17,7 @@ const PLANS = [
     price: 19,
     duration: '24 hours',
     popular: false,
-    features: ['Unlimited downloads', 'All features included', '24 hour access'],
+    features: ['Unlimited optimizations', 'Unlimited analyses', 'Unlimited downloads', '24 hour access'],
   },
   {
     key: '10days',
@@ -25,7 +25,7 @@ const PLANS = [
     price: 49,
     duration: '10 days',
     popular: true,
-    features: ['Unlimited downloads', 'All features included', '10 days access', 'Best value!'],
+    features: ['Unlimited optimizations', 'Unlimited analyses', 'Unlimited downloads', '10 days access', 'Best value!'],
   },
   {
     key: '1month',
@@ -33,7 +33,7 @@ const PLANS = [
     price: 139,
     duration: '30 days',
     popular: false,
-    features: ['Unlimited downloads', 'All features included', '30 days access', 'Maximum flexibility'],
+    features: ['Unlimited optimizations', 'Unlimited analyses', 'Unlimited downloads', '30 days access', 'Maximum flexibility'],
   },
 ];
 
@@ -79,11 +79,6 @@ export function PaymentModal({ isOpen, onClose, onSuccess }: PaymentModalProps) 
       const plan = PLANS.find(p => p.key === selectedPlan);
       if (!plan) throw new Error('Invalid plan');
 
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      if (!authUser?.id) {
-        throw new Error('Unauthorized');
-      }
-      // Get the Supabase session and token
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
 
@@ -94,10 +89,7 @@ export function PaymentModal({ isOpen, onClose, onSuccess }: PaymentModalProps) 
           'Content-Type': 'application/json',
           ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({
-          userId: authUser.id,
-          plan: selectedPlan,
-        }),
+        body: JSON.stringify({ plan: selectedPlan }),
       });
 
       if (!res.ok) {
@@ -118,8 +110,9 @@ export function PaymentModal({ isOpen, onClose, onSuccess }: PaymentModalProps) 
           key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
           amount: amount,
           currency: currency,
-          name: 'ResumeForge',
-          description: `${plan.name} - Unlimited Downloads`,
+          // ✅ FIXED: Product name now matches the website
+          name: 'PM Resume Optimizer',
+          description: `${plan.name} — Unlimited Access`,
           order_id: orderId,
           prefill: {
             email: user.email,
@@ -129,7 +122,6 @@ export function PaymentModal({ isOpen, onClose, onSuccess }: PaymentModalProps) 
           },
           handler: async (response: any) => {
             try {
-              // Verify payment on backend
               const verifyRes = await fetch('/api/payment/verify', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -141,14 +133,9 @@ export function PaymentModal({ isOpen, onClose, onSuccess }: PaymentModalProps) 
                 }),
               });
 
-              if (!verifyRes.ok) {
-                throw new Error('Payment verification failed');
-              }
+              if (!verifyRes.ok) throw new Error('Payment verification failed');
 
-              // Refresh user data
               await refreshUser();
-
-              // Success!
               onSuccess();
               onClose();
             } catch (err) {
@@ -156,9 +143,7 @@ export function PaymentModal({ isOpen, onClose, onSuccess }: PaymentModalProps) 
             }
           },
           modal: {
-            ondismiss: () => {
-              setLoading(false);
-            },
+            ondismiss: () => { setLoading(false); },
           },
         };
 
@@ -168,11 +153,11 @@ export function PaymentModal({ isOpen, onClose, onSuccess }: PaymentModalProps) 
       };
 
       script.onerror = () => {
-        setError('Failed to load payment gateway');
+        setError('Failed to load payment gateway. Please try again.');
         setLoading(false);
       };
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Payment failed');
+      setError(err instanceof Error ? err.message : 'Payment failed. Please try again.');
       setLoading(false);
     }
   };
@@ -180,18 +165,16 @@ export function PaymentModal({ isOpen, onClose, onSuccess }: PaymentModalProps) 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-auto">
+
         {/* Header */}
         <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
           <div>
-            <h2 className="font-bold text-slate-900 text-xl">Unlock Unlimited Downloads</h2>
+            <h2 className="font-bold text-slate-900 text-xl">Unlock Unlimited Access</h2>
             <p className="text-sm text-slate-500 mt-1">
-              You've used your 5 free downloads. Choose a plan to continue!
+              You've used your 5 free actions. Upgrade to continue optimizing.
             </p>
           </div>
-          <button
-            onClick={onClose}
-            aria-label="Close payment modal"
-            className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+          <button onClick={onClose} aria-label="Close" className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
             <CloseIcon />
           </button>
         </div>
@@ -213,7 +196,7 @@ export function PaymentModal({ isOpen, onClose, onSuccess }: PaymentModalProps) 
                     Most Popular
                   </div>
                 )}
-                
+
                 <div className="mb-4">
                   <h3 className="font-bold text-slate-900 text-lg mb-1">{plan.name}</h3>
                   <p className="text-xs text-slate-500">{plan.duration}</p>
@@ -251,17 +234,23 @@ export function PaymentModal({ isOpen, onClose, onSuccess }: PaymentModalProps) 
             </div>
           )}
 
-          {/* Payment Info */}
+          {/* Trust signals — key for payment conversion */}
           <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-6">
-            <div className="flex items-start gap-3">
-              <span className="text-2xl">🔒</span>
-              <div>
-                <p className="text-sm font-semibold text-slate-900 mb-1">
-                  Secure Payment via Razorpay
-                </p>
-                <p className="text-xs text-slate-600">
-                  Supports UPI, Cards, Net Banking, and Wallets. Your payment information is encrypted and secure.
-                </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+              <div className="flex flex-col items-center gap-1">
+                <span className="text-xl">🔒</span>
+                <p className="text-xs font-semibold text-slate-700">Secure Payment</p>
+                <p className="text-xs text-slate-500">Powered by Razorpay</p>
+              </div>
+              <div className="flex flex-col items-center gap-1">
+                <span className="text-xl">⚡</span>
+                <p className="text-xs font-semibold text-slate-700">Instant Activation</p>
+                <p className="text-xs text-slate-500">Access in seconds</p>
+              </div>
+              <div className="flex flex-col items-center gap-1">
+                <span className="text-xl">💳</span>
+                <p className="text-xs font-semibold text-slate-700">All Payment Methods</p>
+                <p className="text-xs text-slate-500">UPI, Cards, Net Banking</p>
               </div>
             </div>
           </div>
@@ -270,16 +259,11 @@ export function PaymentModal({ isOpen, onClose, onSuccess }: PaymentModalProps) 
           <button
             onClick={handlePayment}
             disabled={loading}
-            className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-slate-300 disabled:to-slate-400 text-white rounded-xl text-sm">
+            className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-slate-300 disabled:to-slate-400 text-white rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2">
             {loading ? (
-              <>
-                <SpinnerIcon />
-                Processing...
-              </>
+              <><SpinnerIcon /><span className="ml-2">Processing...</span></>
             ) : (
-              <>
-                💳 Proceed to Payment - ₹{PLANS.find(p => p.key === selectedPlan)?.price}
-              </>
+              <>💳 Pay ₹{PLANS.find(p => p.key === selectedPlan)?.price} — Instant Access</>
             )}
           </button>
 
@@ -293,6 +277,4 @@ export function PaymentModal({ isOpen, onClose, onSuccess }: PaymentModalProps) 
       </div>
     </div>
   );
-
-  // rebuild trigger
 }
