@@ -2216,7 +2216,7 @@ export default function HomePage() {
               </div>
             </div>
             <p className="text-center text-xs text-slate-300 mt-3">
-              Resume data processed server-side only · Never stored · Powered by Groq AI · LlamaParse · Puppeteer
+              Your data is processed securely and never stored · Resume content never shared · 256-bit encrypted
             </p>
           </div>
         </div>
