@@ -535,7 +535,11 @@ export default function LandingPage() {
                   onMouseLeave={() => setHoveredCard(null)}
                   onClick={() => handlePlanClick(plan.key)}
                   style={{
-                    animation: pricingRef.inView ? `cardReveal 0.7s ${0.1 + i * 0.12}s cubic-bezier(0.22,1,0.36,1) both` : 'none',
+                    animation: plan.popular
+                      ? 'borderGlow 3s ease-in-out infinite'
+                      : pricingRef.inView
+                        ? `cardReveal 0.7s ${0.1 + i * 0.12}s cubic-bezier(0.22,1,0.36,1) both`
+                        : 'none',
                     opacity: pricingRef.inView ? undefined : 0,
                     background: plan.popular
                       ? 'linear-gradient(145deg, rgba(109,40,217,0.25), rgba(79,70,229,0.2), rgba(15,10,40,0.9))'
@@ -546,7 +550,6 @@ export default function LandingPage() {
                     borderColor: plan.popular && (hoveredCard === plan.key)
                       ? 'rgba(139,92,246,0.6)'
                       : undefined,
-                    animation: plan.popular ? 'borderGlow 3s ease-in-out infinite' : undefined,
                   }}
                 >
                   {/* Popular glow backdrop */}
