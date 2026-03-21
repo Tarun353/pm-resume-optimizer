@@ -288,8 +288,12 @@ export async function smartAICall(
         if (name !== 'Groq') {
           console.warn(`[aiClient] ⚠️  Primary Groq unavailable — used ${name} as fallback`);
         }
-        // ── Strip markdown from ALL models, every time, forever ──
-        return stripMarkdown(result);
+        // ── Strip markdown from text responses only ──
+        // JSON responses (from /api/analyse etc.) must NOT be stripped
+        // because regex patterns can corrupt JSON structure
+        const trimmed = result.trim();
+        const isJSON = trimmed.startsWith('{') || trimmed.startsWith('[');
+        return isJSON ? trimmed : stripMarkdown(result);
       }
     } catch (err) {
       const limited = is429(err);
