@@ -46,51 +46,91 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-// ─── Step definitions ─────────────────────────────────────────────────────────
-interface Step {
-  icon: string;
-  label: string;
-}
+// ─── Step definitions per mode ────────────────────────────────────────────────
+interface Step { icon: string; label: string; }
 
 const OPTIMIZE_STEPS: Step[] = [
   { icon: '📄', label: 'Reading your resume...' },
-  { icon: '🔍', label: 'Extracting key achievements...' },
-  { icon: '🎯', label: 'Matching against job description...' },
+  { icon: '🔍', label: 'Understanding the job description...' },
+  { icon: '🎯', label: 'Matching your experience to the role...' },
   { icon: '✍️', label: 'Rewriting your summary...' },
-  { icon: '⚡', label: 'Supercharging your bullets...' },
-  { icon: '🔑', label: 'Injecting keywords...' },
-  { icon: '✨', label: 'Polishing final output...' },
+  { icon: '⚡', label: 'Strengthening your bullets...' },
+  { icon: '🔑', label: 'Weaving in the right keywords...' },
+  { icon: '✨', label: 'Polishing your final resume...' },
 ];
 
 const ANALYSE_STEPS: Step[] = [
   { icon: '📄', label: 'Reading your resume...' },
   { icon: '🔍', label: 'Extracting every bullet point...' },
-  { icon: '🎯', label: 'Comparing against job description...' },
-  { icon: '📊', label: 'Scoring PM vocabulary & metrics...' },
+  { icon: '🎯', label: 'Comparing against the job description...' },
+  { icon: '📊', label: 'Checking PM keywords and vocabulary...' },
   { icon: '🧠', label: 'Analysing each bullet individually...' },
   { icon: '💡', label: 'Generating improvement suggestions...' },
   { icon: '✨', label: 'Preparing your full report...' },
 ];
 
 const COVER_LETTER_STEPS: Step[] = [
-  { icon: '📄', label: 'Reading your resume...' },
-  { icon: '🎯', label: 'Aligning with the job description...' },
-  { icon: '✍️', label: 'Drafting a tailored opening...' },
-  { icon: '💼', label: 'Highlighting your PM wins...' },
-  { icon: '✨', label: 'Polishing your final cover letter...' },
+  { icon: '📄', label: 'Reading your background...' },
+  { icon: '🎯', label: 'Aligning with the role requirements...' },
+  { icon: '✍️', label: 'Crafting a compelling opening...' },
+  { icon: '💼', label: 'Highlighting your strongest wins...' },
+  { icon: '✨', label: 'Polishing your cover letter...' },
 ];
 
 const DOWNLOAD_STEPS: Step[] = [
   { icon: '📄', label: 'Preparing your document...' },
-  { icon: '🎨', label: 'Applying the final layout...' },
-  { icon: '🧾', label: 'Rendering a clean PDF...' },
-  { icon: '🔒', label: 'Finalizing your download...' },
+  { icon: '🎨', label: 'Applying professional formatting...' },
+  { icon: '🧾', label: 'Rendering a clean, ATS-friendly PDF...' },
+  { icon: '🔒', label: 'Almost ready...' },
 ];
+
+// ─── Fun facts shown while waiting — feels productive, not slow ───────────────
+const FUN_FACTS = [
+  "PM resumes with 50%+ quantified bullets get 3× more recruiter callbacks.",
+  "The average recruiter spends 6 seconds on a resume before deciding.",
+  "Resumes with a tailored summary get 40% more responses than generic ones.",
+  "Action verbs like 'drove' and 'launched' outperform 'responsible for' by a wide margin.",
+  "JD-keyword alignment is the #1 factor in passing automated screening.",
+  "Top PM resumes average 2–3 metrics per job entry.",
+  "A resume without a summary forces the recruiter to piece together your story themselves.",
+  "Most PM candidates have great experience but frame it as tasks, not outcomes.",
+];
+
+// ─── Progress bar that feels smooth even when we don't know actual progress ───
+function SmoothProgressBar({ mode }: { mode: string }) {
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    setProgress(0);
+    // Quick initial jump to ~15% (feels responsive)
+    const initial = setTimeout(() => setProgress(15), 300);
+
+    // Slow crawl to ~75% (feels like real work is happening)
+    const crawl = setInterval(() => {
+      setProgress(p => {
+        if (p >= 75) { clearInterval(crawl); return p; }
+        // Slower as we approach 75% — feels more realistic
+        const increment = p < 40 ? 3 : p < 60 ? 1.5 : 0.5;
+        return Math.min(75, p + increment);
+      });
+    }, 600);
+
+    return () => { clearTimeout(initial); clearInterval(crawl); };
+  }, [mode]);
+
+  return (
+    <div className="w-full h-1 bg-slate-100 rounded-full overflow-hidden">
+      <div
+        className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full transition-all duration-700 ease-out"
+        style={{ width: `${progress}%` }}
+      />
+    </div>
+  );
+}
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 interface PMLoadingProps {
   mode?: 'optimize' | 'analyse' | 'cover-letter' | 'download';
-  /** Optional override message shown above the step ticker */
   message?: string;
 }
 
@@ -108,17 +148,22 @@ export function PMLoadingScreen({ mode = 'optimize', message }: PMLoadingProps) 
   const jokeQueueRef = useRef<typeof PM_JOKES>(shuffle(PM_JOKES));
   const jokeIndexRef = useRef(0);
   const [joke, setJoke] = useState(jokeQueueRef.current[0]!);
-  const [jokePhase, setJokePhase] = useState<'setup' | 'punchline' | 'fade-out'>('setup');
+  const [jokePhase, setJokePhase] = useState<'setup' | 'punchline'>('setup');
   const [jokeVisible, setJokeVisible] = useState(true);
 
   // Step state
   const [stepIndex, setStepIndex] = useState(0);
   const [stepVisible, setStepVisible] = useState(true);
 
-  // Dot animation
+  // Fun fact state (NEW — feels productive while waiting)
+  const [factIndex, setFactIndex] = useState(Math.floor(Math.random() * FUN_FACTS.length));
+  const [factVisible, setFactVisible] = useState(false);
+  const [showFact, setShowFact] = useState(false);
+
+  // Dots ticker
   const [dots, setDots] = useState('');
 
-  // ── Dots ticker ──────────────────────────────────────────────────────────────
+  // ── Dots ─────────────────────────────────────────────────────────────────
   useEffect(() => {
     const id = setInterval(() => {
       setDots(d => (d.length >= 3 ? '' : d + '.'));
@@ -126,7 +171,7 @@ export function PMLoadingScreen({ mode = 'optimize', message }: PMLoadingProps) 
     return () => clearInterval(id);
   }, []);
 
-  // ── Step ticker ──────────────────────────────────────────────────────────────
+  // ── Step ticker (every 3s) ────────────────────────────────────────────────
   useEffect(() => {
     const id = setInterval(() => {
       setStepVisible(false);
@@ -138,17 +183,38 @@ export function PMLoadingScreen({ mode = 'optimize', message }: PMLoadingProps) 
     return () => clearInterval(id);
   }, [steps.length]);
 
-  // ── Joke cycle: setup (~5s) → punchline (~6s) → fade → next ─────────────────
+  // ── Show fun fact after 8 seconds (user is still waiting, give them value) ─
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowFact(true);
+      setFactVisible(true);
+    }, 8000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // ── Rotate fun fact every 12s ─────────────────────────────────────────────
+  useEffect(() => {
+    if (!showFact) return;
+    const id = setInterval(() => {
+      setFactVisible(false);
+      setTimeout(() => {
+        setFactIndex(i => (i + 1) % FUN_FACTS.length);
+        setFactVisible(true);
+      }, 500);
+    }, 12000);
+    return () => clearInterval(id);
+  }, [showFact]);
+
+  // ── Joke cycle: setup (5s) → punchline (6s) → next ───────────────────────
   useEffect(() => {
     let timer: NodeJS.Timeout;
 
     if (jokePhase === 'setup') {
       timer = setTimeout(() => setJokePhase('punchline'), 5000);
-    } else if (jokePhase === 'punchline') {
+    } else {
       timer = setTimeout(() => {
         setJokeVisible(false);
-        timer = setTimeout(() => {
-          // Pick next joke
+        setTimeout(() => {
           jokeIndexRef.current += 1;
           if (jokeIndexRef.current >= jokeQueueRef.current.length) {
             jokeQueueRef.current = shuffle(PM_JOKES);
@@ -166,25 +232,23 @@ export function PMLoadingScreen({ mode = 'optimize', message }: PMLoadingProps) 
 
   const currentStep = steps[stepIndex]!;
 
+  const modeLabel = mode === 'analyse'
+    ? 'Analysing your resume'
+    : mode === 'cover-letter'
+    ? 'Writing your cover letter'
+    : mode === 'download'
+    ? 'Preparing your PDF'
+    : 'Optimizing your resume';
+
   return (
     <div className="bg-white rounded-[2rem] border border-slate-200 shadow-xl overflow-hidden animate-fadeIn">
 
-      {/* ── Top animated bar ── */}
-      <div className="h-1 bg-slate-100 relative overflow-hidden">
-        <div
-          className="absolute inset-y-0 left-0 bg-gradient-to-r from-blue-500 via-indigo-500 to-violet-500"
-          style={{
-            width: '40%',
-            animation: 'loadingSlide 1.8s ease-in-out infinite',
-          }}
-        />
+      {/* ── Top smooth progress bar ── */}
+      <div className="px-6 pt-5 pb-0">
+        <SmoothProgressBar mode={mode} />
       </div>
 
       <style>{`
-        @keyframes loadingSlide {
-          0%   { transform: translateX(-100%); }
-          100% { transform: translateX(350%); }
-        }
         @keyframes floatOrb {
           0%, 100% { transform: translateY(0px) scale(1); }
           50%       { transform: translateY(-12px) scale(1.05); }
@@ -219,6 +283,10 @@ export function PMLoadingScreen({ mode = 'optimize', message }: PMLoadingProps) 
           from { transform: rotate(0deg) translateX(20px) rotate(0deg); }
           to   { transform: rotate(-360deg) translateX(20px) rotate(360deg); }
         }
+        @keyframes factFadeIn {
+          from { opacity: 0; transform: translateY(8px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
       `}</style>
 
       <div className="p-8">
@@ -226,96 +294,72 @@ export function PMLoadingScreen({ mode = 'optimize', message }: PMLoadingProps) 
         {/* ── Orb animation ── */}
         <div className="flex justify-center mb-8">
           <div className="relative w-24 h-24 flex items-center justify-center">
-            {/* Outer pulsing ring */}
-            <div
-              className="absolute w-24 h-24 rounded-full border-2 border-blue-200"
-              style={{ animation: 'pulseRing 2s ease-in-out infinite' }}
-            />
-            {/* Middle ring */}
-            <div
-              className="absolute w-16 h-16 rounded-full border-2 border-indigo-300"
-              style={{ animation: 'pulseRing 2s ease-in-out infinite 0.4s' }}
-            />
-            {/* Center orb */}
-            <div
-              className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/30 text-xl"
-              style={{ animation: 'floatOrb 3s ease-in-out infinite' }}
-            >
+            <div className="absolute w-24 h-24 rounded-full border-2 border-blue-200"
+              style={{ animation: 'pulseRing 2s ease-in-out infinite' }} />
+            <div className="absolute w-16 h-16 rounded-full border-2 border-indigo-300"
+              style={{ animation: 'pulseRing 2s ease-in-out infinite 0.4s' }} />
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/30 text-xl"
+              style={{ animation: 'floatOrb 3s ease-in-out infinite' }}>
               {mode === 'analyse' ? '🔍' : mode === 'cover-letter' ? '✉️' : mode === 'download' ? '⬇️' : '✨'}
             </div>
-            {/* Orbiting dot 1 */}
-            <div
-              className="absolute w-3 h-3 rounded-full bg-blue-400 shadow-sm"
-              style={{ animation: 'orbit 3s linear infinite', top: '50%', left: '50%', marginTop: '-6px', marginLeft: '-6px' }}
-            />
-            {/* Orbiting dot 2 */}
-            <div
-              className="absolute w-2 h-2 rounded-full bg-violet-400 shadow-sm"
-              style={{ animation: 'orbitReverse 2s linear infinite', top: '50%', left: '50%', marginTop: '-4px', marginLeft: '-4px' }}
-            />
+            <div className="absolute w-3 h-3 rounded-full bg-blue-400 shadow-sm"
+              style={{ animation: 'orbit 3s linear infinite', top: '50%', left: '50%', marginTop: '-6px', marginLeft: '-6px' }} />
+            <div className="absolute w-2 h-2 rounded-full bg-violet-400 shadow-sm"
+              style={{ animation: 'orbitReverse 2s linear infinite', top: '50%', left: '50%', marginTop: '-4px', marginLeft: '-4px' }} />
           </div>
         </div>
 
         {/* ── Title ── */}
         <div className="text-center mb-2">
           <p className="font-bold text-slate-900 text-lg">
-            {message || (mode === 'analyse'
-              ? 'AI is analysing your resume'
-              : mode === 'cover-letter'
-              ? 'Crafting your cover letter'
-              : mode === 'download'
-              ? 'Preparing your download'
-              : 'AI is optimizing your resume')}
+            {message || modeLabel}
             <span className="text-blue-500 font-normal">{dots}</span>
           </p>
         </div>
 
         {/* ── Step ticker ── */}
-        <div className="flex items-center justify-center gap-2 mb-8 h-6">
-          <div
-            style={{
-              animation: stepVisible ? 'fadeSlideUp 0.4s ease forwards' : 'fadeSlideDown 0.3s ease forwards',
-            }}
-            className="flex items-center gap-2 text-sm text-slate-500"
-          >
+        <div className="flex items-center justify-center gap-2 mb-6 h-6">
+          <div style={{
+            animation: stepVisible ? 'fadeSlideUp 0.4s ease forwards' : 'fadeSlideDown 0.3s ease forwards',
+          }} className="flex items-center gap-2 text-sm text-slate-500">
             <span>{currentStep.icon}</span>
             <span>{currentStep.label}</span>
           </div>
         </div>
 
+        {/* ── Fun fact (appears after 8s — makes wait feel educational) ── */}
+        {showFact && (
+          <div style={{
+            opacity: factVisible ? 1 : 0,
+            transform: factVisible ? 'translateY(0)' : 'translateY(8px)',
+            transition: 'opacity 0.5s ease, transform 0.5s ease',
+          }} className="mb-5 bg-blue-50 border border-blue-200 rounded-2xl px-4 py-3">
+            <p className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-1">💡 Did you know?</p>
+            <p className="text-sm text-blue-800 leading-relaxed">{FUN_FACTS[factIndex]}</p>
+          </div>
+        )}
+
         {/* ── Joke card ── */}
         <div className="bg-gradient-to-br from-slate-50 to-blue-50/40 border border-slate-200 rounded-2xl p-5 min-h-[110px] flex flex-col justify-center relative overflow-hidden">
-          {/* Decorative quote mark */}
           <div className="absolute top-3 left-4 text-5xl text-blue-100 font-serif leading-none select-none">"</div>
 
-          <div
-            style={{
-              transition: 'opacity 0.5s ease, transform 0.5s ease',
-              opacity: jokeVisible ? 1 : 0,
-              transform: jokeVisible ? 'translateY(0)' : 'translateY(-6px)',
-            }}
-          >
-            {/* Setup */}
-            <p
-              className="text-sm text-slate-600 text-center relative z-10 mb-2"
-              style={jokePhase !== 'setup' ? {} : { animation: 'jokeFadeIn 0.5s ease forwards' }}
-            >
+          <div style={{
+            transition: 'opacity 0.5s ease, transform 0.5s ease',
+            opacity: jokeVisible ? 1 : 0,
+            transform: jokeVisible ? 'translateY(0)' : 'translateY(-6px)',
+          }}>
+            <p className="text-sm text-slate-600 text-center relative z-10 mb-2"
+              style={jokePhase !== 'setup' ? {} : { animation: 'jokeFadeIn 0.5s ease forwards' }}>
               {joke.setup}
             </p>
-
-            {/* Punchline — only visible in punchline phase */}
-            <div
-              style={{
-                transition: 'opacity 0.4s ease, transform 0.4s ease, max-height 0.4s ease',
-                opacity: jokePhase === 'punchline' ? 1 : 0,
-                maxHeight: jokePhase === 'punchline' ? '60px' : '0px',
-                overflow: 'hidden',
-              }}
-            >
-              <p
-                className="text-sm font-bold text-blue-700 text-center"
-                style={{ animation: jokePhase === 'punchline' ? 'punchFadeIn 0.5s ease forwards' : 'none' }}
-              >
+            <div style={{
+              transition: 'opacity 0.4s ease, transform 0.4s ease, max-height 0.4s ease',
+              opacity: jokePhase === 'punchline' ? 1 : 0,
+              maxHeight: jokePhase === 'punchline' ? '60px' : '0px',
+              overflow: 'hidden',
+            }}>
+              <p className="text-sm font-bold text-blue-700 text-center"
+                style={{ animation: jokePhase === 'punchline' ? 'punchFadeIn 0.5s ease forwards' : 'none' }}>
                 {joke.punchline}
               </p>
             </div>
@@ -325,21 +369,18 @@ export function PMLoadingScreen({ mode = 'optimize', message }: PMLoadingProps) 
         {/* ── Progress dots ── */}
         <div className="flex justify-center gap-2 mt-5">
           {steps.map((_, i) => (
-            <div
-              key={i}
-              className="rounded-full transition-all duration-500"
+            <div key={i} className="rounded-full transition-all duration-500"
               style={{
                 width: i === stepIndex ? '20px' : '6px',
                 height: '6px',
                 backgroundColor: i === stepIndex ? '#3b82f6' : '#e2e8f0',
-              }}
-            />
+              }} />
           ))}
         </div>
 
-        {/* ── Disclaimer ── */}
+        {/* ── Reassurance line — NO time estimate, just calm reassurance ── */}
         <p className="text-xs text-slate-400 text-center mt-4">
-          This usually takes 20–40 seconds · Good things take time 🙏
+          Our AI is doing the heavy lifting — sit back and relax 🙏
         </p>
       </div>
     </div>
