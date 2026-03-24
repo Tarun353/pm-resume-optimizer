@@ -104,12 +104,15 @@ const PLANS = [
 ];
 
 const CONTACT_METHODS = [
-  { label: 'Mobile', href: 'tel:+916200825883', icon: '📞', external: false },
-  { label: 'Email', href: 'mailto:pmresumeoptimizer@gmail.com', icon: '✉️', external: false },
-  { label: 'Instagram', href: 'https://www.instagram.com/pmresumeoptimizer/', icon: '📸', external: true },
-  { label: 'Reddit', href: 'https://www.reddit.com/user/PM-RESUME-OPTIMIZER/', icon: '👽', external: true },
-  { label: 'X', href: 'https://x.com/pmresumeai', icon: '𝕏', external: true },
-  { label: 'LinkedIn', href: 'https://www.linkedin.com/company/pm-resume-optimizer/about/?viewAsMember=true', icon: '💼', external: true },
+  { label: 'Phone', href: 'tel:+916200825883', icon: PhoneIcon },
+  { label: 'Email', href: 'mailto:pmresumeoptimizer@gmail.com', icon: MailIcon },
+];
+
+const SOCIAL_LINKS = [
+  { label: 'Instagram', href: 'https://www.instagram.com/pmresumeoptimizer/', icon: InstagramIcon },
+  { label: 'Reddit', href: 'https://www.reddit.com/user/PM-RESUME-OPTIMIZER/', icon: RedditIcon },
+  { label: 'X', href: 'https://x.com/pmresumeai', icon: XIcon },
+  { label: 'LinkedIn', href: 'https://www.linkedin.com/company/pm-resume-optimizer/about/?viewAsMember=true', icon: LinkedInIcon },
 ];
 
 // ── Particle component ───────────────────────────────────────────────────────
@@ -717,39 +720,126 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="relative z-10 px-6 py-12 border-t border-slate-200 bg-white">
-          <div className="max-w-6xl mx-auto">
-            <h3 className="text-center text-sm font-bold text-slate-700 hero-text mb-6">Contact Us</h3>
-            <div className="grid grid-cols-3 gap-4 max-w-xs mx-auto sm:max-w-none sm:flex sm:flex-wrap sm:justify-center sm:gap-6">
-              {CONTACT_METHODS.map(({ label, href, icon, external }) => (
-                <a
-                  key={label}
-                  href={href}
-                  aria-label={label}
-                  target={external ? '_blank' : undefined}
-                  rel={external ? 'noopener noreferrer' : undefined}
-                  className="w-12 h-12 rounded-xl border border-slate-200 bg-white text-slate-700 hover:text-blue-600 hover:border-blue-200 flex items-center justify-center text-xl transition-all duration-200 hover:scale-110"
-                >
-                  <span aria-hidden="true">{icon}</span>
-                </a>
-              ))}
-            </div>
-          </div>
-        </section>
-
         {/* ── Footer ───────────────────────────────────────────────────── */}
-        <footer className="relative z-10 border-t border-slate-200 px-6 py-7">
-          <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
-            <span className="hero-text">© {new Date().getFullYear()} PM Resume Optimizer</span>
-            <div className="flex gap-5">
-              {[['Privacy', '/privacy'], ['Terms', '/terms'], ['Check Score', '/score'], ['Optimize', '/optimize']].map(([l, h]) => (
-                <Link key={l} href={h} className="hover:text-slate-900 transition-colors">{l}</Link>
-              ))}
+        <footer className="relative z-10 w-full bg-[#1E3A8A] px-6 pt-16 pb-12">
+          <div className="max-w-6xl mx-auto">
+            <div className="grid grid-cols-1 gap-10 text-center sm:grid-cols-2 lg:grid-cols-3 lg:text-left">
+              <div>
+                <h3 className="hero-text text-xl font-bold text-white mb-4">About Us</h3>
+                <p className="body-text text-sm leading-relaxed text-[#CBD5F5] max-w-sm mx-auto lg:mx-0">
+                  Built for Product Managers to optimize resumes with real insights.
+                </p>
+              </div>
+
+              <div>
+                <h3 className="hero-text text-xl font-bold text-white mb-4">Contact Us</h3>
+                <div className="flex flex-wrap justify-center lg:justify-start gap-3">
+                  {CONTACT_METHODS.map(({ label, href, icon: Icon }) => (
+                    <a
+                      key={label}
+                      href={href}
+                      aria-label={label}
+                      className="w-12 h-12 rounded-xl border border-white/20 bg-white/10 text-white flex items-center justify-center text-xl transition-all duration-200 hover:bg-white/20 hover:scale-110"
+                    >
+                      <Icon aria-hidden="true" />
+                    </a>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <h3 className="hero-text text-xl font-bold text-white mb-4">Follow Us</h3>
+                <div className="flex flex-wrap justify-center lg:justify-start gap-3">
+                  {SOCIAL_LINKS.map(({ label, href, icon: Icon }) => (
+                    <a
+                      key={label}
+                      href={href}
+                      aria-label={label}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-12 h-12 rounded-xl border border-white/20 bg-white/10 text-white flex items-center justify-center text-xl transition-all duration-200 hover:bg-white/20 hover:scale-110"
+                    >
+                      <Icon aria-hidden="true" />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-10 border-t border-white/20 pt-6">
+              <div className="flex flex-col items-center gap-3">
+                <div className="flex items-center gap-5 text-xs text-[#CBD5F5]">
+                  <Link href="/privacy" className="hover:text-white transition-colors">
+                    Privacy Policy
+                  </Link>
+                  <Link href="/terms" className="hover:text-white transition-colors">
+                    Terms
+                  </Link>
+                </div>
+                <p className="hero-text text-center text-xs text-[#CBD5F5]">© 2026 PM Resume Optimizer</p>
+              </div>
             </div>
           </div>
         </footer>
 
       </div>
     </>
+  );
+}
+type IconProps = { className?: string };
+
+function PhoneIcon({ className = 'w-5 h-5' }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className} aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M22 16.92V20a2 2 0 0 1-2.18 2 19.84 19.84 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.84 19.84 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3.09a2 2 0 0 1 2 1.72c.12.9.33 1.78.62 2.63a2 2 0 0 1-.45 2.11L8.1 9.91a16 16 0 0 0 6 6l1.45-1.27a2 2 0 0 1 2.11-.45c.85.29 1.73.5 2.63.62A2 2 0 0 1 22 16.92Z" />
+    </svg>
+  );
+}
+
+function MailIcon({ className = 'w-5 h-5' }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className} aria-hidden="true">
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="m3 7 9 6 9-6" />
+    </svg>
+  );
+}
+
+function InstagramIcon({ className = 'w-5 h-5' }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className} aria-hidden="true">
+      <rect x="3" y="3" width="18" height="18" rx="5" />
+      <circle cx="12" cy="12" r="4" />
+      <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+function RedditIcon({ className = 'w-5 h-5' }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className} aria-hidden="true">
+      <circle cx="12" cy="13" r="6" />
+      <circle cx="9.5" cy="12.5" r="0.7" fill="currentColor" stroke="none" />
+      <circle cx="14.5" cy="12.5" r="0.7" fill="currentColor" stroke="none" />
+      <path strokeLinecap="round" d="M9.5 15c.6.5 1.4.8 2.5.8s1.9-.3 2.5-.8" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M14.7 7.7 16 5l2 1" />
+      <circle cx="18.5" cy="6" r="1" />
+    </svg>
+  );
+}
+
+function XIcon({ className = 'w-5 h-5' }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+      <path d="M18.244 2H21l-6.56 7.497L22 22h-6.172l-4.834-6.29L5.47 22H2.71l7.015-8.016L2 2h6.329l4.37 5.79L18.244 2Zm-2.165 18h1.698L7.401 3.894H5.58L16.079 20Z" />
+    </svg>
+  );
+}
+
+function LinkedInIcon({ className = 'w-5 h-5' }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+      <path d="M6.94 8.75H3.56V20h3.38V8.75ZM5.25 3A2.01 2.01 0 0 0 3.2 5c0 1.1.9 2 2.02 2h.03a2 2 0 1 0 0-4ZM20 13.2c0-3.03-1.62-4.45-3.79-4.45-1.74 0-2.53.96-2.97 1.64v-1.4H9.86c.04.92 0 11.01 0 11.01h3.38v-6.14c0-.33.03-.65.12-.89.26-.65.85-1.31 1.85-1.31 1.31 0 1.83.99 1.83 2.44V20H20v-6.8Z" />
+    </svg>
   );
 }
