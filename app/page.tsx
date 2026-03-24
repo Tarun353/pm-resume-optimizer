@@ -197,7 +197,7 @@ export default function LandingPage() {
         .body-text  { font-family: 'DM Sans', sans-serif; }
 
         .shimmer-text {
-          background: linear-gradient(90deg, #818cf8, #c4b5fd, #f0abfc, #818cf8);
+          background: linear-gradient(90deg, #4f46e5, #6366f1, #a855f7, #4f46e5);
           background-size: 200% auto;
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
@@ -234,21 +234,21 @@ export default function LandingPage() {
         onSuccess={() => setShowPayment(false)}
       />
 
-      <div className="min-h-screen bg-[#070d1a] text-white overflow-hidden relative body-text">
+      <div className="min-h-screen bg-white text-slate-900 overflow-hidden relative body-text">
 
         {/* ── Global background ────────────────────────────────────────── */}
         <div className="fixed inset-0 pointer-events-none overflow-hidden">
           <div className="absolute inset-0" style={{
-            backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(99,102,241,0.1) 1px, transparent 0)',
+            backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(99,102,241,0.06) 1px, transparent 0)',
             backgroundSize: '36px 36px',
           }}/>
-          <FloatingOrb style={{ top: '-10%', left: '10%', width: 600, height: 600, background: 'radial-gradient(circle, #4f46e5, transparent 70%)' }} />
-          <FloatingOrb style={{ bottom: '5%', right: '5%', width: 500, height: 500, background: 'radial-gradient(circle, #1d4ed8, transparent 70%)' }} />
-          <FloatingOrb style={{ top: '40%', right: '30%', width: 350, height: 350, background: 'radial-gradient(circle, #7c3aed, transparent 70%)', opacity: 0.15 }} />
+          <FloatingOrb style={{ top: '-10%', left: '10%', width: 600, height: 600, background: 'radial-gradient(circle, rgba(99,102,241,0.16), transparent 70%)' }} />
+          <FloatingOrb style={{ bottom: '5%', right: '5%', width: 500, height: 500, background: 'radial-gradient(circle, rgba(59,130,246,0.14), transparent 70%)' }} />
+          <FloatingOrb style={{ top: '40%', right: '30%', width: 350, height: 350, background: 'radial-gradient(circle, rgba(168,85,247,0.14), transparent 70%)', opacity: 0.15 }} />
         </div>
 
         {/* ── Nav ──────────────────────────────────────────────────────── */}
-        <nav className="relative z-20 border-b border-white/5">
+        <nav className="relative z-20 border-b border-slate-200/80 bg-white/95 backdrop-blur">
           <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <svg width="36" height="36" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -264,7 +264,7 @@ export default function LandingPage() {
                 <circle cx="70" cy="72" r="16" fill="#fbbf24"/>
                 <text x="70" y="79" textAnchor="middle" fontSize="17" fontWeight="700" fontFamily="sans-serif" fill="#1e3a8a">✦</text>
               </svg>
-              <span className="font-bold text-white/90 text-sm hero-text">PM Resume Optimizer</span>
+              <span className="font-bold text-slate-900 text-sm hero-text">PM Resume Optimizer</span>
             </div>
 
             <div className="flex items-center gap-3">
@@ -274,12 +274,12 @@ export default function LandingPage() {
                   {!hasActivePlan && (
                     <button
                       onClick={scrollToPricing}
-                      className="text-white/50 hover:text-white text-sm transition-colors hidden sm:block"
+                      className="text-slate-500 hover:text-slate-900 text-sm transition-colors hidden sm:block"
                     >
                       Pricing
                     </button>
                   )}
-                  <Link href="/score" className="text-sm text-white/50 hover:text-white transition-colors hidden sm:block">
+                  <Link href="/score" className="text-sm text-slate-500 hover:text-slate-900 transition-colors hidden sm:block">
                     Check Score
                   </Link>
                   {hasActivePlan ? (
@@ -294,7 +294,7 @@ export default function LandingPage() {
                       >
                         ✨ Upgrade
                       </button>
-                      <Link href="/optimize" className="text-sm font-semibold bg-white/10 hover:bg-white/15 border border-white/10 px-4 py-2 rounded-xl transition-all">
+                      <Link href="/optimize" className="text-sm font-semibold bg-slate-100 hover:bg-slate-200 border border-slate-200 px-4 py-2 rounded-xl transition-all text-slate-800">
                         Optimize →
                       </Link>
                     </div>
@@ -304,13 +304,13 @@ export default function LandingPage() {
                 <>
                   <button
                     onClick={scrollToPricing}
-                    className="text-sm text-white/50 hover:text-white transition-colors hidden sm:block"
+                    className="text-sm text-slate-500 hover:text-slate-900 transition-colors hidden sm:block"
                   >
                     Pricing
                   </button>
                   <button
                     onClick={() => setShowLogin(true)}
-                    className="text-sm text-white/50 hover:text-white transition-colors"
+                    className="text-sm text-slate-500 hover:text-slate-900 transition-colors"
                   >
                     Sign in
                   </button>
@@ -335,7 +335,7 @@ export default function LandingPage() {
               Land more<br/>
               <span className="shimmer-text">PM interviews.</span>
             </h1>
-            <p className="text-white/45 text-lg sm:text-xl max-w-2xl mx-auto leading-relaxed body-text">
+            <p className="text-slate-600 text-lg sm:text-xl max-w-2xl mx-auto leading-relaxed body-text">
               The only resume tool built for Product Managers.
               Get your real ATS match score. Optimize for any JD. Download a clean PDF in 60 seconds.
             </p>
@@ -348,11 +348,11 @@ export default function LandingPage() {
               { emoji: '💼', label: 'Experienced PMs', sub: 'Switching companies' },
               { emoji: '🔄', label: 'Transitioning PMs', sub: 'From another domain' },
             ].map(p => (
-              <div key={p.label} className="flex items-center gap-2.5 bg-white/5 border border-white/8 px-4 py-2.5 rounded-full">
+              <div key={p.label} className="flex items-center gap-2.5 bg-white/90 border border-slate-200 px-4 py-2.5 rounded-full shadow-sm">
                 <span className="text-base">{p.emoji}</span>
                 <div>
-                  <p className="text-xs font-bold text-white/75 leading-tight hero-text">{p.label}</p>
-                  <p className="text-[10px] text-white/35 leading-tight">{p.sub}</p>
+                  <p className="text-xs font-bold text-slate-700 leading-tight hero-text">{p.label}</p>
+                  <p className="text-[10px] text-slate-500 leading-tight">{p.sub}</p>
                 </div>
               </div>
             ))}
@@ -363,23 +363,23 @@ export default function LandingPage() {
 
             {/* Check Score */}
             <Link href="/score"
-              className="group relative overflow-hidden rounded-[2rem] border border-white/8 bg-white/4 hover:bg-white/7 p-7 sm:p-8 transition-all duration-300 hover:border-blue-400/30 hover:shadow-2xl hover:shadow-blue-500/10 hover:-translate-y-1.5 block">
+              className="group relative overflow-hidden rounded-[2rem] border border-slate-200 bg-white hover:bg-slate-50 p-7 sm:p-8 transition-all duration-300 hover:border-blue-300 hover:shadow-xl hover:-translate-y-1.5 block">
               <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 via-transparent to-transparent group-hover:from-blue-500/8 transition-all duration-500 rounded-[2rem]"/>
               <div className="relative z-10">
                 <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500/30 to-blue-600/20 border border-blue-400/20 flex items-center justify-center text-2xl mb-5 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">🎯</div>
                 <div className="inline-flex items-center gap-1.5 bg-blue-500/15 border border-blue-400/20 text-blue-300 text-[10px] font-black px-3 py-1 rounded-full mb-3 uppercase tracking-wide">Free · No credit card</div>
-                <h2 className="text-xl sm:text-2xl font-black text-white mb-3 leading-snug hero-text">Check PM Resume<br/>ATS Score</h2>
-                <p className="text-white/45 text-sm leading-relaxed mb-5">AI scores every bullet individually — what's weak, what to fix, and the exact improved version to copy.</p>
+                <h2 className="text-xl sm:text-2xl font-black text-slate-900 mb-3 leading-snug hero-text">Check PM Resume<br/>ATS Score</h2>
+                <p className="text-slate-600 text-sm leading-relaxed mb-5">AI scores every bullet individually — what's weak, what to fix, and the exact improved version to copy.</p>
                 <ul className="space-y-2 mb-7">
                   {['Per-bullet AI feedback + improved version', 'Real JD keyword match (not generic)', 'Career stage-specific feedback'].map(f => (
-                    <li key={f} className="flex items-start gap-2 text-sm text-white/50">
+                    <li key={f} className="flex items-start gap-2 text-sm text-slate-600">
                       <span className="w-1.5 h-1.5 rounded-full bg-blue-400/70 shrink-0 mt-1.5"/>
                       {f}
                     </li>
                   ))}
                 </ul>
-                <div className="flex items-center justify-between pt-3 border-t border-white/5">
-                  <span className="text-xs text-white/25">5 free analyses</span>
+                <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+                  <span className="text-xs text-slate-500">5 free analyses</span>
                   <span className="flex items-center gap-2 text-blue-300 font-bold text-sm group-hover:gap-3 transition-all hero-text">Check My Score <span>→</span></span>
                 </div>
               </div>
@@ -387,23 +387,23 @@ export default function LandingPage() {
 
             {/* Optimize */}
             <Link href="/optimize"
-              className="group relative overflow-hidden rounded-[2rem] border border-indigo-500/20 bg-gradient-to-br from-indigo-600/15 to-violet-600/8 hover:from-indigo-600/25 hover:to-violet-600/15 p-7 sm:p-8 transition-all duration-300 hover:border-indigo-400/40 hover:shadow-2xl hover:shadow-indigo-500/15 hover:-translate-y-1.5 block">
+              className="group relative overflow-hidden rounded-[2rem] border border-indigo-200 bg-gradient-to-br from-indigo-50 to-violet-50 hover:from-indigo-100 hover:to-violet-100 p-7 sm:p-8 transition-all duration-300 hover:border-indigo-300 hover:shadow-xl hover:-translate-y-1.5 block">
               <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-500/15 rounded-full blur-3xl group-hover:bg-indigo-500/25 transition-all duration-500"/>
               <div className="relative z-10">
                 <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500/30 to-violet-600/20 border border-indigo-400/25 flex items-center justify-center text-2xl mb-5 group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-300">✨</div>
                 <div className="inline-flex items-center gap-1.5 bg-indigo-500/15 border border-indigo-400/20 text-indigo-300 text-[10px] font-black px-3 py-1 rounded-full mb-3 uppercase tracking-wide">AI-Powered · 60 seconds</div>
-                <h2 className="text-xl sm:text-2xl font-black text-white mb-3 leading-snug hero-text">Optimize PM Resume<br/>for Any JD</h2>
-                <p className="text-white/45 text-sm leading-relaxed mb-5">AI rewrites your summary and every bullet with the right keywords for this specific role.</p>
+                <h2 className="text-xl sm:text-2xl font-black text-slate-900 mb-3 leading-snug hero-text">Optimize PM Resume<br/>for Any JD</h2>
+                <p className="text-slate-600 text-sm leading-relaxed mb-5">AI rewrites your summary and every bullet with the right keywords for this specific role.</p>
                 <ul className="space-y-2 mb-7">
                   {['Full summary rewrite tailored to the JD', 'Every bullet rewritten with keywords injected', 'Cover letter generated in one click'].map(f => (
-                    <li key={f} className="flex items-start gap-2 text-sm text-white/50">
+                    <li key={f} className="flex items-start gap-2 text-sm text-slate-600">
                       <span className="w-1.5 h-1.5 rounded-full bg-indigo-400/70 shrink-0 mt-1.5"/>
                       {f}
                     </li>
                   ))}
                 </ul>
-                <div className="flex items-center justify-between pt-3 border-t border-white/5">
-                  <span className="text-xs text-white/25">5 free optimizations</span>
+                <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+                  <span className="text-xs text-slate-500">5 free optimizations</span>
                   <span className="flex items-center gap-2 text-indigo-300 font-bold text-sm group-hover:gap-3 transition-all hero-text">Optimize Now <span>→</span></span>
                 </div>
               </div>
@@ -413,13 +413,13 @@ export default function LandingPage() {
           {/* Trust strip */}
           <div className="flex flex-wrap justify-center gap-x-8 gap-y-2 mt-10" style={{ animation: 'heroFadeUp 0.6s 0.4s ease both' }}>
             {['✓ No credit card needed', '✓ Resume never stored', '✓ 60-second results', '✓ Covers Indian PM market'].map(t => (
-              <span key={t} className="text-xs text-white/25">{t}</span>
+              <span key={t} className="text-xs text-slate-500">{t}</span>
             ))}
           </div>
         </main>
 
         {/* ── Stats bar ────────────────────────────────────────────────── */}
-        <div ref={statsRef.ref} className="relative z-10 border-y border-white/5 bg-white/2">
+        <div ref={statsRef.ref} className="relative z-10 border-y border-slate-200 bg-slate-50/80">
           <div className="max-w-4xl mx-auto px-6 py-10 grid grid-cols-3 gap-6 text-center">
             {[
               { count: stat1, suffix: '+', label: 'Resumes Optimized', prefix: '' },
@@ -427,19 +427,19 @@ export default function LandingPage() {
               { count: stat3, suffix: 's', label: 'Average Time to Optimize', prefix: '<' },
             ].map(({ count, suffix, label, prefix }, i) => (
               <div key={label} style={{ animation: statsRef.inView ? `statsCount 0.6s ${i * 0.15}s ease both` : 'none' }}>
-                <p className="text-3xl sm:text-4xl font-black text-white hero-text">
+                <p className="text-3xl sm:text-4xl font-black text-slate-900 hero-text">
                   {prefix}{count.toLocaleString()}{suffix}
                 </p>
-                <p className="text-xs text-white/35 mt-1">{label}</p>
+                <p className="text-xs text-slate-500 mt-1">{label}</p>
               </div>
             ))}
           </div>
         </div>
 
         {/* ── How it works ─────────────────────────────────────────────── */}
-        <section className="relative z-10 border-b border-white/5">
+        <section className="relative z-10 border-b border-slate-200">
           <div className="max-w-6xl mx-auto px-6 py-16">
-            <h2 className="text-2xl font-black text-white text-center mb-10 hero-text">How it works</h2>
+            <h2 className="text-2xl font-black text-slate-900 text-center mb-10 hero-text">How it works</h2>
             <div className="grid md:grid-cols-2 gap-10 max-w-4xl mx-auto">
               {[
                 {
@@ -466,14 +466,14 @@ export default function LandingPage() {
                 },
               ].map(col => (
                 <div key={col.title}>
-                  <h3 className="font-bold text-white/70 mb-5 text-sm hero-text">{col.title}</h3>
+                  <h3 className="font-bold text-slate-700 mb-5 text-sm hero-text">{col.title}</h3>
                   <div className="space-y-4">
                     {(col.steps as [string, string][]).map(([title, sub], i) => (
                       <div key={i} className="flex items-start gap-3">
                         <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 ${col.color === 'blue' ? 'bg-blue-500/20 text-blue-300' : 'bg-indigo-500/20 text-indigo-300'}`}>{i + 1}</div>
                         <div>
-                          <p className="text-sm font-semibold text-white/65">{title}</p>
-                          <p className="text-xs text-white/30 mt-0.5">{sub}</p>
+                          <p className="text-sm font-semibold text-slate-700">{title}</p>
+                          <p className="text-xs text-slate-500 mt-0.5">{sub}</p>
                         </div>
                       </div>
                     ))}
@@ -515,7 +515,7 @@ export default function LandingPage() {
               </h2>
 
               <p
-                className="text-white/40 text-lg max-w-xl mx-auto body-text"
+                className="text-slate-600 text-lg max-w-xl mx-auto body-text"
                 style={{ animation: pricingRef.inView ? 'heroFadeUp 0.5s 0.2s ease both' : 'none', opacity: pricingRef.inView ? undefined : 0 }}
               >
                 Buy access for exactly as long as you need. Job hunting is stressful enough — your tools shouldn't be.
@@ -523,7 +523,7 @@ export default function LandingPage() {
 
               {/* Free tier callout */}
               <div
-                className="inline-flex items-center gap-3 mt-6 bg-white/5 border border-white/10 rounded-2xl px-5 py-3"
+                className="inline-flex items-center gap-3 mt-6 bg-white border border-slate-200 rounded-2xl px-5 py-3 shadow-sm"
                 style={{ animation: pricingRef.inView ? 'heroFadeUp 0.5s 0.3s ease both' : 'none', opacity: pricingRef.inView ? undefined : 0 }}
               >
                 <div className="flex items-center gap-1.5">
@@ -531,8 +531,8 @@ export default function LandingPage() {
                     <div key={i} className="w-2.5 h-2.5 rounded-full bg-emerald-400" style={{ opacity: 1 - i * 0.15 }} />
                   ))}
                 </div>
-                <span className="text-sm text-white/60">
-                  Start with <span className="text-white font-bold">5 free actions</span> — no card needed
+                <span className="text-sm text-slate-600">
+                  Start with <span className="text-slate-900 font-bold">5 free actions</span> — no card needed
                 </span>
               </div>
             </div>
@@ -554,11 +554,11 @@ export default function LandingPage() {
                         : 'none',
                     opacity: pricingRef.inView ? undefined : 0,
                     background: plan.popular
-                      ? 'linear-gradient(145deg, rgba(109,40,217,0.25), rgba(79,70,229,0.2), rgba(15,10,40,0.9))'
-                      : 'rgba(255,255,255,0.04)',
+                      ? 'linear-gradient(145deg, rgba(109,40,217,0.18), rgba(79,70,229,0.12), rgba(255,255,255,0.98))'
+                      : 'rgba(255,255,255,0.95)',
                     boxShadow: hoveredCard === plan.key || plan.popular
-                      ? `0 0 60px ${plan.glow}, 0 20px 60px rgba(0,0,0,0.4)`
-                      : '0 4px 20px rgba(0,0,0,0.3)',
+                      ? `0 0 40px ${plan.glow}, 0 16px 38px rgba(15,23,42,0.12)`
+                      : '0 4px 20px rgba(15,23,42,0.08)',
                     borderColor: plan.popular && (hoveredCard === plan.key)
                       ? 'rgba(139,92,246,0.6)'
                       : undefined,
@@ -601,15 +601,15 @@ export default function LandingPage() {
                         {plan.emoji}
                       </div>
                       <div>
-                        <p className="font-black text-white hero-text">{plan.name}</p>
-                        <p className="text-xs text-white/35">{plan.duration} access</p>
+                        <p className="font-black text-slate-900 hero-text">{plan.name}</p>
+                        <p className="text-xs text-slate-500">{plan.duration} access</p>
                       </div>
                     </div>
 
                     {/* Price */}
                     <div className="mb-6">
                       <div className="flex items-end gap-1">
-                        <span className="text-white/40 text-lg font-bold mt-1">₹</span>
+                        <span className="text-slate-500 text-lg font-bold mt-1">₹</span>
                         <span
                           className={`text-6xl font-black hero-text bg-gradient-to-br ${plan.color} bg-clip-text text-transparent`}
                           style={{ WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}
@@ -617,18 +617,18 @@ export default function LandingPage() {
                           {plan.price}
                         </span>
                       </div>
-                      <p className="text-white/30 text-xs mt-1">one-time · no renewal</p>
+                      <p className="text-slate-500 text-xs mt-1">one-time · no renewal</p>
                     </div>
 
                     {/* Divider */}
-                    <div className="h-px bg-white/8 mb-6" />
+                    <div className="h-px bg-slate-200 mb-6" />
 
                     {/* Features */}
                     <ul className="space-y-3 mb-8">
                       {plan.features.map((feature, fi) => (
                         <li
                           key={feature}
-                          className="flex items-start gap-3 text-sm text-white/65"
+                          className="flex items-start gap-3 text-sm text-slate-700"
                           style={{
                             animation: pricingRef.inView
                               ? `heroFadeUp 0.4s ${0.3 + i * 0.12 + fi * 0.05}s ease both`
@@ -652,7 +652,7 @@ export default function LandingPage() {
                       className={`w-full py-4 rounded-2xl font-black text-sm tracking-wide transition-all duration-200 hover:scale-105 active:scale-95 ${
                         plan.popular
                           ? 'bg-gradient-to-r from-violet-500 to-indigo-500 text-white shadow-xl'
-                          : 'bg-white/10 hover:bg-white/15 text-white border border-white/15'
+                          : 'bg-slate-100 hover:bg-slate-200 text-slate-900 border border-slate-200'
                       }`}
                       style={plan.popular ? { boxShadow: `0 8px 30px ${plan.glow}` } : {}}
                     >
@@ -665,14 +665,14 @@ export default function LandingPage() {
 
             {/* Comparison note */}
             <div className="mt-12 text-center">
-              <div className="inline-flex flex-wrap justify-center gap-x-8 gap-y-3 bg-white/3 border border-white/8 rounded-2xl px-8 py-5">
+              <div className="inline-flex flex-wrap justify-center gap-x-8 gap-y-3 bg-white border border-slate-200 rounded-2xl px-8 py-5 shadow-sm">
                 {[
                   { icon: '🔒', text: 'Secured by Razorpay' },
                   { icon: '⚡', text: 'Instant activation' },
                   { icon: '💳', text: 'UPI, Cards, Net Banking' },
                   { icon: '🔁', text: 'No auto-renewal ever' },
                 ].map(({ icon, text }) => (
-                  <div key={text} className="flex items-center gap-2 text-sm text-white/40">
+                  <div key={text} className="flex items-center gap-2 text-sm text-slate-600">
                     <span>{icon}</span>
                     <span>{text}</span>
                   </div>
@@ -682,7 +682,7 @@ export default function LandingPage() {
 
             {/* FAQ teaser */}
             <div className="mt-14 max-w-2xl mx-auto">
-              <h3 className="text-lg font-black text-white text-center mb-6 hero-text">Quick questions</h3>
+              <h3 className="text-lg font-black text-slate-900 text-center mb-6 hero-text">Quick questions</h3>
               <div className="space-y-3">
                 {[
                   ['What counts as a "free action"?', 'Each resume optimization, AI analysis, and PDF download counts as one action. You get 5 to start, completely free, no card required.'],
@@ -691,13 +691,13 @@ export default function LandingPage() {
                 ].map(([q, a]) => (
                   <details
                     key={q}
-                    className="group bg-white/4 border border-white/8 rounded-2xl overflow-hidden cursor-pointer"
+                    className="group bg-white border border-slate-200 rounded-2xl overflow-hidden cursor-pointer shadow-sm"
                   >
-                    <summary className="px-5 py-4 text-sm font-semibold text-white/75 hover:text-white flex items-center justify-between transition-colors list-none">
+                    <summary className="px-5 py-4 text-sm font-semibold text-slate-700 hover:text-slate-900 flex items-center justify-between transition-colors list-none">
                       {q}
-                      <span className="text-white/30 group-open:rotate-180 transition-transform duration-200 shrink-0 ml-4">▾</span>
+                      <span className="text-slate-400 group-open:rotate-180 transition-transform duration-200 shrink-0 ml-4">▾</span>
                     </summary>
-                    <div className="px-5 pb-4 text-sm text-white/40 leading-relaxed border-t border-white/5 pt-3">
+                    <div className="px-5 pb-4 text-sm text-slate-600 leading-relaxed border-t border-slate-100 pt-3">
                       {a}
                     </div>
                   </details>
@@ -709,12 +709,12 @@ export default function LandingPage() {
         </section>
 
         {/* ── Footer ───────────────────────────────────────────────────── */}
-        <footer className="relative z-10 border-t border-white/5 px-6 py-7">
-          <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-white/20">
+        <footer className="relative z-10 border-t border-slate-200 px-6 py-7">
+          <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
             <span className="hero-text">© {new Date().getFullYear()} PM Resume Optimizer</span>
             <div className="flex gap-5">
               {[['Privacy', '/privacy'], ['Terms', '/terms'], ['Check Score', '/score'], ['Optimize', '/optimize']].map(([l, h]) => (
-                <Link key={l} href={h} className="hover:text-white/50 transition-colors">{l}</Link>
+                <Link key={l} href={h} className="hover:text-slate-900 transition-colors">{l}</Link>
               ))}
             </div>
           </div>
