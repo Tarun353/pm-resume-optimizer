@@ -767,17 +767,7 @@ export default function LandingPage() {
             </div>
 
             <div className="mt-10 border-t border-white/20 pt-6">
-              <div className="flex flex-col items-center gap-3">
-                <div className="flex items-center gap-5 text-xs text-[#CBD5F5]">
-                  <Link href="/privacy" className="hover:text-white transition-colors">
-                    Privacy Policy
-                  </Link>
-                  <Link href="/terms" className="hover:text-white transition-colors">
-                    Terms
-                  </Link>
-                </div>
-                <p className="hero-text text-center text-xs text-[#CBD5F5]">© 2026 PM Resume Optimizer</p>
-              </div>
+              <p className="hero-text text-center text-xs text-[#CBD5F5]">© 2026 PM Resume Optimizer</p>
             </div>
           </div>
         </footer>
