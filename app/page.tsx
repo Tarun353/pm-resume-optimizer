@@ -251,7 +251,19 @@ export default function LandingPage() {
         <nav className="relative z-20 border-b border-white/5">
           <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-black shadow-lg shadow-blue-500/30">PM</div>
+              <svg width="36" height="36" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <rect width="100" height="100" rx="22" fill="#2563eb"/>
+                <rect x="24" y="18" width="45" height="56" rx="4" fill="white"/>
+                <polygon points="56,18 69,18 69,31" fill="#93c5fd"/>
+                <polygon points="56,18 56,31 69,31" fill="#dbeafe"/>
+                <rect x="29" y="36" width="32" height="4" rx="2" fill="#2563eb" opacity="0.22"/>
+                <rect x="29" y="44" width="24" height="4" rx="2" fill="#2563eb" opacity="0.16"/>
+                <rect x="29" y="54" width="32" height="3" rx="1.5" fill="#2563eb" opacity="0.16"/>
+                <rect x="29" y="61" width="26" height="3" rx="1.5" fill="#2563eb" opacity="0.16"/>
+                <rect x="29" y="68" width="30" height="3" rx="1.5" fill="#2563eb" opacity="0.16"/>
+                <circle cx="70" cy="72" r="16" fill="#fbbf24"/>
+                <text x="70" y="79" textAnchor="middle" fontSize="17" fontWeight="700" fontFamily="sans-serif" fill="#1e3a8a">✦</text>
+              </svg>
               <span className="font-bold text-white/90 text-sm hero-text">PM Resume Optimizer</span>
             </div>
 
