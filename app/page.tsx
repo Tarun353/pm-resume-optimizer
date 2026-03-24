@@ -47,9 +47,9 @@ const PLANS = [
     price: 19,
     duration: '24 hours',
     emoji: '⚡',
-    color: 'from-cyan-500 to-blue-500',
+    color: 'from-blue-500 to-blue-700',
     glow: 'rgba(6,182,212,0.35)',
-    border: 'border-cyan-500/30',
+    border: 'border-blue-500/30',
     popular: false,
     badge: null,
     features: [
@@ -67,9 +67,9 @@ const PLANS = [
     price: 49,
     duration: '10 days',
     emoji: '🚀',
-    color: 'from-violet-500 to-indigo-500',
-    glow: 'rgba(139,92,246,0.45)',
-    border: 'border-violet-500/40',
+    color: 'from-blue-600 to-blue-700',
+    glow: 'rgba(37,99,235,0.35)',
+    border: 'border-blue-500/40',
     popular: true,
     badge: 'Most Popular',
     features: [
@@ -87,9 +87,9 @@ const PLANS = [
     price: 139,
     duration: '30 days',
     emoji: '👑',
-    color: 'from-amber-400 to-orange-500',
-    glow: 'rgba(251,191,36,0.35)',
-    border: 'border-amber-500/30',
+    color: 'from-blue-500 to-blue-700',
+    glow: 'rgba(37,99,235,0.28)',
+    border: 'border-blue-500/30',
     popular: false,
     badge: 'Maximum Access',
     features: [
@@ -184,7 +184,7 @@ export default function LandingPage() {
           to   { opacity: 1; transform: scale(1); }
         }
         @keyframes borderGlow {
-          0%, 100% { border-color: rgba(139,92,246,0.3); }
+          0%, 100% { border-color: rgba(37,99,235,0.25); }
           50%       { border-color: rgba(139,92,246,0.7); }
         }
         @keyframes tick {
@@ -197,7 +197,7 @@ export default function LandingPage() {
         .body-text  { font-family: 'DM Sans', sans-serif; }
 
         .shimmer-text {
-          background: linear-gradient(90deg, #4f46e5, #6366f1, #a855f7, #4f46e5);
+          background: linear-gradient(90deg, #1d4ed8, #2563eb, #2563eb, #1d4ed8);
           background-size: 200% auto;
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
@@ -239,12 +239,12 @@ export default function LandingPage() {
         {/* ── Global background ────────────────────────────────────────── */}
         <div className="fixed inset-0 pointer-events-none overflow-hidden">
           <div className="absolute inset-0" style={{
-            backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(99,102,241,0.06) 1px, transparent 0)',
+            backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(37,99,235,0.06) 1px, transparent 0)',
             backgroundSize: '36px 36px',
           }}/>
-          <FloatingOrb style={{ top: '-10%', left: '10%', width: 600, height: 600, background: 'radial-gradient(circle, rgba(99,102,241,0.16), transparent 70%)' }} />
+          <FloatingOrb style={{ top: '-10%', left: '10%', width: 600, height: 600, background: 'radial-gradient(circle, rgba(37,99,235,0.16), transparent 70%)' }} />
           <FloatingOrb style={{ bottom: '5%', right: '5%', width: 500, height: 500, background: 'radial-gradient(circle, rgba(59,130,246,0.14), transparent 70%)' }} />
-          <FloatingOrb style={{ top: '40%', right: '30%', width: 350, height: 350, background: 'radial-gradient(circle, rgba(168,85,247,0.14), transparent 70%)', opacity: 0.15 }} />
+          <FloatingOrb style={{ top: '40%', right: '30%', width: 350, height: 350, background: 'radial-gradient(circle, rgba(37,99,235,0.10), transparent 70%)', opacity: 0.15 }} />
         </div>
 
         {/* ── Nav ──────────────────────────────────────────────────────── */}
@@ -290,7 +290,7 @@ export default function LandingPage() {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={scrollToPricing}
-                        className="text-sm font-bold px-4 py-2 rounded-xl text-white border border-violet-400/40 bg-violet-500/15 hover:bg-violet-500/25 transition-all"
+                        className="text-sm font-bold px-4 py-2 rounded-xl text-white border border-blue-300 bg-blue-100 hover:bg-blue-200 transition-all"
                       >
                         ✨ Upgrade
                       </button>
@@ -324,8 +324,8 @@ export default function LandingPage() {
         <main className="relative z-10 max-w-6xl mx-auto px-6 pt-16 sm:pt-24 pb-20">
 
           <div className="flex justify-center mb-7" style={{ animation: 'heroFadeUp 0.6s ease both' }}>
-            <span className="inline-flex items-center gap-2 bg-indigo-500/10 border border-indigo-400/20 text-indigo-300 text-xs font-bold px-4 py-2 rounded-full">
-              <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse"/>
+            <span className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-400/20 text-blue-700 text-xs font-bold px-4 py-2 rounded-full">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse"/>
               Built exclusively for Product Managers · Free to try
             </span>
           </div>
@@ -367,7 +367,7 @@ export default function LandingPage() {
               <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 via-transparent to-transparent group-hover:from-blue-500/8 transition-all duration-500 rounded-[2rem]"/>
               <div className="relative z-10">
                 <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500/30 to-blue-600/20 border border-blue-400/20 flex items-center justify-center text-2xl mb-5 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">🎯</div>
-                <div className="inline-flex items-center gap-1.5 bg-blue-500/15 border border-blue-400/20 text-blue-300 text-[10px] font-black px-3 py-1 rounded-full mb-3 uppercase tracking-wide">Free · No credit card</div>
+                <div className="inline-flex items-center gap-1.5 bg-blue-500/15 border border-blue-400/20 text-blue-700 text-[10px] font-black px-3 py-1 rounded-full mb-3 uppercase tracking-wide">Free · No credit card</div>
                 <h2 className="text-xl sm:text-2xl font-black text-slate-900 mb-3 leading-snug hero-text">Check PM Resume<br/>ATS Score</h2>
                 <p className="text-slate-600 text-sm leading-relaxed mb-5">AI scores every bullet individually — what's weak, what to fix, and the exact improved version to copy.</p>
                 <ul className="space-y-2 mb-7">
@@ -380,31 +380,31 @@ export default function LandingPage() {
                 </ul>
                 <div className="flex items-center justify-between pt-3 border-t border-slate-100">
                   <span className="text-xs text-slate-500">5 free analyses</span>
-                  <span className="flex items-center gap-2 text-blue-300 font-bold text-sm group-hover:gap-3 transition-all hero-text">Check My Score <span>→</span></span>
+                  <span className="flex items-center gap-2 text-blue-700 font-bold text-sm group-hover:gap-3 transition-all hero-text">Check My Score <span>→</span></span>
                 </div>
               </div>
             </Link>
 
             {/* Optimize */}
             <Link href="/optimize"
-              className="group relative overflow-hidden rounded-[2rem] border border-indigo-200 bg-gradient-to-br from-indigo-50 to-violet-50 hover:from-indigo-100 hover:to-violet-100 p-7 sm:p-8 transition-all duration-300 hover:border-indigo-300 hover:shadow-xl hover:-translate-y-1.5 block">
-              <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-500/15 rounded-full blur-3xl group-hover:bg-indigo-500/25 transition-all duration-500"/>
+              className="group relative overflow-hidden rounded-[2rem] border border-blue-200 bg-gradient-to-br from-blue-50 to-blue-50 hover:from-blue-100 hover:to-blue-100 p-7 sm:p-8 transition-all duration-300 hover:border-blue-300 hover:shadow-xl hover:-translate-y-1.5 block">
+              <div className="absolute top-0 right-0 w-40 h-40 bg-blue-500/15 rounded-full blur-3xl group-hover:bg-blue-500/25 transition-all duration-500"/>
               <div className="relative z-10">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500/30 to-violet-600/20 border border-indigo-400/25 flex items-center justify-center text-2xl mb-5 group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-300">✨</div>
-                <div className="inline-flex items-center gap-1.5 bg-indigo-500/15 border border-indigo-400/20 text-indigo-300 text-[10px] font-black px-3 py-1 rounded-full mb-3 uppercase tracking-wide">AI-Powered · 60 seconds</div>
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500/30 to-blue-700/20 border border-blue-400/25 flex items-center justify-center text-2xl mb-5 group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-300">✨</div>
+                <div className="inline-flex items-center gap-1.5 bg-blue-500/15 border border-blue-400/20 text-blue-700 text-[10px] font-black px-3 py-1 rounded-full mb-3 uppercase tracking-wide">AI-Powered · 60 seconds</div>
                 <h2 className="text-xl sm:text-2xl font-black text-slate-900 mb-3 leading-snug hero-text">Optimize PM Resume<br/>for Any JD</h2>
                 <p className="text-slate-600 text-sm leading-relaxed mb-5">AI rewrites your summary and every bullet with the right keywords for this specific role.</p>
                 <ul className="space-y-2 mb-7">
                   {['Full summary rewrite tailored to the JD', 'Every bullet rewritten with keywords injected', 'Cover letter generated in one click'].map(f => (
                     <li key={f} className="flex items-start gap-2 text-sm text-slate-600">
-                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-400/70 shrink-0 mt-1.5"/>
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-400/70 shrink-0 mt-1.5"/>
                       {f}
                     </li>
                   ))}
                 </ul>
                 <div className="flex items-center justify-between pt-3 border-t border-slate-100">
                   <span className="text-xs text-slate-500">5 free optimizations</span>
-                  <span className="flex items-center gap-2 text-indigo-300 font-bold text-sm group-hover:gap-3 transition-all hero-text">Optimize Now <span>→</span></span>
+                  <span className="flex items-center gap-2 text-blue-700 font-bold text-sm group-hover:gap-3 transition-all hero-text">Optimize Now <span>→</span></span>
                 </div>
               </div>
             </Link>
@@ -470,7 +470,7 @@ export default function LandingPage() {
                   <div className="space-y-4">
                     {(col.steps as [string, string][]).map(([title, sub], i) => (
                       <div key={i} className="flex items-start gap-3">
-                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 ${col.color === 'blue' ? 'bg-blue-500/20 text-blue-300' : 'bg-indigo-500/20 text-indigo-300'}`}>{i + 1}</div>
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 ${col.color === 'blue' ? 'bg-blue-500/20 text-blue-700' : 'bg-blue-500/20 text-blue-700'}`}>{i + 1}</div>
                         <div>
                           <p className="text-sm font-semibold text-slate-700">{title}</p>
                           <p className="text-xs text-slate-500 mt-0.5">{sub}</p>
@@ -492,7 +492,7 @@ export default function LandingPage() {
           {/* Section background glow */}
           <div className="absolute inset-0 pointer-events-none">
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] rounded-full"
-              style={{ background: 'radial-gradient(ellipse, rgba(99,102,241,0.12) 0%, transparent 70%)' }} />
+              style={{ background: 'radial-gradient(ellipse, rgba(37,99,235,0.12) 0%, transparent 70%)' }} />
           </div>
 
           <div className="max-w-6xl mx-auto">
@@ -500,7 +500,7 @@ export default function LandingPage() {
             {/* Heading */}
             <div className="text-center mb-16">
               <div
-                className="inline-flex items-center gap-2 bg-violet-500/10 border border-violet-400/20 text-violet-300 text-xs font-bold px-4 py-2 rounded-full mb-6"
+                className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-400/20 text-blue-700 text-xs font-bold px-4 py-2 rounded-full mb-6"
                 style={{ animation: pricingRef.inView ? 'heroFadeUp 0.5s ease both' : 'none' }}
               >
                 <span>💳</span> Simple, one-time pricing
@@ -554,13 +554,13 @@ export default function LandingPage() {
                         : 'none',
                     opacity: pricingRef.inView ? undefined : 0,
                     background: plan.popular
-                      ? 'linear-gradient(145deg, rgba(109,40,217,0.18), rgba(79,70,229,0.12), rgba(255,255,255,0.98))'
+                      ? 'linear-gradient(145deg, rgba(37,99,235,0.18), rgba(29,78,216,0.12), rgba(255,255,255,0.98))'
                       : 'rgba(255,255,255,0.95)',
                     boxShadow: hoveredCard === plan.key || plan.popular
                       ? `0 0 40px ${plan.glow}, 0 16px 38px rgba(15,23,42,0.12)`
                       : '0 4px 20px rgba(15,23,42,0.08)',
                     borderColor: plan.popular && (hoveredCard === plan.key)
-                      ? 'rgba(139,92,246,0.6)'
+                      ? 'rgba(37,99,235,0.6)'
                       : undefined,
                   }}
                 >
@@ -581,8 +581,8 @@ export default function LandingPage() {
                       <span
                         className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-black text-white shadow-lg ${
                           plan.popular
-                            ? 'bg-gradient-to-r from-violet-500 to-indigo-500'
-                            : 'bg-gradient-to-r from-amber-400 to-orange-500'
+                            ? 'bg-gradient-to-r from-blue-600 to-blue-700'
+                            : 'bg-gradient-to-r from-blue-500 to-blue-700'
                         }`}
                         style={{ animation: plan.popular ? 'badgeBounce 2.5s ease-in-out infinite' : 'none' }}
                       >
@@ -651,7 +651,7 @@ export default function LandingPage() {
                     <button
                       className={`w-full py-4 rounded-2xl font-black text-sm tracking-wide transition-all duration-200 hover:scale-105 active:scale-95 ${
                         plan.popular
-                          ? 'bg-gradient-to-r from-violet-500 to-indigo-500 text-white shadow-xl'
+                          ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-xl'
                           : 'bg-slate-100 hover:bg-slate-200 text-slate-900 border border-slate-200'
                       }`}
                       style={plan.popular ? { boxShadow: `0 8px 30px ${plan.glow}` } : {}}
@@ -695,7 +695,7 @@ export default function LandingPage() {
                   >
                     <summary className="px-5 py-4 text-sm font-semibold text-slate-700 hover:text-slate-900 flex items-center justify-between transition-colors list-none">
                       {q}
-                      <span className="text-slate-400 group-open:rotate-180 transition-transform duration-200 shrink-0 ml-4">▾</span>
+                      <span className="text-slate-500 group-open:rotate-180 transition-transform duration-200 shrink-0 ml-4">▾</span>
                     </summary>
                     <div className="px-5 pb-4 text-sm text-slate-600 leading-relaxed border-t border-slate-100 pt-3">
                       {a}

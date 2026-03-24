@@ -71,15 +71,15 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
         {/* Benefits */}
         <div className="mb-6 space-y-2">
           <div className="flex items-center gap-2 text-sm text-slate-600">
-            <span className="text-green-500">✓</span>
+            <span className="text-green-600">✓</span>
             <span>First 5 downloads completely free</span>
           </div>
           <div className="flex items-center gap-2 text-sm text-slate-600">
-            <span className="text-green-500">✓</span>
+            <span className="text-green-600">✓</span>
             <span>One-click login with Google</span>
           </div>
           <div className="flex items-center gap-2 text-sm text-slate-600">
-            <span className="text-green-500">✓</span>
+            <span className="text-green-600">✓</span>
             <span>No email verification needed</span>
           </div>
         </div>
@@ -99,7 +99,7 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
           {loading ? 'Signing in...' : 'Continue with Google'}
         </button>
 
-        <p className="text-xs text-slate-400 text-center mt-4">
+        <p className="text-xs text-slate-500 text-center mt-4">
           By continuing, you agree to our{' '}
           <a href="/terms" className="underline hover:text-slate-600">Terms of Service</a>
           {' '}and{' '}

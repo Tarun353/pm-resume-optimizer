@@ -43,8 +43,8 @@ export function Navbar({ onSignInClick }: NavbarProps) {
           <div
             className={`w-full py-2.5 px-4 flex items-center justify-center gap-3 text-sm font-semibold ${
               isAtLimit
-                ? 'bg-gradient-to-r from-red-500 via-orange-500 to-red-500 text-white'
-                : 'bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-400 text-slate-900'
+                ? 'bg-gradient-to-r from-red-500 via-red-600 to-red-500 text-white'
+                : 'bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 text-slate-900'
             }`}
             style={{
               backgroundSize: '200% 100%',
@@ -78,7 +78,7 @@ export function Navbar({ onSignInClick }: NavbarProps) {
               className={`ml-1 px-4 py-1 rounded-full text-xs font-black tracking-wide transition-all hover:scale-105 active:scale-95 ${
                 isAtLimit
                   ? 'bg-white text-red-600 hover:bg-red-50 shadow-lg'
-                  : 'bg-slate-900 text-yellow-300 hover:bg-slate-800 shadow-lg'
+                  : 'bg-slate-900 text-blue-100 hover:bg-slate-800 shadow-lg'
               }`}
             >
               Upgrade Now →
@@ -124,15 +124,15 @@ export function Navbar({ onSignInClick }: NavbarProps) {
                           onClick={() => setShowPayment(true)}
                           className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white transition-all hover:scale-105 active:scale-95"
                           style={{
-                            background: 'linear-gradient(135deg, #6366f1, #8b5cf6, #a855f7)',
-                            boxShadow: '0 0 20px rgba(139,92,246,0.5)',
+                            background: 'linear-gradient(135deg, #2563eb, #1d4ed8, #2563eb)',
+                            boxShadow: '0 0 20px rgba(37,99,235,0.45)',
                             animation: 'upgradePulse 2s ease-in-out infinite',
                           }}
                         >
                           <style>{`
                             @keyframes upgradePulse {
-                              0%, 100% { box-shadow: 0 0 20px rgba(139,92,246,0.5); }
-                              50%       { box-shadow: 0 0 35px rgba(139,92,246,0.8), 0 0 60px rgba(139,92,246,0.3); }
+                              0%, 100% { box-shadow: 0 0 20px rgba(37,99,235,0.45); }
+                              50%       { box-shadow: 0 0 35px rgba(37,99,235,0.65), 0 0 60px rgba(37,99,235,0.25); }
                             }
                           `}</style>
                           ✨ Upgrade
@@ -168,10 +168,10 @@ export function Navbar({ onSignInClick }: NavbarProps) {
                       onClick={() => setShowMenu(!showMenu)}
                       className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-slate-100 transition-colors"
                     >
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white text-sm font-semibold shadow-sm">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center text-white text-sm font-semibold shadow-sm">
                         {user.email?.[0]?.toUpperCase() || 'U'}
                       </div>
-                      <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                       </svg>
                     </button>
@@ -191,7 +191,7 @@ export function Navbar({ onSignInClick }: NavbarProps) {
                           {/* User info */}
                           <div className="px-4 py-4 bg-slate-50 border-b border-slate-100">
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white font-bold shadow">
+                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center text-white font-bold shadow">
                                 {user.email?.[0]?.toUpperCase() || 'U'}
                               </div>
                               <div className="flex-1 min-w-0">
@@ -211,12 +211,12 @@ export function Navbar({ onSignInClick }: NavbarProps) {
                                 <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
                                   <div
                                     className={`h-full rounded-full transition-all duration-700 ${
-                                      isAtLimit ? 'bg-red-500' : isNearLimit ? 'bg-amber-400' : 'bg-blue-500'
+                                      isAtLimit ? 'bg-red-600' : isNearLimit ? 'bg-blue-500' : 'bg-blue-500'
                                     }`}
                                     style={{ width: `${(actionsUsed / freeLimit) * 100}%` }}
                                   />
                                 </div>
-                                <p className="text-[10px] text-slate-400 mt-1">{actionsUsed}/{freeLimit} actions used</p>
+                                <p className="text-[10px] text-slate-500 mt-1">{actionsUsed}/{freeLimit} actions used</p>
                               </div>
                             )}
                           </div>
@@ -225,12 +225,12 @@ export function Navbar({ onSignInClick }: NavbarProps) {
                           {!hasActiveSubscription && (
                             <button
                               onClick={() => { setShowMenu(false); setShowPayment(true); }}
-                              className="w-full px-4 py-3 text-left text-sm font-bold text-white bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 transition-all flex items-center justify-between group border-b border-indigo-700/20"
+                              className="w-full px-4 py-3 text-left text-sm font-bold text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 transition-all flex items-center justify-between group border-b border-blue-700/20"
                             >
                               <span className="flex items-center gap-2">
                                 ✨ Upgrade to Premium
                               </span>
-                              <span className="text-xs font-normal text-indigo-200 group-hover:text-white transition-colors">
+                              <span className="text-xs font-normal text-blue-200 group-hover:text-white transition-colors">
                                 from ₹19 →
                               </span>
                             </button>
@@ -251,7 +251,7 @@ export function Navbar({ onSignInClick }: NavbarProps) {
               ) : (
                 <button
                   onClick={onSignInClick}
-                  className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-sm font-semibold transition-all shadow-lg shadow-blue-500/20 hover:scale-105 active:scale-95"
+                  className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl text-sm font-semibold transition-all shadow-lg shadow-blue-500/20 hover:scale-105 active:scale-95"
                 >
                   Sign In
                 </button>

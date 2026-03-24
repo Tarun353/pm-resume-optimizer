@@ -156,12 +156,7 @@ body {
 
 /* ─── Gradient text ──────────────────────────────────────────────────── */
 .gradient-text {
-  background: linear-gradient(135deg, #2563eb 0%, #4f46e5 50%, #7c3aed 100%);
-  background-size: 200% 200%;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  animation: gradientShift 4s ease infinite;
+  color: #2563eb;
 }
 
 /* ─── Bouncing dots ──────────────────────────────────────────────────── */
