@@ -123,7 +123,7 @@ function EditIcon() {
 
 function GripIcon() {
   return (
-    <svg className="w-5 h-5 text-slate-400" fill="currentColor" viewBox="0 0 20 20">
+    <svg className="w-5 h-5 text-slate-500" fill="currentColor" viewBox="0 0 20 20">
       <path d="M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-8a2 2 0 1 0-.001-4.001A2 2 0 0 0 13 6zm0 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z" />
     </svg>
   );
@@ -296,10 +296,10 @@ function SectionChip({ label, count, present }: { label: string; count?: number;
     <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
       present
         ? 'bg-green-50 text-green-700 border border-green-200'
-        : 'bg-slate-50 text-slate-400 border border-slate-200'
+        : 'bg-slate-50 text-slate-500 border border-slate-200'
     }`}>
       {present
-        ? <CheckIcon className="w-3 h-3 shrink-0 text-green-500" />
+        ? <CheckIcon className="w-3 h-3 shrink-0 text-green-600" />
         : <span className="w-3 h-3 shrink-0 rounded-full border border-slate-300 inline-block" />}
       {label}{count !== undefined && count > 0 ? ` (${count})` : ''}
     </div>
@@ -403,7 +403,7 @@ function OriginalResumeTextFallback({ rawText }: { rawText: string }) {
         className="w-full text-left text-sm font-semibold text-slate-800 hover:text-slate-950 transition-colors flex items-center justify-between"
       >
         <span>{isOpen ? 'Hide Original Resume Text' : 'Show Original Resume Text'}</span>
-        <span className="text-slate-400 text-xs">{isOpen ? '▲' : '▼'}</span>
+        <span className="text-slate-500 text-xs">{isOpen ? '▲' : '▼'}</span>
       </button>
 
       {isOpen && (
@@ -482,7 +482,7 @@ function SectionReorder({ sectionOrder, onReorder }: SectionReorderProps) {
             <div className="flex-1">
               <p className="text-sm font-medium text-slate-900">{getSectionName(section)}</p>
             </div>
-            <span className="text-xs text-slate-400 font-mono">#{index + 1}</span>
+            <span className="text-xs text-slate-500 font-mono">#{index + 1}</span>
           </div>
         );
       })}
@@ -813,10 +813,10 @@ function EditablePreviewModal({
     <div className="fixed inset-0 z-50 flex bg-black/60 backdrop-blur-sm animate-fadeIn">
       {isLocked && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/65 backdrop-blur-sm">
-          <div className="rounded-2xl border border-indigo-200 bg-white p-6 text-center shadow-xl animate-scaleIn">
+          <div className="rounded-2xl border border-blue-200 bg-white p-6 text-center shadow-xl animate-scaleIn">
             <p className="text-sm font-semibold text-slate-900">Upgrade to unlock preview</p>
             <p className="mt-1 text-xs text-slate-600">Generation quota exhausted.</p>
-            <button onClick={onUpgrade} className="mt-4 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors">
+            <button onClick={onUpgrade} className="mt-4 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 transition-colors">
               Upgrade Now
             </button>
           </div>
@@ -881,7 +881,7 @@ function EditablePreviewModal({
                         <button
                           onClick={() => removeSection(section)}
                           disabled={REQUIRED_SECTIONS.includes(section)}
-                          className="text-xs text-red-500 hover:text-red-700 disabled:text-slate-300 transition-colors">
+                          className="text-xs text-red-600 hover:text-red-700 disabled:text-slate-300 transition-colors">
                           Remove
                         </button>
                       </div>
@@ -927,7 +927,7 @@ function EditablePreviewModal({
                         <div key={index} className="rounded-xl border border-slate-200 p-3 space-y-2">
                           <div className="flex items-center justify-between">
                             <p className="text-sm font-medium text-slate-700">Education {index + 1}</p>
-                            <button onClick={() => deleteArrayEntry('education', index)} className="text-xs text-red-500 hover:text-red-700 transition-colors">Delete</button>
+                            <button onClick={() => deleteArrayEntry('education', index)} className="text-xs text-red-600 hover:text-red-700 transition-colors">Delete</button>
                           </div>
                           {[['degree', 'Degree'], ['institution', 'Institution'], ['location', 'Location'], ['gpa', 'GPA'], ['notes', 'Notes']].map(([field, placeholder]) => (
                             <input key={field} value={(edu as any)[field] || ''} onChange={(e) => updateArrayEntry('education', index, field, e.target.value)}
@@ -952,7 +952,7 @@ function EditablePreviewModal({
                         <div key={expIndex} className="rounded-xl border border-slate-200 p-3 space-y-2">
                           <div className="flex items-center justify-between">
                             <p className="text-sm font-medium text-slate-700">Experience {expIndex + 1}</p>
-                            <button onClick={() => deleteArrayEntry('experience', expIndex)} className="text-xs text-red-500 hover:text-red-700 transition-colors">Delete</button>
+                            <button onClick={() => deleteArrayEntry('experience', expIndex)} className="text-xs text-red-600 hover:text-red-700 transition-colors">Delete</button>
                           </div>
                           <input value={exp.company || ''} onChange={(e) => updateArrayEntry('experience', expIndex, 'company', e.target.value)}
                             placeholder="Company" className="w-full rounded-lg border border-slate-200 p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition" />
@@ -970,7 +970,7 @@ function EditablePreviewModal({
                               <input value={bullet} onChange={(e) => updateExperienceBullet(expIndex, bulletIndex, e.target.value)}
                                 className="flex-1 rounded-lg border border-slate-200 p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition" />
                               <AIButton text={bullet} onRewrite={(newText) => updateExperienceBullet(expIndex, bulletIndex, newText)} sectionType="bullet" />
-                              <button onClick={() => deleteExperienceBullet(expIndex, bulletIndex)} className="text-xs text-red-500 hover:text-red-700 transition-colors">✕</button>
+                              <button onClick={() => deleteExperienceBullet(expIndex, bulletIndex)} className="text-xs text-red-600 hover:text-red-700 transition-colors">✕</button>
                             </div>
                           ))}
                           <button onClick={() => addExperienceBullet(expIndex)} className="text-sm text-blue-600 hover:text-blue-800 transition-colors">+ Add bullet</button>
@@ -987,7 +987,7 @@ function EditablePreviewModal({
                         <div key={intIndex} className="rounded-xl border border-slate-200 p-3 space-y-2">
                           <div className="flex items-center justify-between">
                             <p className="text-sm font-medium text-slate-700">Internship {intIndex + 1}</p>
-                            <button onClick={() => deleteArrayEntry('internships', intIndex)} className="text-xs text-red-500 hover:text-red-700 transition-colors">Delete</button>
+                            <button onClick={() => deleteArrayEntry('internships', intIndex)} className="text-xs text-red-600 hover:text-red-700 transition-colors">Delete</button>
                           </div>
                           <input value={item.company || ''} onChange={(e) => updateArrayEntry('internships', intIndex, 'company', e.target.value)}
                             placeholder="Company" className="w-full rounded-lg border border-slate-200 p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition" />
@@ -1005,7 +1005,7 @@ function EditablePreviewModal({
                               <input value={bullet} onChange={(e) => updateInternshipBullet(intIndex, bulletIndex, e.target.value)}
                                 className="flex-1 rounded-lg border border-slate-200 p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition" />
                               <AIButton text={bullet} onRewrite={(newText) => updateInternshipBullet(intIndex, bulletIndex, newText)} sectionType="bullet" />
-                              <button onClick={() => deleteInternshipBullet(intIndex, bulletIndex)} className="text-xs text-red-500">✕</button>
+                              <button onClick={() => deleteInternshipBullet(intIndex, bulletIndex)} className="text-xs text-red-600">✕</button>
                             </div>
                           ))}
                           <button onClick={() => addInternshipBullet(intIndex)} className="text-sm text-blue-600 hover:text-blue-800 transition-colors">+ Add bullet</button>
@@ -1022,7 +1022,7 @@ function EditablePreviewModal({
                         <div key={index} className="rounded-xl border border-slate-200 p-3 space-y-2">
                           <div className="flex items-center justify-between">
                             <p className="text-sm font-medium text-slate-700">Certification {index + 1}</p>
-                            <button onClick={() => deleteArrayEntry('certifications', index)} className="text-xs text-red-500">Delete</button>
+                            <button onClick={() => deleteArrayEntry('certifications', index)} className="text-xs text-red-600">Delete</button>
                           </div>
                           <div className="flex gap-2">
                             <input value={getEntryText(cert, ['name', 'title'])} onChange={(e) => updateAliasedArrayEntry('certifications', index, 'name', ['title'], e.target.value)}
@@ -1045,7 +1045,7 @@ function EditablePreviewModal({
                         <div key={index} className="rounded-xl border border-slate-200 p-3 space-y-2">
                           <div className="flex items-center justify-between">
                             <p className="text-sm font-medium text-slate-700">Award {index + 1}</p>
-                            <button onClick={() => deleteArrayEntry('awards', index)} className="text-xs text-red-500">Delete</button>
+                            <button onClick={() => deleteArrayEntry('awards', index)} className="text-xs text-red-600">Delete</button>
                           </div>
                           <input value={getEntryText(award, ['title', 'name'])} onChange={(e) => updateAliasedArrayEntry('awards', index, 'title', ['name'], e.target.value)}
                             placeholder="Award Title" className="w-full rounded-lg border border-slate-200 p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition" />
@@ -1070,7 +1070,7 @@ function EditablePreviewModal({
                         <div key={index} className="rounded-xl border border-slate-200 p-3 space-y-2">
                           <div className="flex items-center justify-between">
                             <p className="text-sm font-medium text-slate-700">Project {index + 1}</p>
-                            <button onClick={() => deleteArrayEntry('projects', index)} className="text-xs text-red-500">Delete</button>
+                            <button onClick={() => deleteArrayEntry('projects', index)} className="text-xs text-red-600">Delete</button>
                           </div>
                           <input value={getEntryText(project, ['name', 'title'])} onChange={(e) => updateAliasedArrayEntry('projects', index, 'name', ['title'], e.target.value)}
                             placeholder="Project Name" className="w-full rounded-lg border border-slate-200 p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition" />
@@ -1086,7 +1086,7 @@ function EditablePreviewModal({
                               <textarea value={bullet} onChange={(e) => updateProjectBullet(index, bulletIndex, e.target.value)}
                                 className="w-full rounded-lg border border-slate-200 p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none resize-none transition" />
                               <AIButton text={bullet} onRewrite={(newText) => { void updateProjectBullet(index, bulletIndex, newText); }} sectionType="bullet" />
-                              <button onClick={() => deleteProjectBullet(index, bulletIndex)} className="text-xs text-red-500 mt-1">✕</button>
+                              <button onClick={() => deleteProjectBullet(index, bulletIndex)} className="text-xs text-red-600 mt-1">✕</button>
                             </div>
                           ))}
                           <button onClick={() => addProjectBullet(index)} className="text-sm text-blue-600 hover:text-blue-800 transition-colors">+ Add bullet</button>
@@ -1250,7 +1250,7 @@ function EditablePreviewModal({
               Close
             </button>
             <button onClick={onDownload} disabled={isDownloading || isLocked}
-              className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-slate-300 disabled:to-slate-400 text-white rounded-xl text-sm font-semibold transition-all shadow-lg shadow-blue-500/20 flex items-center gap-2 btn-press">
+              className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-slate-300 disabled:to-slate-400 text-white rounded-xl text-sm font-semibold transition-all shadow-lg shadow-blue-500/20 flex items-center gap-2 btn-press">
               {isDownloading ? <><SpinnerIcon /><span className="ml-1">Generating...</span></> : <><span>⬇️</span> Download PDF</>}
             </button>
           </div>
@@ -1293,9 +1293,9 @@ function FeedbackForm() {
         placeholder="e.g. The internship section didn't show up..."
         rows={3}
         className="w-full text-sm border border-slate-200 rounded-xl p-3 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all placeholder-slate-300 text-slate-700" />
-      {status === 'error' && <p className="text-xs text-red-500">Something went wrong. Try WhatsApp instead.</p>}
+      {status === 'error' && <p className="text-xs text-red-600">Something went wrong. Try WhatsApp instead.</p>}
       <button onClick={handleSubmit} disabled={!text.trim() || status === 'sending'}
-        className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 disabled:text-slate-400 text-white rounded-xl text-sm font-semibold transition-all btn-press">
+        className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 disabled:text-slate-500 text-white rounded-xl text-sm font-semibold transition-all btn-press">
         {status === 'sending' ? 'Sending...' : 'Send Feedback'}
       </button>
     </div>
@@ -1704,10 +1704,10 @@ export default function HomePage() {
               <div className="relative max-w-3xl mx-auto bg-white shadow-lg p-12 rounded-xl">
                 {isPreviewLocked && (
                   <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/70 backdrop-blur-sm rounded-xl">
-                    <div className="rounded-2xl border border-indigo-200 bg-white p-6 text-center shadow-xl">
+                    <div className="rounded-2xl border border-blue-200 bg-white p-6 text-center shadow-xl">
                       <p className="text-sm font-semibold text-slate-900">Upgrade to copy or download</p>
                       <p className="mt-1 text-xs text-slate-600">You've used all 5 free downloads.</p>
-                      <button onClick={() => setShowPaymentModal(true)} className="mt-4 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors">
+                      <button onClick={() => setShowPaymentModal(true)} className="mt-4 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 transition-colors">
                         Upgrade Now
                       </button>
                     </div>
@@ -1735,7 +1735,7 @@ export default function HomePage() {
                   Close
                 </button>
                 <button onClick={handleDownloadCoverLetterPDF} disabled={isDownloading || isPreviewLocked}
-                  className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-slate-300 disabled:to-slate-400 text-white rounded-xl text-sm font-semibold transition-all shadow-lg shadow-blue-500/20 flex items-center gap-2 btn-press">
+                  className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-slate-300 disabled:to-slate-400 text-white rounded-xl text-sm font-semibold transition-all shadow-lg shadow-blue-500/20 flex items-center gap-2 btn-press">
                   {isDownloading ? <><SpinnerIcon /><span className="ml-1">Generating...</span></> : <><span>⬇️</span> Download PDF</>}
                 </button>
               </div>
@@ -1753,7 +1753,7 @@ export default function HomePage() {
       )}
 
       {/* ── Main Layout ── */}
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/20 to-indigo-50/30">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/20 to-blue-50/30">
         <Navbar onSignInClick={() => setShowLoginModal(true)} />
 
         <div className="max-w-7xl mx-auto px-6 py-10">
@@ -1761,7 +1761,7 @@ export default function HomePage() {
           {/* ── Page nav ── */}
           <div className="flex items-center justify-between mb-8 animate-fadeIn">
             <a href="/"
-              className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-700 transition-colors bg-white border border-slate-200 hover:border-slate-300 px-3 py-1.5 rounded-full">
+              className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-700 transition-colors bg-white border border-slate-200 hover:border-slate-300 px-3 py-1.5 rounded-full">
               ← Home
             </a>
             <button
@@ -1805,7 +1805,7 @@ export default function HomePage() {
               ))}
             </div>
 
-            <p className="text-xs text-slate-400 mt-4">
+            <p className="text-xs text-slate-500 mt-4">
               5 free actions · No credit card required · Results in under 60 seconds
             </p>
           </div>
@@ -1824,7 +1824,7 @@ export default function HomePage() {
                   <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
                     <div>
                       <h2 className="font-semibold text-slate-900">Your Resume</h2>
-                      <p className="text-xs text-slate-400 mt-0.5">Paste text for best accuracy</p>
+                      <p className="text-xs text-slate-500 mt-0.5">Paste text for best accuracy</p>
                     </div>
                     <div className="flex bg-slate-100 rounded-xl p-0.5 text-xs">
                       {[
@@ -1888,16 +1888,16 @@ export default function HomePage() {
                               </div>
                               <div className="text-left">
                                 <p className="text-sm font-medium text-slate-900 truncate max-w-40">{uploadedFile.name}</p>
-                                <p className="text-xs text-slate-400">{(uploadedFile.size / 1024).toFixed(0)} KB · Click to replace</p>
+                                <p className="text-xs text-slate-500">{(uploadedFile.size / 1024).toFixed(0)} KB · Click to replace</p>
                               </div>
                             </div>
                           ) : (
-                            <div className="text-slate-400">
+                            <div className="text-slate-500">
                               <div className="flex justify-center mb-2 animate-float"><UploadIcon /></div>
                               <p className="text-sm font-medium text-slate-600">
                                 {uploadSubMode === 'docx' ? 'Drop your Word (.docx) file here' : 'Drop your PDF here'}
                               </p>
-                              <p className="text-xs text-slate-400 mt-1">Up to 10MB</p>
+                              <p className="text-xs text-slate-500 mt-1">Up to 10MB</p>
                             </div>
                           )}
                         </div>
@@ -1916,14 +1916,14 @@ export default function HomePage() {
                 <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden card-hover">
                   <div className="px-5 py-4 border-b border-slate-100">
                     <h2 className="font-semibold text-slate-900">Job Description</h2>
-                    <p className="text-xs text-slate-400 mt-0.5">Keywords extracted automatically</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Keywords extracted automatically</p>
                   </div>
                   <div className="p-4">
                     <textarea value={jobDescription} onChange={e => setJobDescription(e.target.value)}
                       placeholder={`Paste the job description here.\nThe more detail, the better the keyword matching.`}
                       className="w-full h-52 text-sm text-slate-700 placeholder-slate-300 bg-slate-50 border border-slate-200 rounded-xl p-3 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all" />
                     <div className="flex items-center justify-between mt-2">
-                      <p className="text-xs text-slate-400">{jobDescription.length} chars</p>
+                      <p className="text-xs text-slate-500">{jobDescription.length} chars</p>
                       {jobDescription.length >= 20 && (
                         <span className="text-xs text-green-600 flex items-center gap-1 font-medium animate-fadeIn">
                           <CheckIcon /> Ready
@@ -1945,7 +1945,7 @@ export default function HomePage() {
                   <option value="transitioning">🔄 Transitioning Into Product Management</option>
                   <option value="experienced">💼 Experienced Product Manager</option>
                 </select>
-                <p className="text-xs text-slate-400 mt-2">
+                <p className="text-xs text-slate-500 mt-2">
                   This personalizes the AI tone, bullet style, and summary length for your career stage.
                 </p>
               </div>
@@ -1969,12 +1969,12 @@ export default function HomePage() {
                       disabled={!canOptimize}
                       className={`py-5 rounded-2xl text-sm font-bold transition-all duration-200 flex flex-col items-center justify-center gap-1.5 btn-press ${
                         canOptimize
-                          ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-xl shadow-blue-500/25 glow-blue'
-                          : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                          ? 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-xl shadow-blue-500/25 glow-blue'
+                          : 'bg-slate-100 text-slate-500 cursor-not-allowed'
                       }`}>
                       <span className="text-xl">✨</span>
                       <span>Optimize Resume</span>
-                      <span className={`text-xs font-normal ${canOptimize ? 'text-blue-200' : 'text-slate-400'}`}>
+                      <span className={`text-xs font-normal ${canOptimize ? 'text-blue-200' : 'text-slate-500'}`}>
                         AI rewrites every bullet
                       </span>
                     </button>
@@ -1986,11 +1986,11 @@ export default function HomePage() {
                       className={`py-5 rounded-2xl text-sm font-bold transition-all duration-200 flex flex-col items-center justify-center gap-1.5 btn-press border-2 ${
                         canOptimize
                           ? 'border-blue-300 bg-white hover:bg-blue-50 hover:border-blue-500 text-blue-700 shadow-sm'
-                          : 'border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed'
+                          : 'border-slate-200 bg-slate-50 text-slate-500 cursor-not-allowed'
                       }`}>
                       <span className="text-xl">✉️</span>
                       <span>Cover Letter</span>
-                      <span className={`text-xs font-normal ${canOptimize ? 'text-blue-400' : 'text-slate-400'}`}>
+                      <span className={`text-xs font-normal ${canOptimize ? 'text-blue-400' : 'text-slate-500'}`}>
                         No optimization needed
                       </span>
                     </button>
@@ -1999,7 +1999,7 @@ export default function HomePage() {
                 )}
 
                 {!canOptimize && !isLoading && (
-                  <p className="text-xs text-slate-400 text-center">
+                  <p className="text-xs text-slate-500 text-center">
                     {inputMode === 'paste' && resumeText.trim().length <= 10
                       ? '① Add your resume text or try the sample resume'
                       : inputMode === 'upload' && !uploadedFile
@@ -2008,7 +2008,7 @@ export default function HomePage() {
                   </p>
                 )}
 
-                <p className="text-xs text-slate-400 text-center">
+                <p className="text-xs text-slate-500 text-center">
                   Both use your resume + JD · 5 free actions · No card needed
                 </p>
               </div>
@@ -2021,11 +2021,11 @@ export default function HomePage() {
                 {/* Empty state */}
                 {!parsedResume && !isLoading && (
                   <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center">
-                    <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-float">
+                    <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-float">
                       <span className="text-3xl">🎨</span>
                     </div>
                     <h3 className="font-semibold text-slate-900 mb-2">Full Control Over Your Documents</h3>
-                    <p className="text-sm text-slate-400 max-w-xs mx-auto mb-6">
+                    <p className="text-sm text-slate-500 max-w-xs mx-auto mb-6">
                       AI-optimized resume · Cover letter · Inline editing · Professional PDF
                     </p>
                     <div className="grid grid-cols-2 gap-2.5 text-left">
@@ -2038,7 +2038,7 @@ export default function HomePage() {
                         <div key={f.title} className={`bg-slate-50 rounded-xl p-3 animate-fadeInUp stagger-${i + 1}`}>
                           <div className="text-lg mb-1">{f.icon}</div>
                           <p className="text-xs font-semibold text-slate-700">{f.title}</p>
-                          <p className="text-xs text-slate-400">{f.desc}</p>
+                          <p className="text-xs text-slate-500">{f.desc}</p>
                         </div>
                       ))}
                     </div>
@@ -2078,7 +2078,7 @@ export default function HomePage() {
                 {optimizedResume && !isLoading && (
                   <>
                     {/* PM Score */}
-                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-4 animate-fadeInUp flex items-center justify-between">
+                    <div className="bg-gradient-to-r from-blue-50 to-blue-50 border border-blue-200 rounded-2xl p-4 animate-fadeInUp flex items-center justify-between">
                       <div>
                         <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">PM Keyword Score</p>
                         <p className="text-2xl font-bold text-blue-900 mt-1">{pmScore}<span className="text-sm font-normal text-blue-600">/100</span></p>
@@ -2122,7 +2122,7 @@ export default function HomePage() {
                       </button>
                     )}
 
-                    <p className="text-xs text-center text-slate-400">
+                    <p className="text-xs text-center text-slate-500">
                       Edit bullets, reorder sections, preview — then download as PDF
                     </p>
 
@@ -2150,7 +2150,7 @@ export default function HomePage() {
 
         {/* ── Footer ── */}
         <div className="mt-16 border-t border-slate-200 max-w-7xl mx-auto px-6">
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl px-6 py-5 mt-10 mb-10 animate-fadeInUp">
+          <div className="bg-gradient-to-r from-blue-50 to-blue-50 border border-blue-100 rounded-2xl px-6 py-5 mt-10 mb-10 animate-fadeInUp">
             <div className="flex items-start gap-4">
               <div className="text-2xl">🚀</div>
               <div>
@@ -2165,14 +2165,14 @@ export default function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
             <div className="bg-white rounded-2xl border border-slate-200 p-5">
               <h3 className="text-sm font-semibold text-slate-800 mb-1">Share your feedback</h3>
-              <p className="text-xs text-slate-400 mb-3">Facing an issue? Got a suggestion? We read every message.</p>
+              <p className="text-xs text-slate-500 mb-3">Facing an issue? Got a suggestion? We read every message.</p>
               <FeedbackForm />
             </div>
 
             <div className="bg-white rounded-2xl border border-slate-200 p-5 flex flex-col justify-between">
               <div>
                 <h3 className="text-sm font-semibold text-slate-800 mb-1">Contact support</h3>
-                <p className="text-xs text-slate-400 mb-4">Need help? Reach out directly.</p>
+                <p className="text-xs text-slate-500 mb-4">Need help? Reach out directly.</p>
                 <div className="space-y-3">
                   {[
                     { href: 'tel:+916200825883', icon: '📞', label: 'Call / WhatsApp', value: '+91 6200825883', hoverClass: 'hover:bg-blue-50' },
@@ -2189,12 +2189,12 @@ export default function HomePage() {
                   ))}
                 </div>
               </div>
-              <p className="text-xs text-slate-400 mt-4">Typical response: within a few hours</p>
+              <p className="text-xs text-slate-500 mt-4">Typical response: within a few hours</p>
             </div>
           </div>
 
           <div className="border-t border-slate-100 pt-6 pb-8">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
               <div className="flex items-center gap-2">
                 <svg width="18" height="18" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
                   <rect width="100" height="100" rx="22" fill="#2563eb"/>

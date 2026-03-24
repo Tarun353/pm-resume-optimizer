@@ -192,7 +192,7 @@ export function PaymentModal({ isOpen, onClose, onSuccess }: PaymentModalProps) 
                     : 'border-slate-200 bg-white hover:border-slate-300'
                 }`}>
                 {plan.popular && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-xs font-semibold rounded-full">
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white text-xs font-semibold rounded-full">
                     Most Popular
                   </div>
                 )}
@@ -209,7 +209,7 @@ export function PaymentModal({ isOpen, onClose, onSuccess }: PaymentModalProps) 
                 <ul className="space-y-2 mb-4">
                   {plan.features.map((feature, i) => (
                     <li key={i} className="flex items-center gap-2 text-sm text-slate-600">
-                      <span className="text-green-500 text-xs">✓</span>
+                      <span className="text-green-600 text-xs">✓</span>
                       {feature}
                     </li>
                   ))}
@@ -259,7 +259,7 @@ export function PaymentModal({ isOpen, onClose, onSuccess }: PaymentModalProps) 
           <button
             onClick={handlePayment}
             disabled={loading}
-            className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-slate-300 disabled:to-slate-400 text-white rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2">
+            className="w-full py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-slate-300 disabled:to-slate-400 text-white rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2">
             {loading ? (
               <><SpinnerIcon /><span className="ml-2">Processing...</span></>
             ) : (
@@ -267,7 +267,7 @@ export function PaymentModal({ isOpen, onClose, onSuccess }: PaymentModalProps) 
             )}
           </button>
 
-          <p className="text-xs text-slate-400 text-center mt-4">
+          <p className="text-xs text-slate-500 text-center mt-4">
             By proceeding, you agree to our{' '}
             <a href="/terms" className="underline hover:text-slate-600">Terms of Service</a>
             {' '}and{' '}

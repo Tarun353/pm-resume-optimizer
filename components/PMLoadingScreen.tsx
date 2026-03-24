@@ -121,7 +121,7 @@ function SmoothProgressBar({ mode }: { mode: string }) {
   return (
     <div className="w-full h-1 bg-slate-100 rounded-full overflow-hidden">
       <div
-        className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full transition-all duration-700 ease-out"
+        className="h-full bg-gradient-to-r from-blue-500 to-blue-500 rounded-full transition-all duration-700 ease-out"
         style={{ width: `${progress}%` }}
       />
     </div>
@@ -296,15 +296,15 @@ export function PMLoadingScreen({ mode = 'optimize', message }: PMLoadingProps) 
           <div className="relative w-24 h-24 flex items-center justify-center">
             <div className="absolute w-24 h-24 rounded-full border-2 border-blue-200"
               style={{ animation: 'pulseRing 2s ease-in-out infinite' }} />
-            <div className="absolute w-16 h-16 rounded-full border-2 border-indigo-300"
+            <div className="absolute w-16 h-16 rounded-full border-2 border-blue-300"
               style={{ animation: 'pulseRing 2s ease-in-out infinite 0.4s' }} />
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/30 text-xl"
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/30 text-xl"
               style={{ animation: 'floatOrb 3s ease-in-out infinite' }}>
               {mode === 'analyse' ? '🔍' : mode === 'cover-letter' ? '✉️' : mode === 'download' ? '⬇️' : '✨'}
             </div>
             <div className="absolute w-3 h-3 rounded-full bg-blue-400 shadow-sm"
               style={{ animation: 'orbit 3s linear infinite', top: '50%', left: '50%', marginTop: '-6px', marginLeft: '-6px' }} />
-            <div className="absolute w-2 h-2 rounded-full bg-violet-400 shadow-sm"
+            <div className="absolute w-2 h-2 rounded-full bg-blue-400 shadow-sm"
               style={{ animation: 'orbitReverse 2s linear infinite', top: '50%', left: '50%', marginTop: '-4px', marginLeft: '-4px' }} />
           </div>
         </div>
@@ -379,7 +379,7 @@ export function PMLoadingScreen({ mode = 'optimize', message }: PMLoadingProps) 
         </div>
 
         {/* ── Reassurance line — NO time estimate, just calm reassurance ── */}
-        <p className="text-xs text-slate-400 text-center mt-4">
+        <p className="text-xs text-slate-500 text-center mt-4">
           Our AI is doing the heavy lifting — sit back and relax 🙏
         </p>
       </div>

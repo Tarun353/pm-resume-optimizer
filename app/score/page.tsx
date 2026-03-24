@@ -68,8 +68,8 @@ function TagPill({ tag }: { tag: string }) {
   const styles: Record<string, string> = {
     has_metric:      'bg-emerald-50 text-emerald-700 border-emerald-200',
     has_action_verb: 'bg-blue-50 text-blue-700 border-blue-200',
-    has_ownership:   'bg-indigo-50 text-indigo-700 border-indigo-200',
-    jd_aligned:      'bg-violet-50 text-violet-700 border-violet-200',
+    has_ownership:   'bg-blue-50 text-blue-700 border-blue-200',
+    jd_aligned:      'bg-blue-50 text-blue-700 border-blue-200',
     too_vague:       'bg-amber-50 text-amber-700 border-amber-200',
     no_impact:       'bg-red-50 text-red-700 border-red-200',
   };
@@ -125,7 +125,7 @@ function BulletCard({ bullet, index }: { bullet: BulletAnalysis; index: number }
             </div>
           )}
           <div className="flex items-start gap-2.5 bg-red-50 border border-red-200 rounded-xl px-3 py-3">
-            <span className="text-red-500 mt-0.5 shrink-0"><CrossIcon /></span>
+            <span className="text-red-600 mt-0.5 shrink-0"><CrossIcon /></span>
             <div>
               <p className="text-xs font-bold text-red-700 mb-0.5">What's weak</p>
               <p className="text-sm text-red-800">{bullet.weakness}</p>
@@ -162,7 +162,7 @@ function KeywordGrid({ found, missing, label }: { found: string[]; missing: stri
                     <CheckIcon/> {w}
                   </span>
                 ))
-              : <p className="text-xs text-slate-400">None matched</p>}
+              : <p className="text-xs text-slate-500">None matched</p>}
           </div>
         </div>
         <div>
@@ -187,7 +187,7 @@ function GateOnePanel({ atsResult }: { atsResult: ReturnType<typeof scoreResume>
   const statusColors = {
     strong:   { bg: 'bg-emerald-50',  border: 'border-emerald-200', badge: 'bg-emerald-100 text-emerald-800', dot: 'bg-emerald-500' },
     passing:  { bg: 'bg-amber-50',    border: 'border-amber-200',   badge: 'bg-amber-100 text-amber-800',     dot: 'bg-amber-500' },
-    at_risk:  { bg: 'bg-red-50',      border: 'border-red-200',     badge: 'bg-red-100 text-red-800',         dot: 'bg-red-500' },
+    at_risk:  { bg: 'bg-red-50',      border: 'border-red-200',     badge: 'bg-red-100 text-red-800',         dot: 'bg-red-600' },
   };
   const c = statusColors[atsResult.filterStatus];
 
@@ -197,7 +197,7 @@ function GateOnePanel({ atsResult }: { atsResult: ReturnType<typeof scoreResume>
       <div className="px-6 py-5 border-b border-white/60">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-white/70 flex items-center justify-center text-xl shadow-sm">🔍</div>
+            <div className="w-10 h-10 rounded-2xl bg-white flex items-center justify-center text-xl shadow-sm">🔍</div>
             <div>
               <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Gate 1 of 2</p>
               <h3 className="font-bold text-slate-900 text-lg">ATS Filter — Will recruiters even see you?</h3>
@@ -238,7 +238,7 @@ function GateOnePanel({ atsResult }: { atsResult: ReturnType<typeof scoreResume>
             </p>
             <div className="flex flex-wrap gap-2">
               {atsResult.searchesYouAreMissing.slice(0, 6).map(s => (
-                <span key={s} className="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-full bg-white/70 text-slate-600 border border-slate-300 font-medium">
+                <span key={s} className="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-full bg-white text-slate-600 border border-slate-300 font-medium">
                   {s}
                 </span>
               ))}
@@ -248,7 +248,7 @@ function GateOnePanel({ atsResult }: { atsResult: ReturnType<typeof scoreResume>
 
         {/* Critical keywords to add */}
         {atsResult.criticalKeywordsToAdd.length > 0 && (
-          <div className="bg-white/70 rounded-2xl p-4 border border-white/80">
+          <div className="bg-white rounded-2xl p-4 border border-slate-200">
             <p className="text-xs font-bold text-slate-700 uppercase tracking-widest mb-2.5">
               💡 Add these JD keywords to unlock more recruiter searches:
             </p>
@@ -270,10 +270,10 @@ function GateOnePanel({ atsResult }: { atsResult: ReturnType<typeof scoreResume>
             { label: 'Metrics', score: atsResult.breakdown.metrics.score, max: 20 },
             { label: 'Action Verbs', score: atsResult.breakdown.actionVerbs.score, max: 15 },
           ].map(item => (
-            <div key={item.label} className="bg-white/70 rounded-xl p-3 text-center border border-white/80">
+            <div key={item.label} className="bg-white rounded-xl p-3 text-center border border-slate-200">
               <p className="text-xs text-slate-500 mb-1">{item.label}</p>
               <p className="text-base font-bold text-slate-900">
-                {item.score}<span className="text-slate-400 font-normal text-xs">/{item.max}</span>
+                {item.score}<span className="text-slate-500 font-normal text-xs">/{item.max}</span>
               </p>
               <div className="mt-1.5 h-1.5 bg-slate-200 rounded-full overflow-hidden">
                 <div
@@ -294,7 +294,7 @@ function GateTwoPanel({ analysis }: { analysis: RecruiterAnalysis }) {
   const appealConfig = {
     high:   { bg: 'bg-emerald-50',  border: 'border-emerald-200', badge: 'bg-emerald-100 text-emerald-800', dot: 'bg-emerald-500' },
     medium: { bg: 'bg-amber-50',    border: 'border-amber-200',   badge: 'bg-amber-100 text-amber-800',     dot: 'bg-amber-500' },
-    low:    { bg: 'bg-red-50',      border: 'border-red-200',     badge: 'bg-red-100 text-red-800',         dot: 'bg-red-500' },
+    low:    { bg: 'bg-red-50',      border: 'border-red-200',     badge: 'bg-red-100 text-red-800',         dot: 'bg-red-600' },
   };
   const c = appealConfig[analysis.overallAppeal];
 
@@ -311,7 +311,7 @@ function GateTwoPanel({ analysis }: { analysis: RecruiterAnalysis }) {
       <div className="px-6 py-5 border-b border-white/60">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-white/70 flex items-center justify-center text-xl shadow-sm">👁</div>
+            <div className="w-10 h-10 rounded-2xl bg-white flex items-center justify-center text-xl shadow-sm">👁</div>
             <div>
               <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Gate 2 of 2</p>
               <h3 className="font-bold text-slate-900 text-lg">Recruiter Review — Will they call you?</h3>
@@ -365,7 +365,7 @@ function GateTwoPanel({ analysis }: { analysis: RecruiterAnalysis }) {
 
         {/* Top fix callout */}
         {analysis.overallAppeal !== 'high' && (
-          <div className="bg-white/70 border border-white/80 rounded-2xl p-4 mt-2">
+          <div className="bg-white border border-slate-200 rounded-2xl p-4 mt-2">
             <p className="text-xs font-bold text-slate-700 uppercase tracking-widest mb-1">🔑 Most Impactful Fix Right Now</p>
             <p className="text-sm text-slate-700 leading-relaxed">{analysis.topFix}</p>
           </div>
@@ -534,13 +534,13 @@ export default function ScorePage() {
       <LoginModal isOpen={showLogin} onClose={() => setShowLogin(false)} onSuccess={handleLoginSuccess} />
       <PaymentModal isOpen={showPayment} onClose={() => setShowPayment(false)} onSuccess={() => setShowPayment(false)} />
 
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/20 to-indigo-50/30">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/20 to-blue-50/30">
 
         {/* Nav */}
         <nav className="border-b border-slate-200 bg-white/80 backdrop-blur-sm sticky top-0 z-40">
           <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white text-sm font-bold">PM</div>
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center text-white text-sm font-bold">PM</div>
               <span className="font-bold text-slate-900">PM Resume Optimizer</span>
             </Link>
             <div className="flex items-center gap-3">
@@ -588,7 +588,7 @@ export default function ScorePage() {
 
             {/* Profile selector */}
             <div className="p-6 border-b border-slate-100">
-              <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Your PM Profile</label>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Your PM Profile</label>
               <div className="grid grid-cols-3 gap-3">
                 {[
                   { value: 'aspiring',      emoji: '🎓', label: 'Aspiring PM',    sub: 'Student / Fresher' },
@@ -601,7 +601,7 @@ export default function ScorePage() {
                     }`}>
                     <span className="text-2xl">{opt.emoji}</span>
                     <span className={`text-xs font-bold ${profile === opt.value ? 'text-blue-700' : 'text-slate-700'}`}>{opt.label}</span>
-                    <span className="text-[11px] text-slate-400">{opt.sub}</span>
+                    <span className="text-[11px] text-slate-500">{opt.sub}</span>
                   </button>
                 ))}
               </div>
@@ -612,8 +612,8 @@ export default function ScorePage() {
               {/* Resume */}
               <div className="p-6 space-y-3">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Your Resume</label>
-                  <span className={`text-xs font-semibold tabular-nums ${resumeText.length >= 100 ? 'text-emerald-600' : 'text-slate-400'}`}>
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Your Resume</label>
+                  <span className={`text-xs font-semibold tabular-nums ${resumeText.length >= 100 ? 'text-emerald-600' : 'text-slate-500'}`}>
                     {resumeText.length >= 100 ? `${resumeText.length} chars ✓` : `${resumeText.length} / 100 min`}
                   </span>
                 </div>
@@ -623,7 +623,7 @@ export default function ScorePage() {
                   placeholder={`Paste your full resume text here.\n\nInclude everything: summary, work experience bullets, education, projects, skills.\n\nThe more complete, the more accurate the analysis.`}
                   className="w-full h-64 text-sm text-slate-700 placeholder-slate-300 bg-slate-50 border border-slate-200 rounded-2xl p-4 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all font-mono leading-relaxed"
                 />
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-500">
                   Tip: Copy-paste from your Word doc or Google Doc for best results.
                 </p>
               </div>
@@ -631,7 +631,7 @@ export default function ScorePage() {
               {/* JD */}
               <div className="p-6 space-y-3">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Job Description</label>
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Job Description</label>
                   <div className="flex bg-slate-100 rounded-xl p-0.5 text-xs">
                     {[{ id: 'paste', label: 'Paste JD' }, { id: 'default', label: 'Use Template' }].map(m => (
                       <button key={m.id} onClick={() => setJdMode(m.id as 'paste' | 'default')}
@@ -678,8 +678,8 @@ export default function ScorePage() {
               <button onClick={handleAnalyse} disabled={!canAnalyse || isAnalysing}
                 className={`px-8 py-3.5 rounded-2xl text-sm font-bold transition-all duration-200 flex items-center gap-2.5 btn-press ${
                   canAnalyse && !isAnalysing
-                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/25 glow-blue'
-                    : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                    ? 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg shadow-blue-500/25 glow-blue'
+                    : 'bg-slate-200 text-slate-500 cursor-not-allowed'
                 }`}>
                 {isAnalysing ? <><SpinnerIcon className="w-4 h-4 text-white"/><span>Analysing...</span></>
                   : !user ? '🔍 Analyse My Resume — Sign in Free'
@@ -726,10 +726,10 @@ export default function ScorePage() {
                         <ScoreRing score={result.overallScore} grade={result.gradeLabel} />
                         <div className="flex-1 space-y-4">
                           <div>
-                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">AI Deep Analysis</p>
+                            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">AI Deep Analysis</p>
                             <p className="text-slate-700 leading-relaxed">{result.executiveSummary}</p>
                           </div>
-                          <div className="bg-indigo-50 border border-indigo-200 rounded-2xl px-4 py-3 text-sm text-indigo-800">
+                          <div className="bg-blue-50 border border-blue-200 rounded-2xl px-4 py-3 text-sm text-blue-800">
                             <strong>Profile-specific:</strong> {result.profileSpecificFeedback}
                           </div>
                           <div className="grid grid-cols-3 gap-3 text-center">
@@ -740,7 +740,7 @@ export default function ScorePage() {
                             ].map(stat => (
                               <div key={stat.label} className="bg-slate-50 rounded-xl p-3">
                                 <p className="text-xl font-bold text-slate-900">{stat.value}</p>
-                                <p className="text-xs text-slate-400 mt-0.5">{stat.label}</p>
+                                <p className="text-xs text-slate-500 mt-0.5">{stat.label}</p>
                               </div>
                             ))}
                           </div>
@@ -773,7 +773,7 @@ export default function ScorePage() {
                       </div>
                       <div className="p-6 space-y-4">
                         <div>
-                          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Your current summary</p>
+                          <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Your current summary</p>
                           <p className="text-sm text-slate-600 bg-slate-50 border border-slate-200 rounded-xl p-3 leading-relaxed">{result.summaryAnalysis.original}</p>
                         </div>
                         <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-800">
@@ -798,7 +798,7 @@ export default function ScorePage() {
                     <div className="animate-fadeInUp stagger-2">
                       <div className="flex items-center justify-between mb-4">
                         <h3 className="font-bold text-slate-900 text-lg">⚡ Bullet-by-Bullet Analysis ({result.bulletAnalysis.length})</h3>
-                        <p className="text-xs text-slate-400">Grouped by section · Click any bullet to expand</p>
+                        <p className="text-xs text-slate-500">Grouped by section · Click any bullet to expand</p>
                       </div>
 
                       {(() => {
@@ -871,7 +871,7 @@ export default function ScorePage() {
 
               {/* ── CTA to optimize ── */}
               {(atsResult || result) && (
-                <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[2rem] p-8 text-white animate-fadeInUp stagger-5">
+                <div className="bg-gradient-to-br from-blue-600 to-blue-800 rounded-[2rem] p-8 text-white animate-fadeInUp stagger-5">
                   <div className="max-w-2xl">
                     <p className="text-2xl font-bold mb-3">
                       {(result?.overallScore ?? 0) >= 80 && recruiterAnalysis?.overallAppeal === 'high'
