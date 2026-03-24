@@ -103,6 +103,15 @@ const PLANS = [
   },
 ];
 
+const CONTACT_METHODS = [
+  { label: 'Mobile', href: 'tel:+916200825883', icon: '📞', external: false },
+  { label: 'Email', href: 'mailto:pmresumeoptimizer@gmail.com', icon: '✉️', external: false },
+  { label: 'Instagram', href: 'https://www.instagram.com/pmresumeoptimizer/', icon: '📸', external: true },
+  { label: 'Reddit', href: 'https://www.reddit.com/user/PM-RESUME-OPTIMIZER/', icon: '👽', external: true },
+  { label: 'X', href: 'https://x.com/pmresumeai', icon: '𝕏', external: true },
+  { label: 'LinkedIn', href: 'https://www.linkedin.com/company/pm-resume-optimizer/about/?viewAsMember=true', icon: '💼', external: true },
+];
+
 // ── Particle component ───────────────────────────────────────────────────────
 function FloatingOrb({ style }: { style: React.CSSProperties }) {
   return (
@@ -705,6 +714,26 @@ export default function LandingPage() {
               </div>
             </div>
 
+          </div>
+        </section>
+
+        <section className="relative z-10 px-6 py-12 border-t border-slate-200 bg-white">
+          <div className="max-w-6xl mx-auto">
+            <h3 className="text-center text-sm font-bold text-slate-700 hero-text mb-6">Contact Us</h3>
+            <div className="grid grid-cols-3 gap-4 max-w-xs mx-auto sm:max-w-none sm:flex sm:flex-wrap sm:justify-center sm:gap-6">
+              {CONTACT_METHODS.map(({ label, href, icon, external }) => (
+                <a
+                  key={label}
+                  href={href}
+                  aria-label={label}
+                  target={external ? '_blank' : undefined}
+                  rel={external ? 'noopener noreferrer' : undefined}
+                  className="w-12 h-12 rounded-xl border border-slate-200 bg-white text-slate-700 hover:text-blue-600 hover:border-blue-200 flex items-center justify-center text-xl transition-all duration-200 hover:scale-110"
+                >
+                  <span aria-hidden="true">{icon}</span>
+                </a>
+              ))}
+            </div>
           </div>
         </section>
 
