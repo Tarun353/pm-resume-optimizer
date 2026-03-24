@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useAuth } from '@/lib/AuthContext';
 import { useState, useEffect, useRef } from 'react';
 import { LoginModal } from '@/components/LoginModal';
