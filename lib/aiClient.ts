@@ -311,7 +311,7 @@ export async function smartAICall(
 }
 
 /**
- * Backward-compatible alias for files that still import groqChatCompletion.
+ * Backward-compatible alias for files that still import groqChatCompletion 33.
  * @deprecated Use smartAICall directly in new code.
  */
 export async function groqChatCompletion(
