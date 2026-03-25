@@ -291,9 +291,13 @@ export async function smartAICall(
         // ── Strip markdown from text responses only ──
         // JSON responses (from /api/analyse etc.) must NOT be stripped
         // because regex patterns can corrupt JSON structure
-        const trimmed = result.trim();
-        const isJSON = trimmed.startsWith('{') || trimmed.startsWith('[');
-        return isJSON ? trimmed : stripMarkdown(result);
+          const trimmed = result.trim();
+   // Don't run stripMarkdown on JSON responses — it destroys content inside fences.
+  // robustJsonParse in lib/jsonParser.ts handles fence stripping itself.
+          const looksLikeJson =
+           trimmed.startsWith('{') || trimmed.startsWith('[') ||
+           trimmed.includes('```json') || trimmed.includes('```');
+          return looksLikeJson ? trimmed : stripMarkdown(result);
       }
     } catch (err) {
       const limited = is429(err);
