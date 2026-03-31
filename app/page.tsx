@@ -6,24 +6,6 @@ import { useState, useEffect, useRef } from 'react';
 import { LoginModal } from '@/components/LoginModal';
 import { PaymentModal } from '@/components/PaymentModal';
 
-// ── Animated counter hook ────────────────────────────────────────────────────
-function useCountUp(target: number, duration = 1200, start = false) {
-  const [count, setCount] = useState(0);
-  useEffect(() => {
-    if (!start) return;
-    let startTime: number | null = null;
-    const step = (timestamp: number) => {
-      if (!startTime) startTime = timestamp;
-      const progress = Math.min((timestamp - startTime) / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setCount(Math.floor(eased * target));
-      if (progress < 1) requestAnimationFrame(step);
-    };
-    requestAnimationFrame(step);
-  }, [target, duration, start]);
-  return count;
-}
-
 // ── useInView hook ───────────────────────────────────────────────────────────
 function useInView(threshold = 0.2) {
   const ref = useRef<HTMLDivElement>(null);
@@ -137,11 +119,6 @@ export default function LandingPage() {
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
 
   const pricingRef = useInView(0.1);
-  const statsRef = useInView(0.2);
-
-  const stat1 = useCountUp(2400, 1500, statsRef.inView);
-  const stat2 = useCountUp(94, 1200, statsRef.inView);
-  const stat3 = useCountUp(60, 1000, statsRef.inView);
 
   const now = new Date();
   const hasActivePlan =
@@ -190,10 +167,6 @@ export default function LandingPage() {
         @keyframes badgeBounce {
           0%, 100% { transform: translateY(0) rotate(-2deg); }
           50%       { transform: translateY(-4px) rotate(2deg); }
-        }
-        @keyframes statsCount {
-          from { opacity: 0; transform: scale(0.8); }
-          to   { opacity: 1; transform: scale(1); }
         }
         @keyframes borderGlow {
           0%, 100% { border-color: rgba(37,99,235,0.25); }
@@ -429,24 +402,6 @@ export default function LandingPage() {
             ))}
           </div>
         </main>
-
-        {/* ── Stats bar ────────────────────────────────────────────────── */}
-        <div ref={statsRef.ref} className="relative z-10 border-y border-slate-200 bg-slate-50/80">
-          <div className="max-w-4xl mx-auto px-6 py-10 grid grid-cols-3 gap-6 text-center">
-            {[
-              { count: stat1, suffix: '+', label: 'Resumes Optimized', prefix: '' },
-              { count: stat2, suffix: '%', label: 'More Interview Callbacks', prefix: '' },
-              { count: stat3, suffix: 's', label: 'Average Time to Optimize', prefix: '<' },
-            ].map(({ count, suffix, label, prefix }, i) => (
-              <div key={label} style={{ animation: statsRef.inView ? `statsCount 0.6s ${i * 0.15}s ease both` : 'none' }}>
-                <p className="text-3xl sm:text-4xl font-black text-slate-900 hero-text">
-                  {prefix}{count.toLocaleString()}{suffix}
-                </p>
-                <p className="text-xs text-slate-500 mt-1">{label}</p>
-              </div>
-            ))}
-          </div>
-        </div>
 
         {/* ── How it works ─────────────────────────────────────────────── */}
         <section className="relative z-10 border-b border-slate-200">
