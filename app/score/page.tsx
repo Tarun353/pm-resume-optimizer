@@ -393,7 +393,10 @@ export default function ScorePage() {
   const [showLogin, setShowLogin]   = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [pendingAnalyse, setPendingAnalyse] = useState(false);
+  const [isParsingPdf, setIsParsingPdf] = useState(false);
+  const [uploadedPdfName, setUploadedPdfName] = useState('');
   const resultRef                   = useRef<HTMLDivElement>(null);
+  const pdfInputRef                 = useRef<HTMLInputElement>(null);
 
   // ── Pre-fill from /optimize ─────────────────────────────────────────────────
   useEffect(() => {
@@ -425,6 +428,46 @@ export default function ScorePage() {
     : jdText;
 
   const canAnalyse = resumeText.trim().length >= 100;
+
+  const mapProfileToCareerStage = (value: string) => {
+    if (value === 'aspiring') return 'fresher';
+    if (value === 'transitioning') return 'career-change';
+    return 'experienced';
+  };
+
+  const handlePdfUpload = async (file: File) => {
+    if (!file.name.toLowerCase().endsWith('.pdf')) {
+      setError('Please upload a PDF file only.');
+      return;
+    }
+
+    setError(null);
+    setIsParsingPdf(true);
+    setUploadedPdfName(file.name);
+
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('careerStage', mapProfileToCareerStage(profile));
+
+      const res = await fetch('/api/parse', {
+        method: 'POST',
+        body: fd,
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data?.error ?? 'Failed to read PDF.');
+      }
+
+      setResumeText(data.rawText ?? '');
+    } catch (err) {
+      setUploadedPdfName('');
+      setError(err instanceof Error ? err.message : 'Failed to parse PDF. Please try again.');
+    } finally {
+      setIsParsingPdf(false);
+    }
+  };
 
   const runAnalysis = async () => {
     setError(null);
@@ -616,6 +659,46 @@ export default function ScorePage() {
                   <span className={`text-xs font-semibold tabular-nums ${resumeText.length >= 100 ? 'text-emerald-600' : 'text-slate-500'}`}>
                     {resumeText.length >= 100 ? `${resumeText.length} chars ✓` : `${resumeText.length} / 100 min`}
                   </span>
+                </div>
+                <div className="rounded-2xl border-2 border-dashed border-blue-200 bg-blue-50/60 p-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-blue-800">Upload Resume PDF (Recommended)</p>
+                      <p className="text-xs text-blue-700/80 mt-0.5">
+                        Upload first for fastest analysis, or paste your resume text below.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => pdfInputRef.current?.click()}
+                      disabled={isParsingPdf}
+                      className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${
+                        isParsingPdf
+                          ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
+                          : 'bg-blue-600 text-white hover:bg-blue-700'
+                      }`}
+                    >
+                      {isParsingPdf ? 'Reading PDF...' : 'Upload PDF'}
+                    </button>
+                  </div>
+                  <input
+                    ref={pdfInputRef}
+                    type="file"
+                    accept=".pdf,application/pdf"
+                    className="hidden"
+                    onChange={e => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        void handlePdfUpload(file);
+                      }
+                      e.currentTarget.value = '';
+                    }}
+                  />
+                  {uploadedPdfName && (
+                    <p className="text-xs text-emerald-700 mt-3">
+                      ✓ Loaded from: <span className="font-semibold">{uploadedPdfName}</span>
+                    </p>
+                  )}
                 </div>
                 <textarea
                   value={resumeText}
