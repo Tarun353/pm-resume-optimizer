@@ -105,7 +105,7 @@ export default async function BlogPostPage({ params }: BlogPageProps) {
               href="/"
               className="inline-flex items-center rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
             >
-              Go to PM Resume Tool
+              Check your ATS score →
             </Link>
             <Link
               href="/blog"

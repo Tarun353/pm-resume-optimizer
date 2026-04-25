@@ -512,7 +512,38 @@ export default function LandingPage() {
           <section className="mt-10 rounded-2xl border border-slate-200 bg-white p-6 text-left shadow-sm">
             <h2 className="text-2xl font-black text-slate-900 hero-text">PM Resume Guides</h2>
             <p className="mt-2 text-sm text-slate-600">
-              Explore actionable resume advice and ATS keyword strategies before your next application.
+              Pick your PM profile and explore actionable advice before your next application.
+            </p>
+
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              <Link
+                href="/resume-for-freshers"
+                className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-800"
+              >
+                Fresher PM Resume Guide →
+              </Link>
+              <Link
+                href="/resume-for-experienced-pm"
+                className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-800"
+              >
+                Experienced PM Resume Guide →
+              </Link>
+              <Link
+                href="/resume-for-career-switch"
+                className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-800"
+              >
+                Career Switch PM Guide →
+              </Link>
+              <Link
+                href="/blog"
+                className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-800"
+              >
+                Browse PM Resume Blog →
+              </Link>
+            </div>
+
+            <p className="mt-5 text-sm text-slate-600">
+              Or jump into popular blog posts:
             </p>
             <div className="mt-4 flex flex-wrap gap-3">
               <Link href="/blog" className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">

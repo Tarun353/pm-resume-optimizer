@@ -84,6 +84,30 @@ export default function ResumeForFreshersPage() {
         >
           Check your ATS score →
         </Link>
+
+        <section className="mt-8 rounded-xl border border-slate-200 bg-slate-50 p-5">
+          <h2 className="text-lg font-semibold text-slate-900">Related PM Resume Blogs</h2>
+          <div className="mt-3 flex flex-wrap gap-3">
+            <Link
+              href="/blog/product-manager-resume-for-freshers"
+              className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+            >
+              Fresher Resume Blueprint
+            </Link>
+            <Link
+              href="/blog/pm-resume-keywords"
+              className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+            >
+              PM Resume Keywords
+            </Link>
+            <Link
+              href="/blog/ats-resume-mistakes"
+              className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+            >
+              ATS Mistakes to Avoid
+            </Link>
+          </div>
+        </section>
       </article>
     </main>
   );
