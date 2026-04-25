@@ -1,12 +1,21 @@
 import type { MetadataRoute } from 'next';
 import fs from 'node:fs';
 import path from 'node:path';
+import { BLOG_POSTS } from '@/lib/content/blogPosts';
 
 const BASE_URL = 'https://pm-resume-optimizer.onrender.com';
 const APP_DIR = path.join(process.cwd(), 'app');
 
-// Add manual dynamic routes here when needed, e.g. '/blog/my-post'
-const dynamicRoutes: string[] = [];
+const sampleProgrammaticRoutes = [
+  '/resume-score/product-manager/fintech',
+  '/resume-score/product-manager/saas',
+  '/resume-score/product-manager/ecommerce',
+];
+
+const dynamicRoutes: string[] = [
+  ...BLOG_POSTS.map((post) => `/blog/${post.slug}`),
+  ...sampleProgrammaticRoutes,
+];
 
 function isRoutableSegment(segment: string) {
   // Skip route groups, parallel routes, and dynamic/catch-all segments

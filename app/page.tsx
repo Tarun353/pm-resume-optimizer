@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { useState, useEffect, useRef } from 'react';
 import { LoginModal } from '@/components/LoginModal';
 import { PaymentModal } from '@/components/PaymentModal';
+import Script from 'next/script';
 
 // ── useInView hook ───────────────────────────────────────────────────────────
 function useInView(threshold = 0.2) {
@@ -97,6 +98,22 @@ const SOCIAL_LINKS = [
   { label: 'LinkedIn', href: 'https://www.linkedin.com/company/pm-resume-optimizer/about/?viewAsMember=true', icon: LinkedInIcon },
 ];
 
+const webApplicationSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'WebApplication',
+  name: 'PM Resume Optimizer',
+  applicationCategory: 'BusinessApplication',
+  operatingSystem: 'Web',
+  url: 'https://pm-resume-optimizer.onrender.com',
+  description:
+    'AI-powered product manager resume optimizer with ATS scoring, keyword analysis, and role-specific resume improvements.',
+  offers: {
+    '@type': 'Offer',
+    price: '0',
+    priceCurrency: 'INR',
+  },
+};
+
 // ── Particle component ───────────────────────────────────────────────────────
 function FloatingOrb({ style }: { style: React.CSSProperties }) {
   return (
@@ -141,6 +158,12 @@ export default function LandingPage() {
 
   return (
     <>
+      <Script
+        id="web-application-schema"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(webApplicationSchema) }}
+      />
+
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
 
@@ -401,6 +424,24 @@ export default function LandingPage() {
               <span key={t} className="text-xs text-slate-500">{t}</span>
             ))}
           </div>
+
+          <section className="mt-10 rounded-2xl border border-slate-200 bg-white p-6 text-left shadow-sm">
+            <h2 className="text-2xl font-black text-slate-900 hero-text">PM Resume Guides</h2>
+            <p className="mt-2 text-sm text-slate-600">
+              Explore actionable resume advice and ATS keyword strategies before your next application.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <Link href="/blog" className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                Visit Blog
+              </Link>
+              <Link href="/blog/product-manager-resume-guide" className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                PM Resume Guide
+              </Link>
+              <Link href="/blog/ats-resume-mistakes" className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                ATS Mistakes
+              </Link>
+            </div>
+          </section>
         </main>
 
         <section className="mt-16 px-4 max-w-4xl mx-auto">
