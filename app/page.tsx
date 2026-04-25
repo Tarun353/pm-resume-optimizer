@@ -403,6 +403,82 @@ export default function LandingPage() {
           </div>
         </main>
 
+        <section className="mt-16 px-4 max-w-4xl mx-auto">
+          <h1 className="text-3xl sm:text-4xl font-black text-slate-900 hero-text mb-8">
+            Product Manager Resume Optimizer
+          </h1>
+
+          <div className="space-y-10 text-slate-700 leading-relaxed">
+            <div className="space-y-4">
+              <h2 className="text-2xl font-bold text-slate-900 hero-text">
+                What is ATS (Applicant Tracking System)
+              </h2>
+              <p>
+                An Applicant Tracking System, or ATS, is the software many companies use to collect and sort job applications.
+                When you apply for a Product Manager role, your product manager resume usually goes through this system before a recruiter even sees it.
+                The ATS scans your resume for important details like job titles, skills, tools, and words from the job description.
+              </p>
+              <p>
+                If your resume does not match what the system is looking for, it may be ranked lower.
+                That does not always mean you are a weak candidate. It often means the resume language and structure are not aligned with the role.
+                A strong product manager resume should still sound human, but it should also be easy for an ATS to read and understand.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <h2 className="text-2xl font-bold text-slate-900 hero-text">
+                Why Product Manager resumes fail screening
+              </h2>
+              <p>
+                PM resumes often fail screening because they are too generic.
+                Many candidates use the same resume for every job, even when each company is asking for different skills.
+                One role may focus on growth, another on platform work, and another on B2B discovery.
+                If your resume does not reflect that context, it can be filtered out early.
+              </p>
+              <p>
+                Another common issue is unclear impact.
+                Recruiters and hiring managers want to see what changed because of your work.
+                If bullets only list tasks, like “managed roadmap” or “worked with engineering,” your value is hard to measure.
+                PM resumes should show outcomes, ownership, and business impact in clear, simple lines.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <h2 className="text-2xl font-bold text-slate-900 hero-text">
+                Common resume mistakes (keywords, formatting)
+              </h2>
+              <p>
+                Keyword gaps are one of the biggest problems.
+                If a job description repeats terms like experimentation, stakeholder management, SQL, or go-to-market, your resume should include relevant evidence for those areas.
+                This does not mean stuffing random words.
+                It means showing real experience using language that matches the role, which is the core of ATS resume optimization.
+              </p>
+              <p>
+                Formatting also hurts many resumes.
+                Complex tables, graphics, icons, or multi-column layouts can confuse ATS tools.
+                Keep formatting clean: clear headings, simple bullets, and consistent structure.
+                For PM roles, clarity beats design-heavy templates every time, and good resume keywords for product managers should be added in a natural way.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <h2 className="text-2xl font-bold text-slate-900 hero-text">
+                How this tool helps
+              </h2>
+              <p>
+                This tool helps you tailor your product manager resume for each Product Manager role without starting from zero.
+                You can check your ATS match score, see where your resume is weak, and get practical rewrite suggestions.
+                Instead of guessing what to fix, you get clear direction section by section and bullet by bullet.
+              </p>
+              <p>
+                You can also optimize your resume using a real job description, improve your summary, and rewrite bullets with stronger impact and relevant keywords.
+                The goal is simple: help your resume pass screening and sound like a real person wrote it.
+                You stay in control, but you save time and avoid the most common PM resume mistakes.
+              </p>
+            </div>
+          </div>
+        </section>
+
         {/* ── How it works ─────────────────────────────────────────────── */}
         <section className="relative z-10 border-b border-slate-200">
           <div className="max-w-6xl mx-auto px-6 py-16">
