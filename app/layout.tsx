@@ -9,11 +9,11 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: {
     default:
-      "Product Manager Resume Optimizer – Optimize Your PM Resume in 60 Seconds",
+      "Product Manager Resume Optimizer – Fix & Tailor Your PM Resume in 60 Seconds",
     template: "%s | PM Resume Optimizer",
   },
   description:
-    "Optimize your product manager resume in 60 seconds using AI. Improve ATS score, match job descriptions, and increase shortlist chances instantly.",
+    "Know exactly why your product manager resume gets rejected and fix it instantly. Get ATS-optimized, job-tailored PM resumes in 60 seconds using AI.",
   keywords: [
     "product manager resume",
     "ATS resume optimizer",
@@ -21,20 +21,18 @@ export const metadata: Metadata = {
     "resume optimizer AI",
     "product manager resume builder",
     "resume ATS score improvement",
+    "PM job resume tips",
   ],
   verification: {
     google: "a9CGHtLZZJlKEJZkwjLQcBCGCyp9oR3d9SRLfJ4XXxI",
   },
   openGraph: {
-    title: "Optimize Your PM Resume in 60 Seconds",
+    title: "Fix Your PM Resume in 60 Seconds",
     description:
-      "AI-powered resume optimization for product managers. Improve ATS score and get shortlisted faster.",
+      "Find out why your product manager resume isn’t getting interviews and fix it instantly with AI-powered optimization.",
     url: "https://pm-resume-optimizer.onrender.com",
     siteName: "PM Resume Optimizer",
     type: "website",
-  },
-  alternates: {
-    canonical: "https://pm-resume-optimizer.onrender.com",
   },
 };
 
@@ -44,18 +42,18 @@ const faqSchema = {
   mainEntity: [
     {
       "@type": "Question",
-      name: "How does PM Resume Optimizer work?",
+      name: "Why is my product manager resume not getting interviews?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Paste your resume and the product manager job description. The AI extracts keywords and rewrites your resume to match the job in under 60 seconds.",
+        text: "Most PM resumes fail because they lack measurable impact, product thinking, and keyword alignment with job descriptions. This tool identifies exactly where your resume is weak and helps fix it.",
       },
     },
     {
       "@type": "Question",
-      name: "Is PM Resume Optimizer free?",
+      name: "How does PM Resume Optimizer work?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Yes, you get free resume optimizations with no credit card required. Premium plans unlock unlimited usage.",
+        text: "Paste your resume and a product manager job description. The AI analyzes your resume for ATS compatibility and recruiter expectations, then rewrites it to match the role in under 60 seconds.",
       },
     },
     {
@@ -63,23 +61,23 @@ const faqSchema = {
       name: "Does this help my resume pass ATS systems?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Yes. The tool aligns your resume with job description keywords to improve ATS compatibility and recruiter visibility.",
+        text: "Yes. It aligns your resume with job-specific keywords and improves formatting so it performs better in applicant tracking systems.",
       },
     },
     {
       "@type": "Question",
-      name: "Can I optimize my resume for multiple jobs?",
+      name: "How is this different from other resume tools?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Yes. Each resume optimization is tailored to a specific job description, and you can generate multiple versions.",
+        text: "Unlike generic resume builders, this tool is built specifically for product manager roles and focuses on impact-driven bullet points, metrics, and product ownership language.",
       },
     },
     {
       "@type": "Question",
-      name: "Does this work for freshers or aspiring product managers?",
+      name: "Can I tailor my resume for multiple PM job roles?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Yes. It highlights projects, internships, and product thinking to make your resume relevant even without full-time PM experience.",
+        text: "Yes. You can generate multiple tailored versions of your resume for different job descriptions instantly.",
       },
     },
     {
@@ -87,7 +85,15 @@ const faqSchema = {
       name: "How long does it take to optimize a resume?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "It takes less than 60 seconds to generate an optimized resume tailored to your target job.",
+        text: "It takes less than 60 seconds to generate a job-specific, optimized resume.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Does this work for aspiring product managers?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Yes. It helps highlight projects, internships, and transferable skills in a way that aligns with PM expectations.",
       },
     },
     {
@@ -95,7 +101,7 @@ const faqSchema = {
       name: "Do I need to create an account?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "You can start optimizing without a credit card. Account creation may be required to save or access multiple resumes.",
+        text: "You can start without a credit card. Creating an account allows you to save and manage multiple resume versions.",
       },
     },
     {
@@ -103,23 +109,7 @@ const faqSchema = {
       name: "Does it also generate cover letters?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Yes. You can generate a tailored cover letter based on your resume and job description.",
-      },
-    },
-    {
-      "@type": "Question",
-      name: "What makes this different from other resume tools?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "Unlike generic builders, this tool focuses specifically on product manager roles and optimizes resumes based on real job descriptions in seconds.",
-      },
-    },
-    {
-      "@type": "Question",
-      name: "Will recruiters notice the difference?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "Yes. A keyword-optimized and role-specific resume increases your chances of getting shortlisted and noticed by recruiters.",
+        text: "Yes. You can generate tailored cover letters based on your resume and job description.",
       },
     },
   ],
