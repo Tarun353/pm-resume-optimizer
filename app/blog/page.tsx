@@ -19,6 +19,12 @@ export default function BlogIndexPage() {
           Actionable guides to improve your product manager resume, pass ATS
           screening, and land more interviews.
         </p>
+        <Link
+          href="/"
+          className="mt-5 inline-flex items-center text-sm font-semibold text-blue-700 hover:text-blue-800"
+        >
+          Check your ATS score →
+        </Link>
 
         <div className="mt-10 grid gap-6">
           {BLOG_POSTS.map((post) => (
