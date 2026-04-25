@@ -37,7 +37,7 @@ export default function BlogIndexPage() {
                 href={`/blog/${post.slug}`}
                 className="mt-5 inline-flex items-center text-sm font-semibold text-blue-700 hover:text-blue-800"
               >
-                Read article → | Check your ATS score →
+                Read article →
               </Link>
             </article>
           ))}
