@@ -7,20 +7,34 @@ import Script from "next/script";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "PM Resume Optimizer — Tailor Your Resume to Any PM Job in 60 Seconds",
+  title: {
+    default:
+      "Product Manager Resume Optimizer – Optimize Your PM Resume in 60 Seconds",
+    template: "%s | PM Resume Optimizer",
+  },
   description:
-    "AI resume optimizer for Product Managers. Paste your resume + PM job description → get ATS-optimized, keyword-matched resume instantly. Free for aspiring PMs, experienced PMs, and career switchers. No credit card needed.",
-  keywords:
-    "PM resume optimizer, product manager resume, ATS resume optimizer, resume for product manager, PM job application, product manager resume builder, aspiring PM resume, PM resume keywords",
+    "Optimize your product manager resume in 60 seconds using AI. Improve ATS score, match job descriptions, and increase shortlist chances instantly.",
+  keywords: [
+    "product manager resume",
+    "ATS resume optimizer",
+    "PM resume keywords",
+    "resume optimizer AI",
+    "product manager resume builder",
+    "resume ATS score improvement",
+  ],
   verification: {
     google: "a9CGHtLZZJlKEJZkwjLQcBCGCyp9oR3d9SRLfJ4XXxI",
   },
   openGraph: {
-    title: "PM Resume Optimizer — Land More PM Interviews",
+    title: "Optimize Your PM Resume in 60 Seconds",
     description:
-      "Optimize your PM resume for any job description in 60 seconds. ATS-friendly, keyword-matched, free to try.",
+      "AI-powered resume optimization for product managers. Improve ATS score and get shortlisted faster.",
+    url: "https://pm-resume-optimizer.onrender.com",
     siteName: "PM Resume Optimizer",
     type: "website",
+  },
+  alternates: {
+    canonical: "https://pm-resume-optimizer.onrender.com",
   },
 };
 
@@ -33,7 +47,7 @@ const faqSchema = {
       name: "How does PM Resume Optimizer work?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Paste your resume and the PM job description. Our AI analyzes the JD, extracts relevant keywords, and rewrites your summary and bullet points to match — in under 60 seconds.",
+        text: "Paste your resume and the product manager job description. The AI extracts keywords and rewrites your resume to match the job in under 60 seconds.",
       },
     },
     {
@@ -41,31 +55,47 @@ const faqSchema = {
       name: "Is PM Resume Optimizer free?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Yes. You get 5 free resume optimizations with no credit card required. Premium plans start at ₹49 for unlimited access.",
+        text: "Yes, you get free resume optimizations with no credit card required. Premium plans unlock unlimited usage.",
       },
     },
     {
       "@type": "Question",
-      name: "Does this work for aspiring Product Managers with no experience?",
+      name: "Does this help my resume pass ATS systems?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Yes. We have a dedicated mode for aspiring PMs that emphasizes internships, projects, hackathons, and product thinking over formal work experience.",
+        text: "Yes. The tool aligns your resume with job description keywords to improve ATS compatibility and recruiter visibility.",
       },
     },
     {
       "@type": "Question",
-      name: "Will this help my resume pass ATS systems?",
+      name: "Can I optimize my resume for multiple jobs?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Our optimizer injects relevant keywords from the job description into your resume contextually, which improves ATS keyword matching while keeping the resume readable for human reviewers.",
+        text: "Yes. Each resume optimization is tailored to a specific job description, and you can generate multiple versions.",
       },
     },
     {
       "@type": "Question",
-      name: "Can I optimize my resume for multiple PM jobs?",
+      name: "Does this work for freshers or aspiring product managers?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Yes. Each optimization is specific to one job description. With a premium plan you can optimize for unlimited roles.",
+        text: "Yes. It highlights projects, internships, and product thinking to make your resume relevant even without full-time PM experience.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "How long does it take to optimize a resume?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "It takes less than 60 seconds to generate an optimized resume tailored to your target job.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Do I need to create an account?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "You can start optimizing without a credit card. Account creation may be required to save or access multiple resumes.",
       },
     },
     {
@@ -73,7 +103,23 @@ const faqSchema = {
       name: "Does it also generate cover letters?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Yes. After optimizing your resume, you can generate a tailored cover letter for the same role with one click.",
+        text: "Yes. You can generate a tailored cover letter based on your resume and job description.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "What makes this different from other resume tools?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Unlike generic builders, this tool focuses specifically on product manager roles and optimizes resumes based on real job descriptions in seconds.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Will recruiters notice the difference?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Yes. A keyword-optimized and role-specific resume increases your chances of getting shortlisted and noticed by recruiters.",
       },
     },
   ],
@@ -81,9 +127,9 @@ const faqSchema = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="en">
       <head>
