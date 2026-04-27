@@ -6,6 +6,7 @@ export const metadata: Metadata = {
   title: 'PM Resume Blog: Guides, ATS Tips, and Keyword Strategies',
   description:
     'Read practical product manager resume guides, ATS optimization tips, and role-specific keyword strategies to improve your PM interview conversion.',
+  keywords: ['PM resume blog', 'ATS resume tips', 'product manager resume keywords'],
 };
 
 export default function BlogIndexPage() {
@@ -21,7 +22,7 @@ export default function BlogIndexPage() {
         </p>
         <Link
           href="/"
-          className="mt-5 inline-flex items-center text-sm font-semibold text-blue-700 hover:text-blue-800"
+          className="mt-5 inline-flex items-center rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
         >
           Check your ATS score →
         </Link>
@@ -48,6 +49,7 @@ export default function BlogIndexPage() {
             </article>
           ))}
         </div>
+
       </div>
     </main>
   );

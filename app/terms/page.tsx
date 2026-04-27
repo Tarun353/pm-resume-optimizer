@@ -1,4 +1,11 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
+
+export const metadata: Metadata = {
+  title: 'Terms of Service | PM Resume Optimizer',
+  description: 'Read the PM Resume Optimizer terms covering AI-generated content, payments, usage limits, and service responsibilities.',
+  keywords: ['PM Resume Optimizer terms', 'resume optimization terms of service', 'AI resume tool terms'],
+};
 
 export default function TermsPage() {
   return (
@@ -106,6 +113,7 @@ export default function TermsPage() {
           </section>
 
         </div>
+
 
         <div className="mt-12 pt-8 border-t border-slate-200 flex gap-4 text-sm text-slate-500">
           <Link href="/" className="hover:text-slate-700 transition-colors">← Back to Home</Link>

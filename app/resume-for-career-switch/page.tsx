@@ -5,6 +5,7 @@ export const metadata: Metadata = {
   title: 'Product Manager Resume for Career Switchers: ATS Guide for Transition Roles',
   description:
     'Transition into product management from engineering, consulting, business, or SaaS with a resume that passes ATS and matches recruiter expectations.',
+  keywords: ['career switch to product manager', 'PM transition resume', 'ATS-friendly product resume'],
 };
 
 export default function ResumeForCareerSwitchPage() {
@@ -17,6 +18,7 @@ export default function ResumeForCareerSwitchPage() {
         <h1 className="mt-2 text-3xl font-bold text-slate-900 sm:text-4xl">
           Product Manager Resume for Career Switchers: Translate Your Background into ATS-Ready PM Value
         </h1>
+
 
         <div className="mt-8 space-y-5 text-slate-700">
           <p>
@@ -114,6 +116,7 @@ export default function ResumeForCareerSwitchPage() {
             </Link>
           </div>
         </section>
+
       </article>
     </main>
   );

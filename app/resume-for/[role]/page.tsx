@@ -28,6 +28,7 @@ export function generateMetadata({ params }: { params: { role: string } }): Meta
   return {
     title: `Product Manager Resume for ${roleLabel} | ATS-Friendly Career Transition Guide`,
     description: `Learn how to position your ${roleLabel} background for product manager roles with transferable skills, ATS keywords, and resume strategy.`,
+    keywords: getKeywordVariations(roleLabel),
   };
 }
 
@@ -43,6 +44,7 @@ export default function ResumeForRolePage({ params }: { params: { role: string }
         <h1 className="mt-2 text-3xl font-bold text-slate-900 sm:text-4xl">
           Product Manager Resume for {roleLabel}
         </h1>
+
 
         <div className="mt-8 space-y-5 text-slate-700">
           <p>

@@ -83,6 +83,7 @@ export default async function BlogPostPage({ params }: BlogPageProps) {
         </h1>
         <p className="mt-6 text-base leading-8 text-slate-700">{post.description}</p>
 
+
         {post.sections.map((section) => (
           <section key={section.heading} className="mt-10">
             <h2 className="text-2xl font-semibold text-slate-900">{section.heading}</h2>
@@ -115,6 +116,7 @@ export default async function BlogPostPage({ params }: BlogPageProps) {
             </Link>
           </div>
         </section>
+
       </article>
     </main>
   );

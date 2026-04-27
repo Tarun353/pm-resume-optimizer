@@ -1,4 +1,11 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
+
+export const metadata: Metadata = {
+  title: 'Privacy Policy | PM Resume Optimizer',
+  description: 'Review how PM Resume Optimizer handles account data, resume processing, analytics, and security practices.',
+  keywords: ['PM Resume Optimizer privacy policy', 'resume data privacy', 'ATS resume tool privacy'],
+};
 
 export default function PrivacyPage() {
   return (
@@ -96,6 +103,7 @@ export default function PrivacyPage() {
           </section>
 
         </div>
+
 
         <div className="mt-12 pt-8 border-t border-slate-200 flex gap-4 text-sm text-slate-500">
           <Link href="/" className="hover:text-slate-700 transition-colors">← Back to Home</Link>
