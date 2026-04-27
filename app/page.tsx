@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { useState, useEffect, useRef } from 'react';
 import { LoginModal } from '@/components/LoginModal';
 import { PaymentModal } from '@/components/PaymentModal';
+import { SeoCta } from '@/components/SeoCta';
 import Script from 'next/script';
 
 // ── useInView hook ───────────────────────────────────────────────────────────
@@ -327,6 +328,9 @@ export default function LandingPage() {
       />
 
       <div className="min-h-screen bg-white text-slate-900 overflow-hidden relative body-text">
+        <div className="mx-auto max-w-5xl px-4 pt-4">
+          <SeoCta />
+        </div>
 
         {/* ── Global background ────────────────────────────────────────── */}
         <div className="fixed inset-0 pointer-events-none overflow-hidden">
@@ -539,6 +543,12 @@ export default function LandingPage() {
                 className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-800"
               >
                 Browse PM Resume Blog →
+              </Link>
+              <Link
+                href="/segments"
+                className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-800"
+              >
+                Explore PM Resume Segments →
               </Link>
             </div>
 
@@ -906,6 +916,10 @@ export default function LandingPage() {
 
           </div>
         </section>
+
+        <div className="mx-auto mt-10 max-w-5xl px-4">
+          <SeoCta />
+        </div>
 
         {/* ── Footer ───────────────────────────────────────────────────── */}
         <footer className="relative z-10 w-full bg-[#1E3A8A] px-6 pt-16 pb-12">

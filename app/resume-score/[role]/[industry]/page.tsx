@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { SeoCta } from '@/components/SeoCta';
 import type { Metadata } from 'next';
 
 const pretty = (value: string) =>
@@ -20,6 +21,12 @@ export async function generateMetadata({ params }: ProgrammaticPageProps): Promi
   return {
     title: `${roleLabel} Resume Score for ${industryLabel} Jobs`,
     description: `Check how your ${roleLabel} resume performs for ${industryLabel} roles. Get ATS keyword alignment, recruiter-focused improvements, and practical rewrite suggestions.`,
+    keywords: [
+      `${roleLabel} resume score`,
+      `${industryLabel} PM resume`,
+      'ATS keyword alignment',
+      'product manager resume optimization',
+    ],
     alternates: {
       canonical,
     },
@@ -42,6 +49,8 @@ export default async function ResumeScoreProgrammaticPage({ params }: Programmat
   return (
     <main className="min-h-screen bg-slate-50 py-12">
       <article className="mx-auto max-w-4xl rounded-2xl border border-slate-200 bg-white px-6 py-10 shadow-sm sm:px-10">
+        <SeoCta className="mb-6" />
+
         <h1 className="text-3xl font-bold leading-tight text-slate-900 sm:text-4xl">
           {roleLabel} Resume Score Guide for {industryLabel}
         </h1>
@@ -106,6 +115,7 @@ export default async function ResumeScoreProgrammaticPage({ params }: Programmat
             </Link>
           </div>
         </section>
+        <SeoCta className="mt-10" />
       </article>
     </main>
   );

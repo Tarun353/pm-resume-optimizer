@@ -1,10 +1,12 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { SeoCta } from '@/components/SeoCta';
 
 export const metadata: Metadata = {
   title: 'Experienced Product Manager Resume: ATS Optimization for Senior PM Roles',
   description:
     'Optimize your experienced product manager resume for senior PM roles with recruiter expectations, ATS strategy, and impact-driven positioning.',
+  keywords: ['experienced PM resume', 'senior product manager resume', 'ATS resume optimization'],
 };
 
 export default function ResumeForExperiencedPMPage() {
@@ -17,6 +19,8 @@ export default function ResumeForExperiencedPMPage() {
         <h1 className="mt-2 text-3xl font-bold text-slate-900 sm:text-4xl">
           Experienced Product Manager Resume: ATS-Friendly Positioning for Senior PM and Lead PM Roles
         </h1>
+
+        <SeoCta className="mt-6" />
 
         <div className="mt-8 space-y-5 text-slate-700">
           <p>
@@ -114,6 +118,8 @@ export default function ResumeForExperiencedPMPage() {
             </Link>
           </div>
         </section>
+
+        <SeoCta className="mt-10" />
       </article>
     </main>
   );
