@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { SeoCta } from '@/components/SeoCta';
+import { BlogQuickActions } from './BlogQuickActions';
 import type { Metadata } from 'next';
 import { BLOG_POSTS } from '@/lib/content/blogPosts';
 
@@ -21,6 +22,8 @@ export default function BlogIndexPage() {
           Actionable guides to improve your product manager resume, pass ATS
           screening, and land more interviews.
         </p>
+
+        <BlogQuickActions className="mt-6" />
         <div className="mt-10 grid gap-6">
           {BLOG_POSTS.map((post) => (
             <article
@@ -43,6 +46,8 @@ export default function BlogIndexPage() {
             </article>
           ))}
         </div>
+
+        <BlogQuickActions className="mt-10" />
 
         <SeoCta className="mt-10" />
       </div>
