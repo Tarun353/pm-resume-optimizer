@@ -2,6 +2,7 @@ import type { MetadataRoute } from 'next';
 import fs from 'node:fs';
 import path from 'node:path';
 import { BLOG_POSTS } from '@/lib/content/blogPosts';
+import { SEGMENT_PAGES } from '@/lib/content/segments';
 
 const BASE_URL = 'https://pm-resume-optimizer.onrender.com';
 const APP_DIR = path.join(process.cwd(), 'app');
@@ -14,6 +15,7 @@ const sampleProgrammaticRoutes = [
 
 const dynamicRoutes: string[] = [
   ...BLOG_POSTS.map((post) => `/blog/${post.slug}`),
+  ...SEGMENT_PAGES.map((segment) => `/segments/${segment.slug}`),
   ...sampleProgrammaticRoutes,
 ];
 

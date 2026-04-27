@@ -1,10 +1,12 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { SeoCta } from '@/components/SeoCta';
 
 export const metadata: Metadata = {
   title: 'Product Manager Resume for Freshers: ATS Tips to Get Interviews',
   description:
     'Learn how freshers and aspiring product managers can build an ATS-friendly PM resume that highlights projects, impact, and recruiter-ready storytelling.',
+  keywords: ['fresher product manager resume', 'ATS-friendly PM resume', 'entry-level product manager resume'],
 };
 
 export default function ResumeForFreshersPage() {
@@ -17,6 +19,8 @@ export default function ResumeForFreshersPage() {
         <h1 className="mt-2 text-3xl font-bold text-slate-900 sm:text-4xl">
           Product Manager Resume for Freshers: Build an ATS-Friendly Resume That Gets Interviews
         </h1>
+
+        <SeoCta className="mt-6" />
 
         <div className="mt-8 space-y-5 text-slate-700">
           <p>
@@ -108,6 +112,8 @@ export default function ResumeForFreshersPage() {
             </Link>
           </div>
         </section>
+
+        <SeoCta className="mt-10" />
       </article>
     </main>
   );

@@ -1,4 +1,12 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
+import { SeoCta } from '@/components/SeoCta';
+
+export const metadata: Metadata = {
+  title: 'Terms of Service | PM Resume Optimizer',
+  description: 'Read the PM Resume Optimizer terms covering AI-generated content, payments, usage limits, and service responsibilities.',
+  keywords: ['PM Resume Optimizer terms', 'resume optimization terms of service', 'AI resume tool terms'],
+};
 
 export default function TermsPage() {
   return (
@@ -15,6 +23,7 @@ export default function TermsPage() {
       </nav>
 
       <main className="max-w-3xl mx-auto px-6 py-12">
+        <SeoCta className="mb-8" />
         <h1 className="text-3xl font-bold text-slate-900 mb-2">Terms of Service</h1>
         <p className="text-sm text-slate-500 mb-10">Last updated: {new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
 
@@ -106,6 +115,8 @@ export default function TermsPage() {
           </section>
 
         </div>
+
+        <SeoCta className="mt-10" />
 
         <div className="mt-12 pt-8 border-t border-slate-200 flex gap-4 text-sm text-slate-500">
           <Link href="/" className="hover:text-slate-700 transition-colors">← Back to Home</Link>

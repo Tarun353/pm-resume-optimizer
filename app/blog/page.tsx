@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { SeoCta } from '@/components/SeoCta';
 import type { Metadata } from 'next';
 import { BLOG_POSTS } from '@/lib/content/blogPosts';
 
@@ -6,6 +7,7 @@ export const metadata: Metadata = {
   title: 'PM Resume Blog: Guides, ATS Tips, and Keyword Strategies',
   description:
     'Read practical product manager resume guides, ATS optimization tips, and role-specific keyword strategies to improve your PM interview conversion.',
+  keywords: ['PM resume blog', 'ATS resume tips', 'product manager resume keywords'],
 };
 
 export default function BlogIndexPage() {
@@ -19,12 +21,7 @@ export default function BlogIndexPage() {
           Actionable guides to improve your product manager resume, pass ATS
           screening, and land more interviews.
         </p>
-        <Link
-          href="/"
-          className="mt-5 inline-flex items-center text-sm font-semibold text-blue-700 hover:text-blue-800"
-        >
-          Check your ATS score →
-        </Link>
+        <SeoCta className="mt-5" />
 
         <div className="mt-10 grid gap-6">
           {BLOG_POSTS.map((post) => (
@@ -48,6 +45,8 @@ export default function BlogIndexPage() {
             </article>
           ))}
         </div>
+
+        <SeoCta className="mt-10" />
       </div>
     </main>
   );
