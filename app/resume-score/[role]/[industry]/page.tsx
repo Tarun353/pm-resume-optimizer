@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { SeoCta } from '@/components/SeoCta';
 import type { Metadata } from 'next';
 
 const pretty = (value: string) =>
@@ -48,6 +49,7 @@ export default async function ResumeScoreProgrammaticPage({ params }: Programmat
   return (
     <main className="min-h-screen bg-slate-50 py-12">
       <article className="mx-auto max-w-4xl rounded-2xl border border-slate-200 bg-white px-6 py-10 shadow-sm sm:px-10">
+        <SeoCta className="mb-6" />
 
         <h1 className="text-3xl font-bold leading-tight text-slate-900 sm:text-4xl">
           {roleLabel} Resume Score Guide for {industryLabel}
@@ -113,6 +115,7 @@ export default async function ResumeScoreProgrammaticPage({ params }: Programmat
             </Link>
           </div>
         </section>
+        <SeoCta className="mt-10" />
       </article>
     </main>
   );

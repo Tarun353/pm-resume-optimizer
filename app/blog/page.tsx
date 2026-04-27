@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { SeoCta } from '@/components/SeoCta';
 import type { Metadata } from 'next';
 import { BLOG_POSTS } from '@/lib/content/blogPosts';
 
@@ -20,12 +21,7 @@ export default function BlogIndexPage() {
           Actionable guides to improve your product manager resume, pass ATS
           screening, and land more interviews.
         </p>
-        <Link
-          href="/"
-          className="mt-5 inline-flex items-center rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
-        >
-          Check your ATS score →
-        </Link>
+        <SeoCta className="mt-5" />
 
         <div className="mt-10 grid gap-6">
           {BLOG_POSTS.map((post) => (
@@ -50,6 +46,7 @@ export default function BlogIndexPage() {
           ))}
         </div>
 
+        <SeoCta className="mt-10" />
       </div>
     </main>
   );

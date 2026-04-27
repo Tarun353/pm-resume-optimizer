@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { SeoCta } from '@/components/SeoCta';
 
 export const metadata: Metadata = {
   title: 'Resume ATS Score Checker for Product Managers',
@@ -8,5 +9,15 @@ export const metadata: Metadata = {
 };
 
 export default function ScoreLayout({ children }: { children: React.ReactNode }) {
-  return children;
+  return (
+    <>
+      <div className="mx-auto mt-4 w-full max-w-5xl px-4">
+        <SeoCta />
+      </div>
+      {children}
+      <div className="mx-auto mb-8 mt-8 w-full max-w-5xl px-4">
+        <SeoCta />
+      </div>
+    </>
+  );
 }

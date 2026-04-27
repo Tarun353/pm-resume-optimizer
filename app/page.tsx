@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { useState, useEffect, useRef } from 'react';
 import { LoginModal } from '@/components/LoginModal';
 import { PaymentModal } from '@/components/PaymentModal';
+import { SeoCta } from '@/components/SeoCta';
 import Script from 'next/script';
 
 // ── useInView hook ───────────────────────────────────────────────────────────
@@ -328,6 +329,7 @@ export default function LandingPage() {
 
       <div className="min-h-screen bg-white text-slate-900 overflow-hidden relative body-text">
         <div className="mx-auto max-w-5xl px-4 pt-4">
+          <SeoCta />
         </div>
 
         {/* ── Global background ────────────────────────────────────────── */}
@@ -914,6 +916,10 @@ export default function LandingPage() {
 
           </div>
         </section>
+
+        <div className="mx-auto mt-10 max-w-5xl px-4">
+          <SeoCta />
+        </div>
 
         {/* ── Footer ───────────────────────────────────────────────────── */}
         <footer className="relative z-10 w-full bg-[#1E3A8A] px-6 pt-16 pb-12">

@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { SEGMENT_BY_SLUG, SEGMENT_PAGES } from '@/lib/content/segments';
+import { SeoCta } from '@/components/SeoCta';
 
 type SegmentProps = {
   params: Promise<{ segment: string }>;
@@ -41,6 +42,7 @@ export default async function SegmentPage({ params }: SegmentProps) {
         <h1 className="mt-2 text-3xl font-bold text-slate-900 sm:text-4xl">{item.title}</h1>
         <p className="mt-6 text-base leading-8 text-slate-700">{item.description}</p>
 
+        <SeoCta className="mt-8" />
 
         <section className="mt-10">
           <h2 className="text-2xl font-semibold text-slate-900">How to optimize this PM resume segment</h2>
@@ -61,6 +63,7 @@ export default async function SegmentPage({ params }: SegmentProps) {
           </Link>
         </div>
 
+        <SeoCta className="mt-10" />
       </article>
     </main>
   );

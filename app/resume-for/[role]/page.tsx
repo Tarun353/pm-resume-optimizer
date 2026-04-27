@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { SeoCta } from '@/components/SeoCta';
 
 function toTitleCase(value: string) {
   return value
@@ -45,6 +46,7 @@ export default function ResumeForRolePage({ params }: { params: { role: string }
           Product Manager Resume for {roleLabel}
         </h1>
 
+        <SeoCta className="mt-6" />
 
         <div className="mt-8 space-y-5 text-slate-700">
           <p>
@@ -90,6 +92,7 @@ export default function ResumeForRolePage({ params }: { params: { role: string }
         >
           Try the homepage resume tool →
         </Link>
+        <SeoCta className="mt-10" />
       </article>
     </main>
   );

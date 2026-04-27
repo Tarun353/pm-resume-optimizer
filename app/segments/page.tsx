@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { SEGMENT_PAGES } from '@/lib/content/segments';
+import { SeoCta } from '@/components/SeoCta';
 
 export const metadata: Metadata = {
   title: 'PM Resume Segments: Role and Industry SEO Guides',
@@ -18,6 +19,7 @@ export default function SegmentIndexPage() {
           Browse role and industry specific pages to tailor your product manager resume with ATS-friendly positioning.
         </p>
 
+        <SeoCta className="mt-6" />
 
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {SEGMENT_PAGES.map((segment) => (
@@ -32,6 +34,7 @@ export default function SegmentIndexPage() {
           ))}
         </div>
 
+        <SeoCta className="mt-10" />
       </div>
     </main>
   );

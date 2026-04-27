@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { SeoCta } from '@/components/SeoCta';
 
 export const metadata: Metadata = {
   title: 'Product Manager Resume for Freshers: ATS Tips to Get Interviews',
@@ -19,6 +20,7 @@ export default function ResumeForFreshersPage() {
           Product Manager Resume for Freshers: Build an ATS-Friendly Resume That Gets Interviews
         </h1>
 
+        <SeoCta className="mt-6" />
 
         <div className="mt-8 space-y-5 text-slate-700">
           <p>
@@ -111,6 +113,7 @@ export default function ResumeForFreshersPage() {
           </div>
         </section>
 
+        <SeoCta className="mt-10" />
       </article>
     </main>
   );
