@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { SeoCta } from '@/components/SeoCta';
+import { BlogQuickActions } from '../BlogQuickActions';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { BLOG_POSTS, BLOG_POST_BY_SLUG } from '@/lib/content/blogPosts';
@@ -84,6 +85,8 @@ export default async function BlogPostPage({ params }: BlogPageProps) {
         </h1>
         <p className="mt-6 text-base leading-8 text-slate-700">{post.description}</p>
 
+        <BlogQuickActions className="mt-6" />
+
         {post.sections.map((section) => (
           <section key={section.heading} className="mt-10">
             <h2 className="text-2xl font-semibold text-slate-900">{section.heading}</h2>
@@ -116,6 +119,8 @@ export default async function BlogPostPage({ params }: BlogPageProps) {
             </Link>
           </div>
         </section>
+
+        <BlogQuickActions className="mt-10" />
 
         <SeoCta className="mt-10" />
       </article>
