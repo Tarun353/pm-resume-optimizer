@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { SeoCta } from '@/components/SeoCta';
 
 export const metadata: Metadata = {
-  title: 'Privacy Policy | PM Resume Optimizer',
+  title: 'Privacy Policy',
   description: 'Review how PM Resume Optimizer handles account data, resume processing, analytics, and security practices.',
   keywords: ['PM Resume Optimizer privacy policy', 'resume data privacy', 'ATS resume tool privacy'],
 };

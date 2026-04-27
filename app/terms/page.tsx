@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { SeoCta } from '@/components/SeoCta';
 
 export const metadata: Metadata = {
-  title: 'Terms of Service | PM Resume Optimizer',
+  title: 'Terms of Service',
   description: 'Read the PM Resume Optimizer terms covering AI-generated content, payments, usage limits, and service responsibilities.',
   keywords: ['PM Resume Optimizer terms', 'resume optimization terms of service', 'AI resume tool terms'],
 };
