@@ -1,10 +1,20 @@
+"use client";
+
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 type SeoCtaProps = {
   className?: string;
 };
 
 export function SeoCta({ className = '' }: SeoCtaProps) {
+  const pathname = usePathname();
+  const showCta = pathname.startsWith('/blog');
+
+  if (!showCta) {
+    return null;
+  }
+
   return (
     <div className={`rounded-xl border border-blue-200 bg-blue-50 p-4 ${className}`.trim()}>
       <Link

@@ -21,8 +21,6 @@ export default function BlogIndexPage() {
           Actionable guides to improve your product manager resume, pass ATS
           screening, and land more interviews.
         </p>
-        <SeoCta className="mt-5" />
-
         <div className="mt-10 grid gap-6">
           {BLOG_POSTS.map((post) => (
             <article
