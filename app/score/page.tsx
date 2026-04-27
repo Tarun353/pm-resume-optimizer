@@ -393,7 +393,8 @@ export default function ScorePage() {
   const [showLogin, setShowLogin]   = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [pendingAnalyse, setPendingAnalyse] = useState(false);
-  const [isParsingPdf, setIsParsingPdf] = useState(false);
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [isPreparingResume, setIsPreparingResume] = useState(false);
   const [uploadedPdfName, setUploadedPdfName] = useState('');
   const resultRef                   = useRef<HTMLDivElement>(null);
   const pdfInputRef                 = useRef<HTMLInputElement>(null);
@@ -427,7 +428,7 @@ export default function ScorePage() {
     ? (DEFAULT_JDS.find(j => j.id === selectedJD)?.text ?? '')
     : jdText;
 
-  const canAnalyse = resumeText.trim().length >= 100;
+  const canAnalyse = resumeText.trim().length >= 100 || resumeFile !== null;
 
   const mapProfileToCareerStage = (value: string) => {
     if (value === 'aspiring') return 'fresher';
@@ -435,38 +436,15 @@ export default function ScorePage() {
     return 'experienced';
   };
 
-  const handlePdfUpload = async (file: File) => {
+  const handlePdfUpload = (file: File) => {
     if (!file.name.toLowerCase().endsWith('.pdf')) {
       setError('Please upload a PDF file only.');
       return;
     }
 
     setError(null);
-    setIsParsingPdf(true);
+    setResumeFile(file);
     setUploadedPdfName(file.name);
-
-    try {
-      const fd = new FormData();
-      fd.append('file', file);
-      fd.append('careerStage', mapProfileToCareerStage(profile));
-
-      const res = await fetch('/api/parse', {
-        method: 'POST',
-        body: fd,
-      });
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data?.error ?? 'Failed to read PDF.');
-      }
-
-      setResumeText(data.rawText ?? '');
-    } catch (err) {
-      setUploadedPdfName('');
-      setError(err instanceof Error ? err.message : 'Failed to parse PDF. Please try again.');
-    } finally {
-      setIsParsingPdf(false);
-    }
   };
 
   const runAnalysis = async () => {
@@ -474,17 +452,41 @@ export default function ScorePage() {
     setResult(null);
     setAtsResult(null);
     setRecruiterAnalysis(null);
-    setIsAnalysing(true);
+    setIsPreparingResume(false);
+    setIsAnalysing(false);
 
     try {
+      let resumeTextForAnalysis = resumeText;
+      if (resumeFile) {
+        setIsPreparingResume(true);
+        const fd = new FormData();
+        fd.append('file', resumeFile);
+        fd.append('careerStage', mapProfileToCareerStage(profile));
+
+        const parseRes = await fetch('/api/parse', {
+          method: 'POST',
+          body: fd,
+        });
+        const parseData = await parseRes.json();
+
+        if (!parseRes.ok) {
+          throw new Error(parseData?.error ?? 'Failed to read PDF.');
+        }
+
+        resumeTextForAnalysis = parseData.rawText ?? '';
+        setResumeText(resumeTextForAnalysis);
+        setIsPreparingResume(false);
+      }
+
+      setIsAnalysing(true);
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error('no_session');
 
       // Run client-side analysis immediately (no API needed)
-      const ats = scoreResume(resumeText, effectiveJD, profile);
+      const ats = scoreResume(resumeTextForAnalysis, effectiveJD, profile);
       setAtsResult(ats);
 
-      const recruiter = analyzeRecruiterSignals(resumeText, effectiveJD, profile);
+      const recruiter = analyzeRecruiterSignals(resumeTextForAnalysis, effectiveJD, profile);
       setRecruiterAnalysis(recruiter);
 
       // Run AI analysis (uses one of the 5 free analyses)
@@ -494,7 +496,7 @@ export default function ScorePage() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ resumeText, jdText: effectiveJD, profile }),
+        body: JSON.stringify({ resumeText: resumeTextForAnalysis, jdText: effectiveJD, profile }),
       });
 
       const data = await res.json();
@@ -520,6 +522,7 @@ export default function ScorePage() {
       }
       setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
     } finally {
+      setIsPreparingResume(false);
       setIsAnalysing(false);
     }
   };
@@ -671,14 +674,14 @@ export default function ScorePage() {
                     <button
                       type="button"
                       onClick={() => pdfInputRef.current?.click()}
-                      disabled={isParsingPdf}
+                      disabled={isPreparingResume || isAnalysing}
                       className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${
-                        isParsingPdf
+                        isPreparingResume || isAnalysing
                           ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
                           : 'bg-blue-600 text-white hover:bg-blue-700'
                       }`}
                     >
-                      {isParsingPdf ? 'Reading PDF...' : 'Upload PDF'}
+                      {isPreparingResume ? 'Reading resume...' : isAnalysing ? 'Analysing...' : 'Upload PDF'}
                     </button>
                   </div>
                   <input
@@ -689,7 +692,7 @@ export default function ScorePage() {
                     onChange={e => {
                       const file = e.target.files?.[0];
                       if (file) {
-                        void handlePdfUpload(file);
+                        handlePdfUpload(file);
                       }
                       e.currentTarget.value = '';
                     }}
@@ -779,9 +782,16 @@ export default function ScorePage() {
           )}
 
           {/* Loading */}
-          {isAnalysing && (
+          {(isPreparingResume || isAnalysing) && (
             <div className="bg-white rounded-[2rem] border border-slate-200 shadow-xl p-8 mb-6 animate-fadeIn">
-              <PMLoadingScreen mode="analyse" />
+              {isPreparingResume ? (
+                <div className="flex items-center justify-center gap-3 py-6 text-slate-700">
+                  <SpinnerIcon className="w-5 h-5 text-blue-600" />
+                  <span className="font-semibold">Reading resume...</span>
+                </div>
+              ) : (
+                <PMLoadingScreen mode="analyse" />
+              )}
             </div>
           )}
 
