@@ -119,7 +119,7 @@ function BulletCard({ bullet, index }: { bullet: BulletAnalysis; index: number }
             <div className="flex items-start gap-2.5 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-3">
               <span className="text-emerald-500 mt-0.5 shrink-0"><CheckIcon /></span>
               <div>
-                <p className="text-xs font-bold text-emerald-700 mb-0.5">What's strong</p>
+                <p className="text-xs font-bold text-emerald-700 mb-0.5">What&apos;s strong</p>
                 <p className="text-sm text-emerald-800">{bullet.strength}</p>
               </div>
             </div>
@@ -127,7 +127,7 @@ function BulletCard({ bullet, index }: { bullet: BulletAnalysis; index: number }
           <div className="flex items-start gap-2.5 bg-red-50 border border-red-200 rounded-xl px-3 py-3">
             <span className="text-red-600 mt-0.5 shrink-0"><CrossIcon /></span>
             <div>
-              <p className="text-xs font-bold text-red-700 mb-0.5">What's weak</p>
+              <p className="text-xs font-bold text-red-700 mb-0.5">What&apos;s weak</p>
               <p className="text-sm text-red-800">{bullet.weakness}</p>
             </div>
           </div>
@@ -182,7 +182,7 @@ function KeywordGrid({ found, missing, label }: { found: string[]; missing: stri
   );
 }
 
-// ─── NEW: Gate 1 — ATS Filter Panel ────────────────────────────────────────────
+// ─── Gate 1 — ATS Filter Panel ─────────────────────────────────────────────────
 function GateOnePanel({ atsResult }: { atsResult: ReturnType<typeof scoreResume> }) {
   const statusColors = {
     strong:   { bg: 'bg-emerald-50',  border: 'border-emerald-200', badge: 'bg-emerald-100 text-emerald-800', dot: 'bg-emerald-500' },
@@ -193,7 +193,6 @@ function GateOnePanel({ atsResult }: { atsResult: ReturnType<typeof scoreResume>
 
   return (
     <div className={`rounded-[2rem] border-2 ${c.border} ${c.bg} overflow-hidden animate-fadeInUp`}>
-      {/* Header */}
       <div className="px-6 py-5 border-b border-white/60">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3">
@@ -214,7 +213,6 @@ function GateOnePanel({ atsResult }: { atsResult: ReturnType<typeof scoreResume>
       </div>
 
       <div className="p-6 space-y-5">
-        {/* Searches you appear in */}
         {atsResult.searchesYouAppearIn.length > 0 && (
           <div>
             <p className="text-xs font-bold text-emerald-700 uppercase tracking-widest mb-2.5">
@@ -230,11 +228,10 @@ function GateOnePanel({ atsResult }: { atsResult: ReturnType<typeof scoreResume>
           </div>
         )}
 
-        {/* Searches you're missing */}
         {atsResult.searchesYouAreMissing.length > 0 && (
           <div>
             <p className="text-xs font-bold text-red-600 uppercase tracking-widest mb-2.5">
-              ✗ You're invisible in searches for:
+              ✗ You&apos;re invisible in searches for:
             </p>
             <div className="flex flex-wrap gap-2">
               {atsResult.searchesYouAreMissing.slice(0, 6).map(s => (
@@ -246,7 +243,6 @@ function GateOnePanel({ atsResult }: { atsResult: ReturnType<typeof scoreResume>
           </div>
         )}
 
-        {/* Critical keywords to add */}
         {atsResult.criticalKeywordsToAdd.length > 0 && (
           <div className="bg-white rounded-2xl p-4 border border-slate-200">
             <p className="text-xs font-bold text-slate-700 uppercase tracking-widest mb-2.5">
@@ -262,7 +258,6 @@ function GateOnePanel({ atsResult }: { atsResult: ReturnType<typeof scoreResume>
           </div>
         )}
 
-        {/* Score breakdown mini */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
             { label: 'JD Keywords', score: atsResult.breakdown.jdKeywords.score, max: 40 },
@@ -289,7 +284,7 @@ function GateOnePanel({ atsResult }: { atsResult: ReturnType<typeof scoreResume>
   );
 }
 
-// ─── NEW: Gate 2 — Recruiter Review Panel ──────────────────────────────────────
+// ─── Gate 2 — Recruiter Review Panel ───────────────────────────────────────────
 function GateTwoPanel({ analysis }: { analysis: RecruiterAnalysis }) {
   const appealConfig = {
     high:   { bg: 'bg-emerald-50',  border: 'border-emerald-200', badge: 'bg-emerald-100 text-emerald-800', dot: 'bg-emerald-500' },
@@ -307,7 +302,6 @@ function GateTwoPanel({ analysis }: { analysis: RecruiterAnalysis }) {
 
   return (
     <div className={`rounded-[2rem] border-2 ${c.border} ${c.bg} overflow-hidden animate-fadeInUp`}>
-      {/* Header */}
       <div className="px-6 py-5 border-b border-white/60">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3">
@@ -323,13 +317,12 @@ function GateTwoPanel({ analysis }: { analysis: RecruiterAnalysis }) {
           </span>
         </div>
         <p className="text-sm text-slate-600 mt-3 leading-relaxed max-w-2xl">
-          A recruiter scans your resume for <strong>6-10 seconds</strong> before deciding. 
+          A recruiter scans your resume for <strong>6-10 seconds</strong> before deciding.
           These are the signals they actually look for — not ATS keywords.
         </p>
       </div>
 
       <div className="p-6 space-y-3">
-        {/* Signal cards */}
         {analysis.signals.map((signal) => {
           const sc = signalConfig[signal.status];
           return (
@@ -363,7 +356,6 @@ function GateTwoPanel({ analysis }: { analysis: RecruiterAnalysis }) {
           );
         })}
 
-        {/* Top fix callout */}
         {analysis.overallAppeal !== 'high' && (
           <div className="bg-white border border-slate-200 rounded-2xl p-4 mt-2">
             <p className="text-xs font-bold text-slate-700 uppercase tracking-widest mb-1">🔑 Most Impactful Fix Right Now</p>
@@ -441,7 +433,6 @@ export default function ScorePage() {
       setError('Please upload a PDF file only.');
       return;
     }
-
     setError(null);
     setResumeFile(file);
     setUploadedPdfName(file.name);
@@ -482,14 +473,33 @@ export default function ScorePage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error('no_session');
 
-      // Run client-side analysis immediately (no API needed)
+      // ── Gate 1: ATS Filter — always FREE, pure client-side text matching ──
       const ats = scoreResume(resumeTextForAnalysis, effectiveJD, profile);
       setAtsResult(ats);
 
+      // ── Gate 2: Recruiter Signals — always FREE, pure client-side ─────────
       const recruiter = analyzeRecruiterSignals(resumeTextForAnalysis, effectiveJD, profile);
       setRecruiterAnalysis(recruiter);
 
-      // Run AI analysis (uses one of the 5 free analyses)
+      // ── Quota guard: check BEFORE calling AI endpoint ─────────────────────
+      // Gate 1 and Gate 2 above are always shown for free.
+      // The AI deep-analysis below consumes a quota slot — block it if exhausted.
+      const now = new Date();
+      const hasActivePaidPlan =
+        dbUser?.subscription_type === 'paid' &&
+        dbUser?.subscription_expires_at &&
+        new Date(dbUser.subscription_expires_at) > now;
+      const usedAnalyses = (dbUser as any)?.score_analyses_used ?? 0;
+
+      if (!hasActivePaidPlan && usedAnalyses >= 5) {
+        // Quota exhausted — Gate 1/2 results are already visible.
+        // Show payment modal immediately without touching any AI endpoint.
+        setShowPayment(true);
+        return; // finally block handles isAnalysing(false)
+      }
+      // ── End quota guard ───────────────────────────────────────────────────
+
+      // ── AI Deep Analysis — consumes one quota slot ────────────────────────
       const res = await fetch('/api/analyse', {
         method: 'POST',
         headers: {
@@ -592,7 +602,7 @@ export default function ScorePage() {
             <div className="flex items-center gap-3">
               {user && (
                 <span className="text-xs text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full font-medium">
-                  {analysesLeft === '∞' ? '∞ analyses' : `${analysesLeft} of 5 free analyses left`}
+                  {analysesLeft === '∞' ? '∞ analyses' : `${analysesLeft} of 5 free AI analyses left`}
                 </span>
               )}
               <button
@@ -613,11 +623,11 @@ export default function ScorePage() {
 
         <div className="max-w-5xl mx-auto px-6 py-10">
 
-          {/* ── Hero — NEW FRAMING ── */}
+          {/* ── Hero ── */}
           <div className="text-center mb-10 animate-fadeInUp">
             <span className="inline-flex items-center gap-2 bg-blue-100 text-blue-700 text-xs font-bold px-4 py-2 rounded-full mb-4">
               <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"/>
-              AI-Powered · Two-Gate Analysis
+              Two-Gate Analysis · Gate 1 &amp; 2 always free
             </span>
             <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-3 tracking-tight">
               Your resume has <span className="gradient-text">two jobs to do.</span>
@@ -625,7 +635,8 @@ export default function ScorePage() {
             <p className="text-slate-500 max-w-2xl mx-auto text-sm leading-relaxed">
               <strong className="text-slate-700">Gate 1: Pass the ATS filter</strong> — appear in recruiter keyword searches.<br/>
               <strong className="text-slate-700">Gate 2: Win the 6-second scan</strong> — make the human recruiter stop and read.<br/>
-              Most resumes pass Gate 1 and fail Gate 2. We show you both.
+              Most resumes pass Gate 1 and fail Gate 2. We show you both — always free.<br/>
+              <span className="text-blue-600 font-medium">+ AI deep bullet analysis uses 1 of your 5 free analyses.</span>
             </p>
           </div>
 
@@ -691,9 +702,7 @@ export default function ScorePage() {
                     className="hidden"
                     onChange={e => {
                       const file = e.target.files?.[0];
-                      if (file) {
-                        handlePdfUpload(file);
-                      }
+                      if (file) handlePdfUpload(file);
                       e.currentTarget.value = '';
                     }}
                   />
@@ -758,8 +767,12 @@ export default function ScorePage() {
             <div className="px-6 pt-6 pb-6 border-t border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="text-sm text-slate-500">
                 {user
-                  ? <span>{analysesLeft === '∞' ? 'Unlimited analyses (premium)' : `${analysesLeft} of 5 free analyses remaining`}</span>
-                  : <span>5 free AI analyses · No credit card needed · Sign in with Google</span>}
+                  ? <span>
+                      {analysesLeft === '∞'
+                        ? 'Unlimited AI analyses (premium) · Gate 1 & 2 always free'
+                        : `${analysesLeft} of 5 free AI analyses remaining · Gate 1 & 2 always free`}
+                    </span>
+                  : <span>Gate 1 &amp; 2 always free · AI analysis: 5 free slots · Sign in with Google</span>}
               </div>
               <button onClick={handleAnalyse} disabled={!canAnalyse || isAnalysing}
                 className={`px-8 py-3.5 rounded-2xl text-sm font-bold transition-all duration-200 flex items-center gap-2.5 btn-press ${
@@ -807,6 +820,28 @@ export default function ScorePage() {
               {/* ── GATE 2: Recruiter Review Panel ── */}
               {recruiterAnalysis && (
                 <GateTwoPanel analysis={recruiterAnalysis} />
+              )}
+
+              {/* ── Upgrade prompt when quota hit but Gate 1/2 shown ── */}
+              {(atsResult || recruiterAnalysis) && !result && !isAnalysing && (
+                <div className="bg-gradient-to-br from-blue-600 to-blue-800 rounded-[2rem] p-8 text-white animate-fadeInUp">
+                  <div className="max-w-2xl">
+                    <p className="text-2xl font-bold mb-3">
+                      🔒 Unlock AI Deep Analysis
+                    </p>
+                    <p className="text-blue-100 leading-relaxed mb-6">
+                      Gate 1 &amp; 2 above are yours for free. The AI bullet-by-bullet deep analysis
+                      (scores every bullet, suggests improvements, and checks PM vocabulary) uses
+                      one of your free quota slots. Upgrade for unlimited access.
+                    </p>
+                    <div className="flex flex-wrap gap-3">
+                      <button onClick={() => setShowPayment(true)}
+                        className="bg-white text-blue-700 font-bold px-6 py-3 rounded-2xl hover:bg-blue-50 transition-all shadow-xl shadow-blue-900/20 btn-press text-sm">
+                        ✨ Upgrade for Unlimited AI Analyses →
+                      </button>
+                    </div>
+                  </div>
+                </div>
               )}
 
               {/* ── AI Deep Analysis (if loaded) ── */}
@@ -963,7 +998,7 @@ export default function ScorePage() {
               )}
 
               {/* ── CTA to optimize ── */}
-              {(atsResult || result) && (
+              {result && (
                 <div className="bg-gradient-to-br from-blue-600 to-blue-800 rounded-[2rem] p-8 text-white animate-fadeInUp stagger-5">
                   <div className="max-w-2xl">
                     <p className="text-2xl font-bold mb-3">
