@@ -2,12 +2,23 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { SEGMENT_PAGES } from '@/lib/content/segments';
 import { SeoCta } from '@/components/SeoCta';
+import { absoluteUrl } from '@/lib/seo';
+
+const canonical = absoluteUrl('/segments');
 
 export const metadata: Metadata = {
   title: 'PM Resume Segments: Role and Industry SEO Guides',
   description:
     'Explore segmented product manager resume guides by role, domain, and seniority with ATS-friendly recommendations and keyword strategy.',
   keywords: ['product manager resume segments', 'ATS resume guides', 'PM resume keywords by industry'],
+  alternates: { canonical },
+  openGraph: {
+    title: 'PM Resume Segments: Role and Industry SEO Guides',
+    description:
+      'Explore segmented product manager resume guides by role, domain, and seniority with ATS-friendly recommendations and keyword strategy.',
+    url: canonical,
+    type: 'website',
+  },
 };
 
 export default function SegmentIndexPage() {

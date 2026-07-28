@@ -3,10 +3,12 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/AuthContext";
 import Script from "next/script";
+import { SITE_URL } from "@/lib/seo";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: {
     default:
       "Product Manager Resume Optimizer – Fix & Tailor Your PM Resume in 60 Seconds",
@@ -30,7 +32,7 @@ export const metadata: Metadata = {
     title: "Fix Your PM Resume in 60 Seconds",
     description:
       "Find out why your product manager resume isn’t getting interviews and fix it instantly with AI-powered optimization.",
-    url: "https://pm-resume-optimizer.onrender.com",
+    url: SITE_URL,
     siteName: "PM Resume Optimizer",
     type: "website",
   },
