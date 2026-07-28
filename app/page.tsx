@@ -570,9 +570,9 @@ export default function LandingPage() {
         </main>
 
         <section className="mt-16 px-4 max-w-4xl mx-auto">
-          <h1 className="text-3xl sm:text-4xl font-black text-slate-900 hero-text mb-8">
+          <h2 className="text-3xl sm:text-4xl font-black text-slate-900 hero-text mb-8">
             Product Manager Resume Optimizer
-          </h1>
+          </h2>
 
           <div className="space-y-10 text-slate-700 leading-relaxed">
             <div className="space-y-4">

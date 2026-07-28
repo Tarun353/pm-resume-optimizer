@@ -1,15 +1,28 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { SeoCta } from '@/components/SeoCta';
+import { createBreadcrumbSchema, createPageMetadata } from '@/lib/seo';
 
-export const metadata: Metadata = {
+export const metadata: Metadata = createPageMetadata({
   title: 'Privacy Policy',
   description: 'Review how PM Resume Optimizer handles account data, resume processing, analytics, and security practices.',
   keywords: ['PM Resume Optimizer privacy policy', 'resume data privacy', 'ATS resume tool privacy'],
-};
+  path: '/privacy',
+});
 
 export default function PrivacyPage() {
+
+  const breadcrumbSchema = createBreadcrumbSchema([
+    { name: 'Home', path: '/' },
+    { name: 'Privacy Policy', path: '/privacy' },
+  ]);
+
   return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
     <div className="min-h-screen bg-slate-50">
 
       {/* Nav */}
@@ -114,5 +127,6 @@ export default function PrivacyPage() {
         </div>
       </main>
     </div>
+    </>
   );
 }

@@ -4,6 +4,7 @@ import { BlogQuickActions } from '../BlogQuickActions';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { BLOG_POSTS, BLOG_POST_BY_SLUG } from '@/lib/content/blogPosts';
+import { createBreadcrumbSchema, createPageMetadata, absoluteUrl, DEFAULT_OG_IMAGE } from '@/lib/seo';
 
 type BlogPageProps = {
   params: Promise<{ slug: string }>;
@@ -24,22 +25,14 @@ export async function generateMetadata({ params }: BlogPageProps): Promise<Metad
     };
   }
 
-  const canonical = `https://pm-resume-optimizer.onrender.com/blog/${post.slug}`;
-
-  return {
+  return createPageMetadata({
     title: post.title,
     description: post.description,
     keywords: post.keywords,
-    alternates: {
-      canonical,
-    },
-    openGraph: {
-      title: post.title,
-      description: post.description,
-      type: 'article',
-      url: canonical,
-    },
-  };
+    path: `/blog/${post.slug}`,
+    type: 'article',
+    publishedTime: post.publishedAt,
+  });
 }
 
 export default async function BlogPostPage({ params }: BlogPageProps) {
@@ -52,7 +45,7 @@ export default async function BlogPostPage({ params }: BlogPageProps) {
 
   const articleSchema = {
     '@context': 'https://schema.org',
-    '@type': 'Article',
+    '@type': 'BlogPosting',
     headline: post.title,
     description: post.description,
     datePublished: post.publishedAt,
@@ -64,20 +57,31 @@ export default async function BlogPostPage({ params }: BlogPageProps) {
     publisher: {
       '@type': 'Organization',
       name: 'PM Resume Optimizer',
+      logo: { '@type': 'ImageObject', url: absoluteUrl(DEFAULT_OG_IMAGE) },
     },
+    image: absoluteUrl(DEFAULT_OG_IMAGE),
     mainEntityOfPage: {
       '@type': 'WebPage',
-      '@id': `https://pm-resume-optimizer.onrender.com/blog/${post.slug}`,
+      '@id': absoluteUrl(`/blog/${post.slug}`),
     },
   };
+
+  const breadcrumbSchema = createBreadcrumbSchema([
+    { name: 'Home', path: '/' },
+    { name: 'Blog', path: '/blog' },
+    { name: post.title, path: `/blog/${post.slug}` },
+  ]);
 
   return (
     <main className="min-h-screen bg-slate-50 py-12">
       <article className="mx-auto max-w-3xl rounded-2xl border border-slate-200 bg-white px-6 py-10 shadow-sm sm:px-10">
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }}
-        />
+        {[articleSchema, breadcrumbSchema].map((schema, index) => (
+          <script
+            key={index}
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+          />
+        ))}
 
         <p className="text-sm font-medium text-blue-700">{post.readTime}</p>
         <h1 className="mt-3 text-3xl font-bold leading-tight text-slate-900 sm:text-4xl">

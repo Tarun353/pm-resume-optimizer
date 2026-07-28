@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { SeoCta } from '@/components/SeoCta';
 import type { Metadata } from 'next';
-import { absoluteUrl } from '@/lib/seo';
+import { createBreadcrumbSchema, createPageMetadata } from '@/lib/seo';
 
 const pretty = (value: string) =>
   value
@@ -17,9 +17,7 @@ export async function generateMetadata({ params }: ProgrammaticPageProps): Promi
   const { role, industry } = await params;
   const roleLabel = pretty(role);
   const industryLabel = pretty(industry);
-  const canonical = absoluteUrl(`/resume-score/${role}/${industry}`);
-
-  return {
+  return createPageMetadata({
     title: `${roleLabel} Resume Score for ${industryLabel} Jobs`,
     description: `Check how your ${roleLabel} resume performs for ${industryLabel} roles. Get ATS keyword alignment, recruiter-focused improvements, and practical rewrite suggestions.`,
     keywords: [
@@ -28,16 +26,9 @@ export async function generateMetadata({ params }: ProgrammaticPageProps): Promi
       'ATS keyword alignment',
       'product manager resume optimization',
     ],
-    alternates: {
-      canonical,
-    },
-    openGraph: {
-      title: `${roleLabel} Resume Score for ${industryLabel} Jobs`,
-      description: `Check how your ${roleLabel} resume performs for ${industryLabel} roles. Get ATS keyword alignment, recruiter-focused improvements, and practical rewrite suggestions.`,
-      url: canonical,
-      type: 'article',
-    },
-  };
+    path: `/resume-score/${role}/${industry}`,
+    type: 'article',
+  });
 }
 
 export default async function ResumeScoreProgrammaticPage({ params }: ProgrammaticPageProps) {
@@ -53,8 +44,17 @@ export default async function ResumeScoreProgrammaticPage({ params }: Programmat
     'product metrics',
   ];
 
+  const breadcrumbSchema = createBreadcrumbSchema([
+    { name: 'Home', path: '/' },
+    { name: `${roleLabel} ${industryLabel} Resume Score`, path: `/resume-score/${role}/${industry}` },
+  ]);
+
   return (
     <main className="min-h-screen bg-slate-50 py-12">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
       <article className="mx-auto max-w-4xl rounded-2xl border border-slate-200 bg-white px-6 py-10 shadow-sm sm:px-10">
         <SeoCta className="mb-6" />
 
