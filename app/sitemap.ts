@@ -3,8 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { BLOG_POSTS } from '@/lib/content/blogPosts';
 import { SEGMENT_PAGES } from '@/lib/content/segments';
-
-const BASE_URL = 'https://pm-resume-optimizer.onrender.com';
+import { absoluteUrl } from '@/lib/seo';
 const APP_DIR = path.join(process.cwd(), 'app');
 
 const sampleProgrammaticRoutes = [
@@ -92,7 +91,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       const { changeFrequency, priority } = getSeoMetadata(route);
 
       return {
-        url: route === '/' ? BASE_URL : `${BASE_URL}${route}`,
+        url: absoluteUrl(route),
         lastModified: new Date(),
         changeFrequency,
         priority,

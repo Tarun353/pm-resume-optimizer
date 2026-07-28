@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { SeoCta } from '@/components/SeoCta';
 import type { Metadata } from 'next';
+import { absoluteUrl } from '@/lib/seo';
 
 const pretty = (value: string) =>
   value
@@ -16,7 +17,7 @@ export async function generateMetadata({ params }: ProgrammaticPageProps): Promi
   const { role, industry } = await params;
   const roleLabel = pretty(role);
   const industryLabel = pretty(industry);
-  const canonical = `https://pm-resume-optimizer.onrender.com/resume-score/${role}/${industry}`;
+  const canonical = absoluteUrl(`/resume-score/${role}/${industry}`);
 
   return {
     title: `${roleLabel} Resume Score for ${industryLabel} Jobs`,
@@ -29,6 +30,12 @@ export async function generateMetadata({ params }: ProgrammaticPageProps): Promi
     ],
     alternates: {
       canonical,
+    },
+    openGraph: {
+      title: `${roleLabel} Resume Score for ${industryLabel} Jobs`,
+      description: `Check how your ${roleLabel} resume performs for ${industryLabel} roles. Get ATS keyword alignment, recruiter-focused improvements, and practical rewrite suggestions.`,
+      url: canonical,
+      type: 'article',
     },
   };
 }

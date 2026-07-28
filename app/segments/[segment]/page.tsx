@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { SEGMENT_BY_SLUG, SEGMENT_PAGES } from '@/lib/content/segments';
 import { SeoCta } from '@/components/SeoCta';
+import { absoluteUrl } from '@/lib/seo';
 
 type SegmentProps = {
   params: Promise<{ segment: string }>;
@@ -20,12 +21,18 @@ export async function generateMetadata({ params }: SegmentProps): Promise<Metada
     return { title: 'Segment Not Found', description: 'This PM resume segment page does not exist.' };
   }
 
-  const canonical = `https://pm-resume-optimizer.onrender.com/segments/${item.slug}`;
+  const canonical = absoluteUrl(`/segments/${item.slug}`);
   return {
     title: item.title,
     description: item.description,
     keywords: item.keywords,
     alternates: { canonical },
+    openGraph: {
+      title: item.title,
+      description: item.description,
+      url: canonical,
+      type: 'article',
+    },
   };
 }
 
