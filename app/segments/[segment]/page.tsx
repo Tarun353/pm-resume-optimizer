@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { SEGMENT_BY_SLUG, SEGMENT_PAGES } from '@/lib/content/segments';
 import { SeoCta } from '@/components/SeoCta';
-import { absoluteUrl } from '@/lib/seo';
+import { createBreadcrumbSchema, createPageMetadata } from '@/lib/seo';
 
 type SegmentProps = {
   params: Promise<{ segment: string }>;
@@ -21,19 +21,13 @@ export async function generateMetadata({ params }: SegmentProps): Promise<Metada
     return { title: 'Segment Not Found', description: 'This PM resume segment page does not exist.' };
   }
 
-  const canonical = absoluteUrl(`/segments/${item.slug}`);
-  return {
+  return createPageMetadata({
     title: item.title,
     description: item.description,
     keywords: item.keywords,
-    alternates: { canonical },
-    openGraph: {
-      title: item.title,
-      description: item.description,
-      url: canonical,
-      type: 'article',
-    },
-  };
+    path: `/segments/${item.slug}`,
+    type: 'article',
+  });
 }
 
 export default async function SegmentPage({ params }: SegmentProps) {
@@ -42,8 +36,18 @@ export default async function SegmentPage({ params }: SegmentProps) {
 
   if (!item) notFound();
 
+  const breadcrumbSchema = createBreadcrumbSchema([
+    { name: 'Home', path: '/' },
+    { name: 'Segments', path: '/segments' },
+    { name: item.title, path: `/segments/${item.slug}` },
+  ]);
+
   return (
     <main className="min-h-screen bg-slate-50 py-12">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
       <article className="mx-auto max-w-4xl rounded-2xl border border-slate-200 bg-white px-6 py-10 shadow-sm sm:px-10">
         <p className="text-sm font-semibold uppercase tracking-wide text-blue-700">Segment Resume Guide</p>
         <h1 className="mt-2 text-3xl font-bold text-slate-900 sm:text-4xl">{item.title}</h1>

@@ -1,12 +1,14 @@
 import type { Metadata } from 'next';
 import { SeoCta } from '@/components/SeoCta';
+import { createPageMetadata } from '@/lib/seo';
 
-export const metadata: Metadata = {
+export const metadata: Metadata = createPageMetadata({
   title: 'Resume ATS Score Checker for Product Managers',
   description:
     'Check your product manager resume ATS score, keyword match quality, and recruiter-readiness with actionable recommendations.',
   keywords: ['resume ATS score checker', 'product manager resume score', 'ATS keyword match'],
-};
+  path: '/score',
+});
 
 export default function ScoreLayout({ children }: { children: React.ReactNode }) {
   return (

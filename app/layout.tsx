@@ -3,7 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/AuthContext";
 import Script from "next/script";
-import { SITE_URL } from "@/lib/seo";
+import { DEFAULT_OG_IMAGE, ORGANIZATION_SCHEMA, SITE_NAME, SITE_URL, WEBSITE_SCHEMA, absoluteUrl } from "@/lib/seo";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -25,6 +25,7 @@ export const metadata: Metadata = {
     "resume ATS score improvement",
     "PM job resume tips",
   ],
+  alternates: { canonical: SITE_URL },
   verification: {
     google: "a9CGHtLZZJlKEJZkwjLQcBCGCyp9oR3d9SRLfJ4XXxI",
   },
@@ -33,8 +34,16 @@ export const metadata: Metadata = {
     description:
       "Find out why your product manager resume isn’t getting interviews and fix it instantly with AI-powered optimization.",
     url: SITE_URL,
-    siteName: "PM Resume Optimizer",
+    siteName: SITE_NAME,
+    images: [{ url: absoluteUrl(DEFAULT_OG_IMAGE), alt: `${SITE_NAME} logo` }],
     type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Fix Your PM Resume in 60 Seconds",
+    description:
+      "Find out why your product manager resume isn’t getting interviews and fix it instantly with AI-powered optimization.",
+    images: [absoluteUrl(DEFAULT_OG_IMAGE)],
   },
 };
 
@@ -46,6 +55,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        {[ORGANIZATION_SCHEMA, WEBSITE_SCHEMA].map((schema, index) => (
+          <script
+            key={index}
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+          />
+        ))}
         {/* Microsoft Clarity */}
         <Script
           id="microsoft-clarity"

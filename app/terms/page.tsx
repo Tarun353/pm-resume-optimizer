@@ -1,15 +1,28 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { SeoCta } from '@/components/SeoCta';
+import { createBreadcrumbSchema, createPageMetadata } from '@/lib/seo';
 
-export const metadata: Metadata = {
+export const metadata: Metadata = createPageMetadata({
   title: 'Terms of Service',
   description: 'Read the PM Resume Optimizer terms covering AI-generated content, payments, usage limits, and service responsibilities.',
   keywords: ['PM Resume Optimizer terms', 'resume optimization terms of service', 'AI resume tool terms'],
-};
+  path: '/terms',
+});
 
 export default function TermsPage() {
+
+  const breadcrumbSchema = createBreadcrumbSchema([
+    { name: 'Home', path: '/' },
+    { name: 'Terms of Service', path: '/terms' },
+  ]);
+
   return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
     <div className="min-h-screen bg-slate-50">
 
       {/* Nav */}
@@ -124,5 +137,6 @@ export default function TermsPage() {
         </div>
       </main>
     </div>
+    </>
   );
 }

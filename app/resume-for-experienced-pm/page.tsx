@@ -1,16 +1,29 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { SeoCta } from '@/components/SeoCta';
+import { createBreadcrumbSchema, createPageMetadata } from '@/lib/seo';
 
-export const metadata: Metadata = {
+export const metadata: Metadata = createPageMetadata({
   title: 'Experienced Product Manager Resume: ATS Optimization for Senior PM Roles',
   description:
     'Optimize your experienced product manager resume for senior PM roles with recruiter expectations, ATS strategy, and impact-driven positioning.',
   keywords: ['experienced PM resume', 'senior product manager resume', 'ATS resume optimization'],
-};
+  path: '/resume-for-experienced-pm',
+});
 
 export default function ResumeForExperiencedPMPage() {
+
+  const breadcrumbSchema = createBreadcrumbSchema([
+    { name: 'Home', path: '/' },
+    { name: 'Experienced PM Resume', path: '/resume-for-experienced-pm' },
+  ]);
+
   return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
     <main className="min-h-screen bg-slate-50 py-12">
       <article className="mx-auto max-w-4xl rounded-2xl border border-slate-200 bg-white px-6 py-10 shadow-sm sm:px-10">
         <p className="text-sm font-semibold uppercase tracking-wide text-blue-700">
@@ -122,5 +135,6 @@ export default function ResumeForExperiencedPMPage() {
         <SeoCta className="mt-10" />
       </article>
     </main>
+    </>
   );
 }

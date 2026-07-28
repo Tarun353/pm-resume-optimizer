@@ -1,16 +1,29 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { SeoCta } from '@/components/SeoCta';
+import { createBreadcrumbSchema, createPageMetadata } from '@/lib/seo';
 
-export const metadata: Metadata = {
+export const metadata: Metadata = createPageMetadata({
   title: 'Product Manager Resume for Career Switchers: ATS Guide for Transition Roles',
   description:
     'Transition into product management from engineering, consulting, business, or SaaS with a resume that passes ATS and matches recruiter expectations.',
   keywords: ['career switch to product manager', 'PM transition resume', 'ATS-friendly product resume'],
-};
+  path: '/resume-for-career-switch',
+});
 
 export default function ResumeForCareerSwitchPage() {
+
+  const breadcrumbSchema = createBreadcrumbSchema([
+    { name: 'Home', path: '/' },
+    { name: 'PM Resume for Career Switchers', path: '/resume-for-career-switch' },
+  ]);
+
   return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
     <main className="min-h-screen bg-slate-50 py-12">
       <article className="mx-auto max-w-4xl rounded-2xl border border-slate-200 bg-white px-6 py-10 shadow-sm sm:px-10">
         <p className="text-sm font-semibold uppercase tracking-wide text-blue-700">
@@ -122,5 +135,6 @@ export default function ResumeForCareerSwitchPage() {
         <SeoCta className="mt-10" />
       </article>
     </main>
+    </>
   );
 }

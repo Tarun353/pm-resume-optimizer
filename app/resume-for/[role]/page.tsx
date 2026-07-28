@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { SeoCta } from '@/components/SeoCta';
+import { createBreadcrumbSchema, createPageMetadata } from '@/lib/seo';
 
 function toTitleCase(value: string) {
   return value
@@ -26,18 +27,28 @@ function getKeywordVariations(roleLabel: string) {
 export function generateMetadata({ params }: { params: { role: string } }): Metadata {
   const roleLabel = toTitleCase(params.role);
 
-  return {
+  return createPageMetadata({
     title: `Product Manager Resume for ${roleLabel} | ATS-Friendly Career Transition Guide`,
     description: `Learn how to position your ${roleLabel} background for product manager roles with transferable skills, ATS keywords, and resume strategy.`,
     keywords: getKeywordVariations(roleLabel),
-  };
+    path: `/resume-for/${params.role}`,
+  });
 }
 
 export default function ResumeForRolePage({ params }: { params: { role: string } }) {
   const roleLabel = toTitleCase(params.role);
   const keywords = getKeywordVariations(roleLabel);
+  const breadcrumbSchema = createBreadcrumbSchema([
+    { name: 'Home', path: '/' },
+    { name: `PM Resume for ${roleLabel}`, path: `/resume-for/${params.role}` },
+  ]);
 
   return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
     <main className="min-h-screen bg-slate-50 py-12">
       <article className="mx-auto max-w-4xl rounded-2xl border border-slate-200 bg-white px-6 py-10 shadow-sm sm:px-10">
         <p className="text-sm font-semibold uppercase tracking-wide text-blue-700">Role Transition Guide</p>
@@ -95,5 +106,6 @@ export default function ResumeForRolePage({ params }: { params: { role: string }
         <SeoCta className="mt-10" />
       </article>
     </main>
+    </>
   );
 }

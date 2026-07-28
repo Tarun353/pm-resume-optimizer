@@ -3,16 +3,29 @@ import { SeoCta } from '@/components/SeoCta';
 import { BlogQuickActions } from './BlogQuickActions';
 import type { Metadata } from 'next';
 import { BLOG_POSTS } from '@/lib/content/blogPosts';
+import { createBreadcrumbSchema, createPageMetadata } from '@/lib/seo';
 
-export const metadata: Metadata = {
+export const metadata: Metadata = createPageMetadata({
   title: 'PM Resume Blog: Guides, ATS Tips, and Keyword Strategies',
   description:
     'Read practical product manager resume guides, ATS optimization tips, and role-specific keyword strategies to improve your PM interview conversion.',
   keywords: ['PM resume blog', 'ATS resume tips', 'product manager resume keywords'],
-};
+  path: '/blog',
+});
 
 export default function BlogIndexPage() {
+
+  const breadcrumbSchema = createBreadcrumbSchema([
+    { name: 'Home', path: '/' },
+    { name: 'Blog', path: '/blog' },
+  ]);
+
   return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
     <main className="min-h-screen bg-slate-50 py-12">
       <div className="mx-auto max-w-4xl px-6">
         <h1 className="text-3xl font-bold text-slate-900 sm:text-4xl">
@@ -52,5 +65,6 @@ export default function BlogIndexPage() {
         <SeoCta className="mt-10" />
       </div>
     </main>
+    </>
   );
 }

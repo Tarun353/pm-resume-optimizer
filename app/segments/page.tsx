@@ -2,27 +2,28 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { SEGMENT_PAGES } from '@/lib/content/segments';
 import { SeoCta } from '@/components/SeoCta';
-import { absoluteUrl } from '@/lib/seo';
+import { createBreadcrumbSchema, createPageMetadata } from '@/lib/seo';
 
-const canonical = absoluteUrl('/segments');
-
-export const metadata: Metadata = {
+export const metadata: Metadata = createPageMetadata({
   title: 'PM Resume Segments: Role and Industry SEO Guides',
   description:
     'Explore segmented product manager resume guides by role, domain, and seniority with ATS-friendly recommendations and keyword strategy.',
   keywords: ['product manager resume segments', 'ATS resume guides', 'PM resume keywords by industry'],
-  alternates: { canonical },
-  openGraph: {
-    title: 'PM Resume Segments: Role and Industry SEO Guides',
-    description:
-      'Explore segmented product manager resume guides by role, domain, and seniority with ATS-friendly recommendations and keyword strategy.',
-    url: canonical,
-    type: 'website',
-  },
-};
+  path: '/segments',
+});
 
 export default function SegmentIndexPage() {
+  const breadcrumbSchema = createBreadcrumbSchema([
+    { name: 'Home', path: '/' },
+    { name: 'Segments', path: '/segments' },
+  ]);
+
   return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
     <main className="min-h-screen bg-slate-50 py-12">
       <div className="mx-auto max-w-5xl px-6">
         <h1 className="text-3xl font-bold text-slate-900 sm:text-4xl">PM Resume Segment Library</h1>
@@ -48,5 +49,6 @@ export default function SegmentIndexPage() {
         <SeoCta className="mt-10" />
       </div>
     </main>
+    </>
   );
 }
