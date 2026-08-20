@@ -2137,13 +2137,7 @@ export default function HomePage() {
                   </div>
                 )}
 
-                {/* Loading */}
-                {isLoading && (
-                  <PMLoadingScreen
-                    mode={loadingStep.toLowerCase().includes('cover letter') ? 'cover-letter' : 'optimize'}
-                    message={loadingStep || undefined}
-                  />
-                )}
+                {/* Loading is shown in the action area above to avoid duplicate progress cards. */}
 
                 {/* Error */}
                 {error && (
