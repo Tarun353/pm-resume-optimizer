@@ -508,10 +508,56 @@ function OptimizedResultSummary({
       </div>
 
       {changesCount > 0 && (
+        <p className="text-xs text-slate-500 mt-4">
+          {changesCount} AI improvement{changesCount === 1 ? '' : 's'} applied.
         <p className="text-xs text-slate-500 mt-3">
           ✨ {changesCount} AI improvement{changesCount === 1 ? '' : 's'} applied to your summary, bullets, and keyword alignment.
         </p>
       )}
+    </div>
+  );
+}
+
+function OptimizedActionCard({
+  onReview,
+  onCoverLetter,
+  onEditInputs,
+  showCoverLetter,
+  isLoading,
+}: {
+  onReview: () => void;
+  onCoverLetter: () => void;
+  onEditInputs: () => void;
+  showCoverLetter: boolean;
+  isLoading: boolean;
+}) {
+  return (
+    <div className="bg-white border border-slate-200 rounded-3xl p-4 shadow-sm animate-fadeInUp">
+      <button
+        onClick={onReview}
+        className="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-2xl text-base font-bold transition-all duration-200 shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 btn-press"
+      >
+        <EditIcon />
+        Review & Download Resume
+      </button>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
+        {showCoverLetter && (
+          <button
+            onClick={onCoverLetter}
+            disabled={isLoading}
+            className="py-3 text-sm font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-100 rounded-2xl transition-all btn-press"
+          >
+            ✉️ Generate Cover Letter
+          </button>
+        )}
+        <button
+          onClick={onEditInputs}
+          className="py-3 text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-slate-100 rounded-2xl transition-all"
+        >
+          Edit inputs & optimize again
+        </button>
+      </div>
     </div>
   );
 }
@@ -1749,6 +1795,14 @@ export default function HomePage() {
   const pmAnalysis = detectMissingPMKeywords(analyzedResumeText);
   const pmScore = Math.max(0, 100 - (pmAnalysis.missingKeywords.length * 5));
   const showRightPanel = isLoading || !!error || !!parsedResume || !!optimizedResume || !!coverLetter;
+  const isOptimizedMode = !!optimizedResume && !isLoading;
+
+  const handleEditInputs = () => {
+    setOptimizedResume(null);
+    setChanges([]);
+    setKeywords([]);
+    requestAnimationFrame(() => optimizerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  };
 
   const now = new Date();
   const hasActivePaidPlan = dbUser?.subscription_type === 'paid' &&
@@ -1903,9 +1957,10 @@ export default function HomePage() {
           </div>
 
           {/* ── Main Form + Results ── */}
-          <div className={`grid grid-cols-1 ${showRightPanel ? 'lg:grid-cols-2' : ''} gap-6 items-start`}>
+          <div className={`${isOptimizedMode ? 'max-w-3xl mx-auto' : `grid grid-cols-1 ${showRightPanel ? 'lg:grid-cols-2' : ''} gap-6 items-start`}`}>
 
             {/* LEFT: Inputs */}
+            {!isOptimizedMode && (
             <div className="space-y-4 animate-fadeInUp stagger-3" ref={optimizerRef}>
 
               {/* Resume + JD side by side */}
@@ -2105,6 +2160,7 @@ export default function HomePage() {
                 </p>
               </div>
             </div>
+            )}
 
             {/* RIGHT: Results */}
             {showRightPanel && (
@@ -2169,6 +2225,37 @@ export default function HomePage() {
                       changesCount={changes.length}
                       sectionsCount={getDetectedSectionCount(optimizedResume)}
                     />
+
+                    <OptimizedActionCard
+                      onReview={() => setShowPreview(true)}
+                      onCoverLetter={handleGenerateCoverLetter}
+                      onEditInputs={handleEditInputs}
+                      showCoverLetter={!coverLetter}
+                      isLoading={isLoading}
+                    />
+
+                    <CollapsibleResultDetails title="View optimization details">
+                      <div className="space-y-3">
+                        {pmAnalysis.missingKeywords.length > 0 && (
+                          <div>
+                            <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">Keywords still missing</p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {pmAnalysis.missingKeywords.map((k, i) => (
+                                <span key={i} className="text-xs bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full border border-slate-200">
+                                  {k}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        <KeywordBadges keywords={keywords} />
+                        <ChangesList changes={changes} />
+                        <ResumeSectionSummary resume={optimizedResume} />
+                      </div>
+                    </CollapsibleResultDetails>
+
+                    <OriginalResumeTextFallback rawText={rawResumeText} />
 
                     {/* Preview & Edit button */}
                     <button onClick={() => setShowPreview(true)}
