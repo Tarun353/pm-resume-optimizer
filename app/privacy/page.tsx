@@ -10,6 +10,12 @@ export const metadata: Metadata = createPageMetadata({
   path: '/privacy',
 });
 
+export const metadata: Metadata = {
+  title: 'Privacy Policy | PM Resume Optimizer',
+  description: 'Review how PM Resume Optimizer handles account data, resume processing, analytics, and security practices.',
+  keywords: ['PM Resume Optimizer privacy policy', 'resume data privacy', 'ATS resume tool privacy'],
+};
+
 export default function PrivacyPage() {
 
   const breadcrumbSchema = createBreadcrumbSchema([
