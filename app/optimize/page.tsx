@@ -479,48 +479,39 @@ function OptimizedResultSummary({
   sectionsCount: number;
 }) {
   return (
-    <div className="bg-white border border-emerald-200 rounded-3xl p-8 shadow-sm animate-fadeInUp text-center">
-      <div className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-2xl mx-auto mb-4">
-        ✓
+    <div className="bg-white border border-emerald-200 rounded-3xl p-5 shadow-sm animate-fadeInUp">
+      <div className="flex items-start gap-3">
+        <div className="w-11 h-11 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-xl shrink-0">
+          ✓
+        </div>
+        <div className="min-w-0">
+          <p className="text-lg font-bold text-slate-900">Resume optimized</p>
+          <p className="text-sm text-slate-600 mt-1">
+            Your resume has been rewritten for this PM role. Review it once, then download your polished PDF.
+          </p>
+        </div>
       </div>
-      <p className="text-2xl font-bold text-slate-900">Your resume is ready</p>
-      <p className="text-sm text-slate-600 mt-2 max-w-xl mx-auto">
-        We optimized it for this PM role. Review it once, then download your polished PDF.
-      </p>
 
-      <div className="mt-6 grid gap-2 text-left max-w-md mx-auto">
-        <div className="flex items-center justify-between rounded-2xl bg-slate-50 border border-slate-100 px-4 py-3">
-          <span className="flex items-center gap-2 text-sm font-medium text-slate-700">
-            <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs">
-              {pmScore >= 80 ? '🎯' : pmScore >= 60 ? '📈' : '⚡'}
-            </span>
-            Resume match score
-          </span>
-          <span className="text-sm font-bold text-slate-900">{pmScore}/100</span>
+      <div className="grid grid-cols-3 gap-2 mt-5">
+        <div className="rounded-2xl bg-blue-50 border border-blue-100 p-3">
+          <p className="text-[10px] uppercase tracking-wide font-semibold text-blue-700">Match score</p>
+          <p className="text-xl font-bold text-blue-900 mt-1">{pmScore}<span className="text-xs font-medium text-blue-600">/100</span></p>
         </div>
-        <div className="flex items-center justify-between rounded-2xl bg-slate-50 border border-slate-100 px-4 py-3">
-          <span className="flex items-center gap-2 text-sm font-medium text-slate-700">
-            <span className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs">
-              ✓
-            </span>
-            Keywords added
-          </span>
-          <span className="text-sm font-bold text-slate-900">{keywordsAdded}</span>
+        <div className="rounded-2xl bg-emerald-50 border border-emerald-100 p-3">
+          <p className="text-[10px] uppercase tracking-wide font-semibold text-emerald-700">Keywords added</p>
+          <p className="text-xl font-bold text-emerald-900 mt-1">{keywordsAdded}</p>
         </div>
-        <div className="flex items-center justify-between rounded-2xl bg-slate-50 border border-slate-100 px-4 py-3">
-          <span className="flex items-center gap-2 text-sm font-medium text-slate-700">
-            <span className="w-6 h-6 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-xs">
-              #
-            </span>
-            Resume sections found
-          </span>
-          <span className="text-sm font-bold text-slate-900">{sectionsCount}</span>
+        <div className="rounded-2xl bg-slate-50 border border-slate-100 p-3">
+          <p className="text-[10px] uppercase tracking-wide font-semibold text-slate-600">Sections found</p>
+          <p className="text-xl font-bold text-slate-900 mt-1">{sectionsCount}</p>
         </div>
       </div>
 
       {changesCount > 0 && (
         <p className="text-xs text-slate-500 mt-4">
           {changesCount} AI improvement{changesCount === 1 ? '' : 's'} applied.
+        <p className="text-xs text-slate-500 mt-3">
+          ✨ {changesCount} AI improvement{changesCount === 1 ? '' : 's'} applied to your summary, bullets, and keyword alignment.
         </p>
       )}
     </div>
@@ -2202,13 +2193,7 @@ export default function HomePage() {
                   </div>
                 )}
 
-                {/* Loading */}
-                {isLoading && (
-                  <PMLoadingScreen
-                    mode={loadingStep.toLowerCase().includes('cover letter') ? 'cover-letter' : 'optimize'}
-                    message={loadingStep || undefined}
-                  />
-                )}
+                {/* Loading is shown in the action area above to avoid duplicate progress cards. */}
 
                 {/* Error */}
                 {error && (
@@ -2248,6 +2233,51 @@ export default function HomePage() {
                       showCoverLetter={!coverLetter}
                       isLoading={isLoading}
                     />
+
+                    <CollapsibleResultDetails title="View optimization details">
+                      <div className="space-y-3">
+                        {pmAnalysis.missingKeywords.length > 0 && (
+                          <div>
+                            <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">Keywords still missing</p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {pmAnalysis.missingKeywords.map((k, i) => (
+                                <span key={i} className="text-xs bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full border border-slate-200">
+                                  {k}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        <KeywordBadges keywords={keywords} />
+                        <ChangesList changes={changes} />
+                        <ResumeSectionSummary resume={optimizedResume} />
+                      </div>
+                    </CollapsibleResultDetails>
+
+                    <OriginalResumeTextFallback rawText={rawResumeText} />
+
+                    {/* Preview & Edit button */}
+                    <button onClick={() => setShowPreview(true)}
+                      className="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-2xl text-sm font-bold transition-all duration-200 shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 btn-press animate-fadeInUp">
+                      <EditIcon />
+                      Review & Download Resume
+                    </button>
+
+                    {/* Cover Letter — still available after optimization */}
+                    {!coverLetter && (
+                      <div className="bg-white border border-blue-100 rounded-2xl p-4 text-center animate-fadeInUp stagger-2">
+                        <p className="text-xs text-slate-500 mb-3">Optional: want a matching cover letter too?</p>
+                        <button onClick={handleGenerateCoverLetter} disabled={isLoading}
+                          className="w-full py-3 bg-blue-50 border border-blue-200 hover:border-blue-400 hover:bg-blue-100 text-blue-700 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 btn-press">
+                          ✉️ Generate Cover Letter
+                        </button>
+                      </div>
+                    )}
+
+                    <p className="text-xs text-center text-slate-500">
+                      Review your optimized bullets, reorder sections if needed, then download as PDF.
+                    </p>
 
                     <CollapsibleResultDetails title="View optimization details">
                       <div className="space-y-3">
