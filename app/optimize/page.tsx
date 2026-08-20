@@ -424,6 +424,98 @@ function OriginalResumeTextFallback({ rawText }: { rawText: string }) {
   );
 }
 
+function getDetectedSectionCount(resume: ResumeData) {
+  return [
+    !!resume.personal?.name,
+    !!resume.summary,
+    (resume.experience?.length ?? 0) > 0,
+    (resume.education?.length ?? 0) > 0,
+    (resume.skills?.length ?? 0) > 0,
+    (resume.certifications?.length ?? 0) > 0,
+    (resume.awards?.length ?? 0) > 0,
+    (resume.publications?.length ?? 0) > 0,
+    (resume.internships?.length ?? 0) > 0,
+    (resume.projects?.length ?? 0) > 0,
+    (resume.softSkills?.length ?? 0) > 0,
+    (resume.additionalSections?.length ?? 0) > 0,
+  ].filter(Boolean).length;
+}
+
+function CollapsibleResultDetails({
+  title,
+  children,
+  defaultOpen = false,
+}: {
+  title: string;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+}) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden animate-fadeInUp">
+      <button
+        type="button"
+        onClick={() => setIsOpen(prev => !prev)}
+        className="w-full px-4 py-3.5 flex items-center justify-between gap-3 text-left hover:bg-slate-50 transition-colors"
+      >
+        <span className="text-sm font-semibold text-slate-800">{title}</span>
+        <span className="text-xs text-slate-500">{isOpen ? '▲' : '▼'}</span>
+      </button>
+      {isOpen && <div className="px-4 pb-4 animate-fadeIn">{children}</div>}
+    </div>
+  );
+}
+
+function OptimizedResultSummary({
+  pmScore,
+  keywordsAdded,
+  changesCount,
+  sectionsCount,
+}: {
+  pmScore: number;
+  keywordsAdded: number;
+  changesCount: number;
+  sectionsCount: number;
+}) {
+  return (
+    <div className="bg-white border border-emerald-200 rounded-3xl p-5 shadow-sm animate-fadeInUp">
+      <div className="flex items-start gap-3">
+        <div className="w-11 h-11 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-xl shrink-0">
+          ✓
+        </div>
+        <div className="min-w-0">
+          <p className="text-lg font-bold text-slate-900">Resume optimized</p>
+          <p className="text-sm text-slate-600 mt-1">
+            Your resume has been rewritten for this PM role. Review it once, then download your polished PDF.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2 mt-5">
+        <div className="rounded-2xl bg-blue-50 border border-blue-100 p-3">
+          <p className="text-[10px] uppercase tracking-wide font-semibold text-blue-700">Match score</p>
+          <p className="text-xl font-bold text-blue-900 mt-1">{pmScore}<span className="text-xs font-medium text-blue-600">/100</span></p>
+        </div>
+        <div className="rounded-2xl bg-emerald-50 border border-emerald-100 p-3">
+          <p className="text-[10px] uppercase tracking-wide font-semibold text-emerald-700">Keywords added</p>
+          <p className="text-xl font-bold text-emerald-900 mt-1">{keywordsAdded}</p>
+        </div>
+        <div className="rounded-2xl bg-slate-50 border border-slate-100 p-3">
+          <p className="text-[10px] uppercase tracking-wide font-semibold text-slate-600">Sections found</p>
+          <p className="text-xl font-bold text-slate-900 mt-1">{sectionsCount}</p>
+        </div>
+      </div>
+
+      {changesCount > 0 && (
+        <p className="text-xs text-slate-500 mt-3">
+          ✨ {changesCount} AI improvement{changesCount === 1 ? '' : 's'} applied to your summary, bullets, and keyword alignment.
+        </p>
+      )}
+    </div>
+  );
+}
+
 // ─── Section Reorder ───────────────────────────────────────────────────────────
 interface SectionReorderProps {
   sectionOrder: string[];
@@ -2077,54 +2169,57 @@ export default function HomePage() {
                 {/* Optimized results */}
                 {optimizedResume && !isLoading && (
                   <>
-                    {/* PM Score */}
-                    <div className="bg-gradient-to-r from-blue-50 to-blue-50 border border-blue-200 rounded-2xl p-4 animate-fadeInUp flex items-center justify-between">
-                      <div>
-                        <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">PM Keyword Score</p>
-                        <p className="text-2xl font-bold text-blue-900 mt-1">{pmScore}<span className="text-sm font-normal text-blue-600">/100</span></p>
-                      </div>
-                      <div className="text-4xl">
-                        {pmScore >= 80 ? '🎯' : pmScore >= 60 ? '📈' : '⚡'}
-                      </div>
-                    </div>
-
-                    {/* Missing keywords */}
-                    {pmAnalysis.missingKeywords.length > 0 && (
-                      <div className="bg-white border border-slate-200 rounded-2xl p-4 animate-fadeInUp stagger-1">
-                        <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">Missing PM Keywords</p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {pmAnalysis.missingKeywords.map((k, i) => (
-                            <span key={i} className="text-xs bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full border border-slate-200">
-                              {k}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    <KeywordBadges keywords={keywords} />
-                    <ChangesList changes={changes} />
-                    <ResumeSectionSummary resume={optimizedResume} />
-                    <OriginalResumeTextFallback rawText={rawResumeText} />
+                    <OptimizedResultSummary
+                      pmScore={pmScore}
+                      keywordsAdded={keywords.length}
+                      changesCount={changes.length}
+                      sectionsCount={getDetectedSectionCount(optimizedResume)}
+                    />
 
                     {/* Preview & Edit button */}
                     <button onClick={() => setShowPreview(true)}
                       className="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-2xl text-sm font-bold transition-all duration-200 shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 btn-press animate-fadeInUp">
                       <EditIcon />
-                      Edit, Reorder & Preview Resume
+                      Review & Download Resume
                     </button>
 
                     {/* Cover Letter — still available after optimization */}
                     {!coverLetter && (
-                      <button onClick={handleGenerateCoverLetter} disabled={isLoading}
-                        className="w-full py-3.5 bg-white border-2 border-blue-300 hover:border-blue-500 hover:bg-blue-50 text-blue-700 rounded-2xl text-sm font-semibold transition-all flex items-center justify-center gap-2 animate-fadeInUp stagger-2 btn-press">
-                        ✉️ Generate Cover Letter for This Role
-                      </button>
+                      <div className="bg-white border border-blue-100 rounded-2xl p-4 text-center animate-fadeInUp stagger-2">
+                        <p className="text-xs text-slate-500 mb-3">Optional: want a matching cover letter too?</p>
+                        <button onClick={handleGenerateCoverLetter} disabled={isLoading}
+                          className="w-full py-3 bg-blue-50 border border-blue-200 hover:border-blue-400 hover:bg-blue-100 text-blue-700 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 btn-press">
+                          ✉️ Generate Cover Letter
+                        </button>
+                      </div>
                     )}
 
                     <p className="text-xs text-center text-slate-500">
-                      Edit bullets, reorder sections, preview — then download as PDF
+                      Review your optimized bullets, reorder sections if needed, then download as PDF.
                     </p>
+
+                    <CollapsibleResultDetails title="View optimization details">
+                      <div className="space-y-3">
+                        {pmAnalysis.missingKeywords.length > 0 && (
+                          <div>
+                            <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">Keywords still missing</p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {pmAnalysis.missingKeywords.map((k, i) => (
+                                <span key={i} className="text-xs bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full border border-slate-200">
+                                  {k}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        <KeywordBadges keywords={keywords} />
+                        <ChangesList changes={changes} />
+                        <ResumeSectionSummary resume={optimizedResume} />
+                      </div>
+                    </CollapsibleResultDetails>
+
+                    <OriginalResumeTextFallback rawText={rawResumeText} />
 
                     <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-700">
                       <strong>Tip:</strong> Not satisfied? Refine the JD or switch profiles, then click Optimize again.
